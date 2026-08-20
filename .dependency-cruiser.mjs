@@ -70,9 +70,12 @@ export default {
       name: 'no-undeclared-dependency-in-source',
       severity: 'error',
       comment:
-        'Source code must declare what it imports in its own package.json, not lean on a hoisted development dependency.',
+        'Source code must declare what it imports in its own package.json, not lean on a hoisted development dependency. A peer dependency is a valid declaration: a Harness package is provided by the host process and must not be installed a second time.',
       from: { path: '^packages/[^/]+/[^/]+/src' },
-      to: { dependencyTypes: ['npm-dev', 'npm-no-pkg', 'npm-unknown', 'undetermined'] },
+      to: {
+        dependencyTypes: ['npm-dev', 'npm-no-pkg', 'npm-unknown', 'undetermined'],
+        dependencyTypesNot: ['npm-peer'],
+      },
     },
   ],
   options: {

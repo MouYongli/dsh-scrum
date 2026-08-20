@@ -8,14 +8,31 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    }
+    },
+    "./cordis.patch.yml": "./cordis.patch.yml"
   },
   "files": [
-    "dist"
+    "dist",
+    "cordis.patch.yml"
   ],
   "scripts": {
     "build": "tsc -b",
     "typecheck": "tsc -b",
     "lint": "eslint src"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "dependencies": {
+    "@dsh-scrum/scrum-harness-client": "workspace:*",
+    "@dsh-scrum/scrum-harness-host": "workspace:*"
   }
 }
