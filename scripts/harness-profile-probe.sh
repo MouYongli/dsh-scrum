@@ -12,8 +12,9 @@
 # Set DSH_BIN to use an already installed CLI instead of npx.
 set -euo pipefail
 
-DSH_VERSION="${1:-0.1.0-rc.7}"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Defaults to the repository's single target version; pass another to check it.
+DSH_VERSION="${1:-$(node -p "require('$REPO_ROOT/package.json').dsh.targetHarnessVersion")}"
 BUNDLE_DIR="$REPO_ROOT/packages/harness/scrum-harness-bundle"
 BUNDLE_NAME="@dsh-scrum/scrum-harness-bundle"
 PROFILE="scrum-probe"

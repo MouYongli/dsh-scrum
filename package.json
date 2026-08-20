@@ -10,6 +10,9 @@
     "node": ">=22.12 <25",
     "pnpm": ">=10.10"
   },
+  "dsh": {
+    "targetHarnessVersion": "0.1.0-rc.8"
+  },
   "scripts": {
     "build": "pnpm -r build",
     "dev:link": "node scripts/dev-profile.js add",
@@ -24,6 +27,7 @@
     "format:check": "prettier --check ."
   },
   "devDependencies": {
+    "@dsh-scrum/scrum-harness-host": "workspace:*",
     "@eslint/js": "^10.0.1",
     "@types/node": "^24.13.3",
     "@vitest/coverage-v8": "^4.1.11",
