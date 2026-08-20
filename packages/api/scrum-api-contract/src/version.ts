@@ -3,14 +3,19 @@ import { ERROR_CODE, ScrumError, type ErrorDetails } from '@dsh-scrum/scrum-doma
 /** API version this build implements. Every envelope carries it explicitly. */
 export const API_VERSION = 1
 
-export type ApiVersion = typeof API_VERSION
-
 /**
  * Versions this build can still read. A version is added here only while the
  * build genuinely accepts payloads shaped that way; removing one is a
  * breaking change for every client that has not been upgraded.
  */
-export const SUPPORTED_API_VERSIONS: readonly number[] = [API_VERSION]
+export const SUPPORTED_API_VERSIONS = [API_VERSION] as const
+
+/**
+ * Derived from the list rather than from `API_VERSION` so that the
+ * `isSupportedApiVersion` type predicate stays truthful when a second
+ * version is added: widening the runtime list widens this type with it.
+ */
+export type ApiVersion = (typeof SUPPORTED_API_VERSIONS)[number]
 
 /**
  * A caller asked for a version this build does not implement. Kept distinct
@@ -33,7 +38,7 @@ export class UnsupportedApiVersionError extends ScrumError {
 }
 
 export function isSupportedApiVersion(value: number): value is ApiVersion {
-  return SUPPORTED_API_VERSIONS.includes(value)
+  return (SUPPORTED_API_VERSIONS as readonly number[]).includes(value)
 }
 
 export function assertSupportedApiVersion(value: number): ApiVersion {
