@@ -24,17 +24,21 @@ describe('api version negotiation', () => {
   })
 
   it('tells the caller which versions this build implements', () => {
+    // Captured, not asserted inside a catch: a failing assertion there would
+    // itself be caught and misreported as the error under test.
+    let error: unknown
     try {
       assertSupportedApiVersion(2)
-      expect.unreachable('version 2 must be refused')
-    } catch (error) {
-      expect(isScrumError(error)).toBe(true)
-      const serialized = serializeScrumError(error as UnsupportedApiVersionError)
-
-      expect(serialized.code).toBe(ERROR_CODE.unsupportedApiVersion)
-      expect(serialized.message).toContain('api version 2 is not supported')
-      expect(serialized.details).toEqual({ requestedVersion: 2, supportedVersions: [1] })
+    } catch (caught) {
+      error = caught
     }
+
+    expect(isScrumError(error)).toBe(true)
+    const serialized = serializeScrumError(error as UnsupportedApiVersionError)
+
+    expect(serialized.code).toBe(ERROR_CODE.unsupportedApiVersion)
+    expect(serialized.message).toContain('api version 2 is not supported')
+    expect(serialized.details).toEqual({ requestedVersion: 2, supportedVersions: [1] })
   })
 
   it('is a domain error, so a boundary can serialize it like any other', () => {
