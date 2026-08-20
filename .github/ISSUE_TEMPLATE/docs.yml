@@ -1,0 +1,38 @@
+name: Documentation
+description: A gap, error or inconsistency in the product, architecture or process documentation.
+title: "[Docs] "
+labels:
+  - type:docs
+  - area:docs
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Keep the title as `[Docs] <Imperative English summary>`, for example
+        `[Docs] Add Git and GitHub collaboration guideline`.
+        Documentation prose is written in Chinese; issue and pull request text stays English.
+
+  - type: input
+    id: document
+    attributes:
+      label: Affected document
+      description: Path and section. Use `New document` when proposing one.
+      placeholder: docs/development/architecture.md, section 12.1
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What is missing, wrong or contradicted elsewhere in the repository.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-change
+    attributes:
+      label: Proposed change
+      description: The structure or content to write, and any other document that must stay consistent with it.
+    validations:
+      required: true

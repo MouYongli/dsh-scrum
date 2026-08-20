@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Git and GitHub collaboration guideline
+    url: https://github.com/MouYongli/dsh-scrum/blob/main/docs/development/git-workflow.md
+    about: Naming and process rules for issues, branches, commits and pull requests.
+  - name: Tiered implementation plan
+    url: https://github.com/MouYongli/dsh-scrum/blob/main/docs/development/implementation-plan.md
+    about: Roadmap and scope. Check whether the work is already planned before opening an issue.
