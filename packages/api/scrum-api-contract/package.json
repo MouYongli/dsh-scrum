@@ -1,0 +1,22 @@
+{
+  "name": "@dsh-scrum/scrum-api-contract",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Versioned Scrum API contract",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "test": "vitest run --passWithNoTests",
+    "lint": "eslint src"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/core/scrum-domain" },
+    { "path": "packages/core/scrum-application" },
+    { "path": "packages/api/scrum-api-contract" },
+    { "path": "packages/harness/scrum-harness-host" },
+    { "path": "packages/harness/scrum-harness-client" },
+    { "path": "packages/harness/scrum-harness-bundle" }
+  ]
+}

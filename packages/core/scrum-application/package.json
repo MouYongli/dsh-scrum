@@ -1,0 +1,25 @@
+{
+  "name": "@dsh-scrum/scrum-application",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Scrum use cases and ports",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "test": "vitest run --passWithNoTests",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "@dsh-scrum/scrum-domain": "workspace:*"
+  }
+}
