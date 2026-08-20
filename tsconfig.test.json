@@ -2,6 +2,10 @@
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true,
+    // `tests/workspace/dependency-boundaries.test.ts` imports the rule factory
+    // from `.dependency-cruiser.mjs`, which dependency-cruiser has to be able
+    // to load directly and so cannot be TypeScript.
+    "allowJs": true,
     "composite": false,
     "declaration": false,
     "declarationMap": false,
@@ -13,5 +17,6 @@
     "packages/*/*/*.config.ts",
     "tests/**/*.ts",
     "vitest.config.ts"
-  ]
+  ],
+  "exclude": ["tests/fixtures/**"]
 }

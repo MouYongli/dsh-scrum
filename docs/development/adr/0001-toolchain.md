@@ -43,6 +43,8 @@
 
 **dependency-cruiser 通过 `tsconfig.depcruise.json` 的 `paths` 解析工作区包**：pnpm 用符号链接安装工作区包，enhanced-resolve 报告的是真实路径，`@dsh-scrum/...` 导入会落进 `dist`，而全部边界规则都写在 `^packages/<group>/<package>/src` 上——规则匹配不到任何边时输出是绿的。改用 `paths` 后这些边落在 `src`，并被标记为 `aliased-tsconfig-paths`，`no-cross-package-file-import` 得以继续拒绝相对路径导入而不误伤包名导入。用 `exports` 自定义条件也能解析到 `src`，但实测那样的边被标记为 `undetermined`，正是 `no-undeclared-dependency-in-source` 禁止的类型，需要放宽两条规则而不是收紧一条。`enhancedResolveOptions.alias` 被 dependency-cruiser 的配置 schema 拒绝，所以别名只能放在 tsconfig 里。
 
+**边界规则本身要有测试**：规则匹配不到任何边就报成功，这个仓库已经两次因此失去强制力。`tests/workspace/dependency-boundaries.test.ts` 把规则集重跑在 `tests/fixtures/boundaries` 的故意违规上，断言报告出的规则名恰好等于规则集，新增规则却没有 fixture 与规则失效同样会红。
+
 **测试不进入 composite 构建**：如果测试文件被包的 `tsconfig.json` 收录，产物 `dist/` 里会出现编译后的测试；如果被排除，测试文件又不属于任何 TypeScript 项目，类型感知 lint 会直接报错。折中方案是用独立的 `tsconfig.test.json` 做完整类型检查，同时对测试关闭类型感知 lint 规则——测试的类型安全由 `tsc` 保证，Lint 只做风格与常见错误检查。
 
 ## 后果
