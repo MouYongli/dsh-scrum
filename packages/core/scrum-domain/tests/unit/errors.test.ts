@@ -70,3 +70,16 @@ describe('domain errors', () => {
     expect(error.details['sprintId']).toBe('sprint-12')
   })
 })
+
+describe('error details', () => {
+  it('accepts nested JSON so a validation failure can list field issues', () => {
+    const error = new ValidationError('request payload is invalid', {
+      issues: [
+        { path: 'data.title', code: 'too_small', message: 'title must not be empty' },
+        { path: 'data.estimate', code: 'invalid_type', message: 'estimate must be a number' },
+      ],
+    })
+
+    expect(JSON.parse(JSON.stringify(serializeScrumError(error).details))).toEqual(error.details)
+  })
+})

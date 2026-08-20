@@ -9,12 +9,21 @@ export const ERROR_CODE = {
   forbidden: 'FORBIDDEN',
   notFound: 'NOT_FOUND',
   unsupportedSchemaVersion: 'UNSUPPORTED_SCHEMA_VERSION',
+  unsupportedApiVersion: 'UNSUPPORTED_API_VERSION',
+  internal: 'INTERNAL',
 } as const
 
 export type ErrorCode = (typeof ERROR_CODE)[keyof typeof ERROR_CODE]
 
-/** Structured, JSON-serializable context carried alongside an error code. */
-export type ErrorDetails = Record<string, string | number | boolean | null>
+export type JsonValue =
+  string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue }
+
+/**
+ * Structured, JSON-serializable context carried alongside an error code.
+ * Nested values are allowed because a validation failure reports a list of
+ * field issues, not a single scalar.
+ */
+export type ErrorDetails = Record<string, JsonValue>
 
 export interface SerializedScrumError {
   readonly code: ErrorCode
