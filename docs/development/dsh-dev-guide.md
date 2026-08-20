@@ -413,4 +413,4 @@ Session Log 只记录必要引用和操作结果，例如：
 
 Harness 插件位于 `packages/harness/`，由 Host、Client、Agent Tools 和 Bundle 组成。`apps/scrum-server` 不是插件，而是 Teams/Enterprise 连接的独立后端；Community 不启动该服务，直接通过 Host 插件读写 Workspace 下的 `.scrum/` JSON/JSONL 数据。
 
-模块、数据和存储设计见[系统架构](architecture.md)，版本能力见[版本设计](editions.md)。
+模块、数据和存储设计见[系统架构](architecture.md)，版本能力见[版本设计](../product/editions.md)。

@@ -725,7 +725,7 @@ Enterprise
 └─ RealtimePublisher
 ```
 
-Edition 不包含领域规则，只声明 Capability、限制和 Adapter 组合。版本判断不能散落在 Domain 或 React 组件中；具体授权规则见[版本设计](editions.md)。
+Edition 不包含领域规则，只声明 Capability、限制和 Adapter 组合。版本判断不能散落在 Domain 或 React 组件中；具体授权规则见[版本设计](../product/editions.md)。
 
 ## 14. 发布产物
 

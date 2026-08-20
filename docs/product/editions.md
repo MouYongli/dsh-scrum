@@ -80,7 +80,7 @@ Enterprise 在 Teams 基础上增加组织治理：
 - 完整管理 API。
 - 企业支持和 SLA。
 
-统一技术架构、模块组合和 Ports/Adapters 设计见[系统架构](architecture.md)。
+统一技术架构、模块组合和 Ports/Adapters 设计见[系统架构](../development/architecture.md)。
 
 ## 6. 功能授权
 
