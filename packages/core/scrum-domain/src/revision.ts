@@ -1,5 +1,5 @@
 import type { Brand } from './brand.js'
-import { ValidationError } from './errors.js'
+import { requirePositiveInteger } from './integers.js'
 
 /**
  * Optimistic concurrency counter. Every successful write increments it by one,
@@ -12,10 +12,7 @@ export type Revision = Brand<number, 'Revision'>
 export const INITIAL_REVISION = 1 as Revision
 
 export function toRevision(value: number): Revision {
-  if (!Number.isSafeInteger(value) || value < 1) {
-    throw new ValidationError('Revision must be an integer of at least 1', { value })
-  }
-  return value as Revision
+  return requirePositiveInteger(value, 'Revision') as Revision
 }
 
 export function nextRevision(current: Revision): Revision {

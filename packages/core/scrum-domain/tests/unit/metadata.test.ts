@@ -113,6 +113,13 @@ describe('entity metadata', () => {
     })
   })
 
+  it('refuses a touch earlier than the stored updatedAt, accepts the same instant', () => {
+    const stored = touchEntityMetadata(createEntityMetadata(created), updated)
+
+    expect(codeOf(() => touchEntityMetadata(stored, created))).toBe(ERROR_CODE.validation)
+    expect(touchEntityMetadata(stored, updated).updatedAt).toBe(updated)
+  })
+
   it('keeps the stored schema version of an entity written by an older build', () => {
     const stored = { ...createEntityMetadata(created), schemaVersion: toSchemaVersion(1) }
     expect(touchEntityMetadata(stored, updated).schemaVersion).toBe(1)

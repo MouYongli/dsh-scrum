@@ -4,7 +4,9 @@ import {
   formatSprintId,
   formatWorkItemId,
   isScrumError,
+  newIdentityId,
   newProjectId,
+  newTenantId,
   projectKeyOf,
   toProjectId,
   toProjectKey,
@@ -38,6 +40,9 @@ describe('prefixed identifiers', () => {
       `prj_${ULID.slice(0, 25)}`,
       `prj_${ULID.toLowerCase()}`,
       `prj_01K5TFQ8Z4N7C2M9XPRWD3HABI`,
+      // A first character above 7 would need a timestamp beyond ULID's 48 bits.
+      `prj_8${ULID.slice(1)}`,
+      `prj_Z${ULID.slice(1)}`,
       `prj-${ULID}`,
       ` prj_${ULID}`,
     ]) {
@@ -48,9 +53,27 @@ describe('prefixed identifiers', () => {
   it('generates identifiers through the port and validates what it returns', () => {
     const ids: IdGenerator = { nextUlid: () => ULID }
     expect(newProjectId(ids)).toBe(`prj_${ULID}`)
+    expect(newTenantId(ids)).toBe(`tnt_${ULID}`)
+    expect(newIdentityId(ids)).toBe(`idt_${ULID}`)
 
     const broken: IdGenerator = { nextUlid: () => 'not-a-ulid' }
     expectRejects(() => newProjectId(broken), 'generated id')
+  })
+
+  it('carries the offending input under details.value on every rejection', () => {
+    for (const build of [
+      () => toProjectId('nonsense'),
+      () => toProjectKey('nonsense'),
+      () => toWorkItemId('nonsense'),
+      () => toSprintId('nonsense'),
+    ]) {
+      try {
+        build()
+        expect.unreachable('nonsense must be rejected')
+      } catch (error) {
+        expect(isScrumError(error) && error.details['value']).toBe('nonsense')
+      }
+    }
   })
 })
 
