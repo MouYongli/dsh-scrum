@@ -39,16 +39,23 @@ Community 不启动独立 Server。Teams 和 Enterprise 共用 `apps/scrum-serve
 
 ## 开发
 
+在本仓库根目录：
+
 ```bash
 pnpm install
 
 # 提交前
 pnpm typecheck && pnpm lint && pnpm lint:deps && pnpm test
 
-# 挂进 DeepSeek Harness 的 web profile
+# 挂进 DeepSeek Harness 的 web profile（一次挂载对所有项目生效）
 pnpm dev:link && pnpm dev:config
-cd ~/你的项目 && npx @deepseek-ai/dsh web
-pnpm dev:unlink
+pnpm dev:unlink                       # 用完摘掉
+```
+
+在你想用 Scrum 管理的代码项目目录里启动 Harness——启动目录就是 Workspace，数据落在它的 `.scrum/`：
+
+```bash
+cd ~/你的代码项目 && npx @deepseek-ai/dsh web
 ```
 
 当前只有 node 半边会加载，`dsh web` 里还看不到 Scrum 界面。完整循环、构建、探针与边界说明见[本地开发循环](docs/development/local-development.md)。

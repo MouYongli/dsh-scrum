@@ -45,9 +45,19 @@ composite 项目下类型检查和构建是同一件事，`pnpm typecheck` 已�
 
 ## 4. 挂进 Harness 跑
 
-三条命令操作的是**你真实的 `web` profile**，也就是 `dsh web` 启动的那个：
+先分清两件不在一个层次上的事：
+
+```text
+挂载        全局，按 DSH_HOME 记在 profile 里，一次挂载对所有项目生效
+dsh web     启动目录决定这次操作哪个 Workspace，数据落在该目录的 .scrum/
+```
+
+因此挂载和摘除在**本仓库根目录**执行（它们是本仓库的 pnpm 脚本，在子包目录里跑会找不到），启动 Harness 则在**目标项目目录**执行。
+
+三条挂载命令操作的是**你真实的 `web` profile**，也就是 `dsh web` 启动的那个：
 
 ```bash
+# 均在 dsh-scrum 仓库根目录
 pnpm dev:link      # 把 Bundle 挂进 profile
 pnpm dev:config    # 确认 profile 组合出了插件行
 pnpm dev:unlink    # 摘掉
@@ -65,12 +75,14 @@ pnpm dev:unlink    # 摘掉
 
 摘掉后输出 `@dsh-scrum/scrum-harness-bundle is not composed in profile web`。
 
-然后在**目标项目目录**启动 Harness（Scrum 数据按启动目录所在的 Workspace 归属）：
+挂好之后，在你想用 Scrum 管理的代码项目目录启动 Harness：
 
 ```bash
-cd ~/你的项目
+cd ~/你的代码项目
 npx @deepseek-ai/dsh web              # 端口冲突时加 --port <n>
 ```
+
+这里的「代码项目」是任何你希望纳入 Scrum 管理的代码库，不是本仓库——除非你就想用它管理本仓库自己的待办，那也完全可以。换一个项目不需要重新挂载，`cd` 过去再启动即可。
 
 不想动日常使用的 profile，就换一个：
 
