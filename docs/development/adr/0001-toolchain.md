@@ -22,6 +22,7 @@
 | Lint | ESLint flat config + typescript-eslint | 10.x / 8.x |
 | 格式化 | Prettier，仅作用于代码 | 3.9 |
 | 依赖边界 | dependency-cruiser | 18.x |
+| 产物入口校验 | publint | 0.3.x |
 
 配套约定：
 
@@ -50,6 +51,6 @@
 ## 后果
 
 - 类型检查和构建在 composite 项目下是同一件事，`typecheck` 与 `build` 不是互相独立的两次分析。
-- 测试通过 alias 读取 `src`，因此包的 `exports` 字段错误不会被单元测试发现，需要由契约层测试单独覆盖。
+- 测试通过 alias 读取 `src`，因此包的 `exports` 字段错误不会被单元测试发现。CI 在构建之后跑 `pnpm lint:publish`（publint）真实解析每个入口，只收 error 级别：浏览器产物按模块加载器的约定输出 CJS，publint 每次都会为此报一条 warning。
 - 工具链需要跟随 typescript-eslint 的支持节奏升级 TypeScript；升级时应同时更新本 ADR 的版本表。
 - 测试文件不享受类型感知 lint。若将来测试中出现大量异步误用，可以为 `tests/` 单独建立 composite 配置再打开该能力。

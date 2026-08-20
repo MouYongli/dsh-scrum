@@ -46,6 +46,7 @@ pnpm install
 
 # 提交前
 pnpm typecheck && pnpm lint && pnpm lint:deps && pnpm test
+pnpm build && pnpm lint:publish
 
 # 挂进 DeepSeek Harness 的 web profile（一次挂载对所有项目生效）
 pnpm dev:link && pnpm dev:config
