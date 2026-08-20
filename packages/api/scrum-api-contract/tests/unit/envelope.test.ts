@@ -45,6 +45,12 @@ describe('request envelope', () => {
     )
   })
 
+  it('treats a fractional version as a malformed envelope, not a version mismatch', () => {
+    expect(codeOf(() => parseRequest(createWorkItem, { apiVersion: 1.5, data: {} }))).toBe(
+      ERROR_CODE.validation,
+    )
+  })
+
   it('names the fields that failed', () => {
     try {
       parseRequest(createWorkItem, { apiVersion: 1, data: { title: '', estimate: 1.5 } })
@@ -73,6 +79,15 @@ describe('response envelope', () => {
       details: { expectedRevision: 7, actualRevision: 9 },
     })
     expect(parseResponse(workItem, JSON.parse(JSON.stringify(failure)))).toEqual(failure)
+  })
+
+  it('reads an envelope that spells an absent error as null as a success', () => {
+    const item = { id: 'SCR-12', title: 'user redeems a coupon' }
+
+    expect(parseResponse(workItem, { apiVersion: 1, data: item, error: null })).toEqual({
+      apiVersion: 1,
+      data: item,
+    })
   })
 
   it('never forwards the message or details of an unexpected error', () => {

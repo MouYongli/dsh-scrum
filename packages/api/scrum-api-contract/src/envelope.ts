@@ -33,7 +33,7 @@ const KNOWN_ERROR_CODES = Object.values(ERROR_CODE)
 // The shell is parsed before the payload so that a version mismatch is
 // reported as such, instead of as a pile of field errors produced by reading a
 // differently shaped payload with this version's schema.
-const shellSchema = z.looseObject({ apiVersion: z.number() })
+const shellSchema = z.looseObject({ apiVersion: z.int() })
 
 const errorSchema = z.object({
   code: z.string(),
@@ -99,7 +99,7 @@ export function errorResponse(error: unknown): ApiErrorResponse {
 }
 
 export function isErrorResponse<Data>(response: ApiResponse<Data>): response is ApiErrorResponse {
-  return 'error' in response
+  return 'error' in response && response.error != null
 }
 
 /**
@@ -126,7 +126,10 @@ export function parseResponse<Data>(schema: z.ZodType<Data>, raw: unknown): ApiR
   const shell = parseOrThrow(shellSchema, raw, 'response envelope is invalid')
   const apiVersion = assertSupportedApiVersion(shell.apiVersion)
 
-  if ('error' in shell) {
+  // Presence of the key is not enough: JSON.stringify drops `error: undefined`
+  // on our own side, but a hand-built or foreign envelope may spell an absent
+  // error as `null`, and that is still a success response.
+  if (shell['error'] != null) {
     const error = parseOrThrow(errorSchema, shell['error'], 'response error is invalid')
     return { apiVersion, error: normalizeErrorCode(error) }
   }
