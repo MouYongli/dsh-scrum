@@ -56,7 +56,21 @@ Patch 以行 id 寻址，后写覆盖整行 `config`，不做深合并。
 - Workspace 注册表服务的真实名称是 `ctx.workspaceRegistry`。
 - 插件形态是导出 `name`、`inject` 和 `apply(ctx)` 的 ESM 模块；`ctx.plugin()` 返回 Fiber，`fiber.dispose()` 撤销该插件注册的一切。
 
-## 6. 升级检查项
+## 6. 安装探针
+
+`scripts/harness-profile-probe.sh` 在临时 `DSH_HOME` 里建一个一次性 Profile，把 Bundle 以 `link:` 方式装进去，检查组合后的配置树包含两行插件，然后卸载并确认 Profile 回到原状。
+
+```bash
+scripts/harness-profile-probe.sh              # 默认对 0.1.0-rc.7
+scripts/harness-profile-probe.sh 0.1.0-rc.8   # 验证其他版本
+DSH_BIN=$(which dsh) scripts/harness-profile-probe.sh
+```
+
+它不进 `pnpm test`：需要 Harness CLI 和一次网络安装，耗时和外部依赖都不适合放进每次提交的检查。改动 Bundle、patch 或支持范围时手动跑一次，并把输出贴进 PR。
+
+Bundle 尚未发布，因此探针用 `link:` 指向工作区目录，其 workspace 依赖通过仓库自身的 `node_modules` 解析。发布流程建立后（见实施计划的 Community Bundle 部分），这里应改为安装真实的发布产物。
+
+## 7. 升级检查项
 
 升级支持范围时按顺序确认：
 
@@ -65,3 +79,4 @@ Patch 以行 id 寻址，后写覆盖整行 `config`，不做深合并。
 3. Bundle 与 Profile 的组合方式是否变化。
 4. 在目标版本上跑一遍安装、加载、卸载探针。
 5. 同步更新本文、`peerDependencies` 和运行时检测的范围常量。
+6. 通过后再改本文的「已验证最高」。
