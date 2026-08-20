@@ -44,6 +44,8 @@ dependencies       仅限与 Harness 无关的普通库
 
 Patch 以行 id 寻址，后写覆盖整行 `config`，不做深合并。
 
+解析规则决定了 patch 行的包名约束：Profile 里只安装 Bundle，它的 workspace 依赖在 pnpm 隔离布局下只链在 Bundle 自己的 `node_modules` 中，从 Profile 解析不到。因此 patch 只能写 Bundle 的对外包名（一行），Host 与 Client 由 Bundle re-export；把内部包名写进 patch 会让整个 Shell 以 `ERR_MODULE_NOT_FOUND` 启动失败。对外可安装单元只有 `@dsh-scrum/scrum-harness-bundle` 一个，三包分层只在工作区内部成立。
+
 ## 4. 运行时检测
 
 静态 `peerDependencies` 只在安装时生效，用户完全可以在 Profile 里装上超出范围的 Harness。因此插件在加载时再检测一次：读取实际解析到的 `@deepseek-ai/dsh-base` 版本（它是每个 Profile 的第一层 Bundle），超出声明范围时拒绝加载，并在错误信息中同时给出实际版本和支持范围。
@@ -62,7 +64,7 @@ Patch 以行 id 寻址，后写覆盖整行 `config`，不做深合并。
 
 ## 6. 安装探针
 
-`scripts/harness-profile-probe.sh` 在临时 `DSH_HOME` 里建一个一次性 Profile，把 Bundle 以 `link:` 方式装进去，检查组合后的配置树包含两行插件，然后卸载并确认 Profile 回到原状。
+`scripts/harness-profile-probe.sh` 在临时 `DSH_HOME` 里建一个一次性 Profile，把 Bundle 以 `link:` 方式装进去，检查组合后的配置树包含 Bundle 一行插件且不含内部包名，然后卸载并确认 Profile 回到原状。
 
 ```bash
 scripts/harness-profile-probe.sh              # 默认对目标版本
