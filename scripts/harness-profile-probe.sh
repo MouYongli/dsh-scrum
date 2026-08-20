@@ -59,11 +59,16 @@ if (!bundles.includes(bundle)) throw new Error(`${bundle} was not added to dsh.p
 console.log('bundles:', bundles.join(', '))
 NODE
 
-step "composed configuration must contain both plugin rows"
+step "composed configuration must contain the bundle row and nothing else"
+# The patch names only the bundle; the internal packages resolve solely through
+# the bundle's own node_modules, so their names must never reach the config.
 dsh --profile "$PROFILE" --dump-config | tee "$DSH_HOME/composed.txt"
-grep -q 'scrum-harness-host' "$DSH_HOME/composed.txt"
-grep -q 'scrum-harness-client' "$DSH_HOME/composed.txt"
-echo "both rows present"
+grep -q 'scrum-harness-bundle' "$DSH_HOME/composed.txt"
+if grep -qE 'scrum-harness-(host|client)' "$DSH_HOME/composed.txt"; then
+  echo "internal package names leaked into the composed configuration" >&2
+  exit 1
+fi
+echo "bundle row present, no internal package rows"
 
 step "uninstall"
 dsh plugin --profile "$PROFILE" remove "$BUNDLE_NAME"

@@ -54,13 +54,15 @@ packages/   被 App 或 Harness Bundle 组合的模块
 - Browser 组件使用 `ctx.slots.register(...)` 注册到宿主声明的 Slot。
 - 注册到其他插件的 Slot 时，使用 `ctx.slots.inject(...)` 等待声明。
 - 跨插件协作使用 Slot 或 Cordis Service，不得导入其他插件的内部 React 组件。
+- 每个包的 `exports` 必须包含 `"./package.json"`；缺失时 Harness Loader 会静默跳过插件。
+- 对外可安装单元只有 `scrum-harness-bundle`；Profile patch 只写它的包名，Host 和 Client 由 Bundle re-export，patch 写工作区内部包名会让整个 Shell 启动失败。
 - Scrum Tool 只在允许访问 Scrum 的 Session 或 Agent Scope 中可见。
 - Agent 必须使用当前用户身份，并同时接受 Edition、角色、Session Access 和操作策略约束。
 - 高风险 Tool 必须请求确认并写入 Activity。
 - UI 隐藏操作入口不能替代 Host 或 Server 权限检查。
 - 产品界面文案使用中文；代码、类型和代码注释使用英文。
 
-当前 Sidebar 扩展限制、建议 Slot、页面状态和授权模型见 [DeepSeek Harness Scrum 开发指南](docs/development/dsh-dev-guide.md)。
+当前 Sidebar 扩展限制、实测 Slot 契约、页面状态和授权模型见 [DeepSeek Harness Scrum 开发指南](docs/development/dsh-dev-guide.md)。
 
 ## 推荐开发顺序
 

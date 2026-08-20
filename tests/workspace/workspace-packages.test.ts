@@ -6,7 +6,7 @@ interface PackageManifest {
   name: string
   private?: boolean
   dependencies?: Record<string, string>
-  exports?: Record<string, Record<string, string>>
+  exports?: Record<string, Record<string, string> | string>
   scripts?: Record<string, string>
 }
 
@@ -37,6 +37,12 @@ describe('workspace package contract', () => {
       types: './dist/index.d.ts',
       default: './dist/index.js',
     })
+  })
+
+  // The harness loader reads a package's own manifest to locate its browser
+  // artifact and silently skips the plugin when this export is missing.
+  it.each(PACKAGES)('$dir exports its own manifest', ({ manifest }) => {
+    expect(manifest.exports?.['./package.json']).toBe('./package.json')
   })
 
   it.each(PACKAGES)('$dir exposes the required scripts', ({ manifest }) => {

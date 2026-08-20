@@ -67,11 +67,11 @@ pnpm dev:unlink    # 摘掉
 
 ```text
 # == @dsh-scrum/scrum-harness-bundle
-- id: scrum-host
-  name: '@dsh-scrum/scrum-harness-host'
-- id: scrum-client
-  name: '@dsh-scrum/scrum-harness-client'
+- id: scrum
+  name: '@dsh-scrum/scrum-harness-bundle'
 ```
+
+插件行只有 Bundle 这一行——patch 里只写 Bundle 的对外包名，Host 和 Client 由 Bundle 在包内 re-export，不单独成行。如果输出里出现 `scrum-harness-host` 或 `scrum-harness-client`，说明 patch 写了工作区内部包名，Shell 会以 `ERR_MODULE_NOT_FOUND` 启动失败（见[开发指南](dsh-dev-guide.md)第 4.3 节）。
 
 摘掉后输出 `@dsh-scrum/scrum-harness-bundle is not composed in profile web`。
 

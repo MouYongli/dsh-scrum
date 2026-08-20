@@ -70,13 +70,13 @@
 - T-0.3.1b：实现最小 Host/Client/Bundle 探针并验证安装卸载（commit）。
 - T-0.3.1c：增加版本检测、拒绝提示与兼容性测试（commit）。
 
-#### F-0.3.2 验证 Scrum 页面扩展点（PR，阻塞 R1 UI）
+#### F-0.3.2 验证 Scrum 页面扩展点（PR）
 
-- T-0.3.2a：针对目标 Harness 验证 `sidebar.primaryActions` 与 `application.view` 的真实 Contract（commit）。
-- T-0.3.2b：若扩展点存在，实现最小页面切换 spike；若不存在，形成上游通用 Slot 提案/补丁（commit 或独立上游 PR）。
+- T-0.3.2a：针对目标 Harness 实测 Slot 契约并记录（commit）。
+- T-0.3.2b：以实测落点实现最小接入 spike（commit）。
 - T-0.3.2c：加入无 Session、切换 Workspace、折叠 Sidebar 的自动化兼容测试（commit）。
 
-退出判断：若通用 Slot 尚不可用，Domain、Storage、Application 和 Agent 路线继续；R1 UI Feature 保持阻塞，不使用 DOM Hack 或替换宿主内部布局。
+结论：实测确认 `sidebar.primaryActions` 与 `application.view` 不存在，入口使用 `sidebar.footer.action`，整页工作台使用 `shell.overlay`，无需上游 Slot 提案；契约记录在[开发指南](dsh-dev-guide.md)第 4 节。R1 UI 不再因扩展点阻塞；不使用 DOM Hack 或替换宿主内部布局的约束继续有效。
 
 ## 4. R1 Community MVP
 
@@ -172,11 +172,11 @@
 
 ### E-1.5 Harness Client 与 Scrum UI
 
-依赖 F-0.3.2 已获得可维护的通用 Slot。
+依赖 F-0.3.2 实测得出的 Slot 契约（见[开发指南](dsh-dev-guide.md)第 4 节）。
 
 #### F-1.5.1 应用壳与首次进入状态（PR）
 
-- T-1.5.1a：注册 Sidebar 入口和 Scrum Application View（commit）。
+- T-1.5.1a：注册 Sidebar 入口和 `shell.overlay` 整页浮层（commit）。
 - T-1.5.1b：实现未选 Workspace、未绑定、归档、失效绑定页面（commit）。
 - T-1.5.1c：实现 Community 项目创建向导和中文文案（commit）。
 - T-1.5.1d：覆盖导航、主题、可访问性和无 Session 场景（commit）。
