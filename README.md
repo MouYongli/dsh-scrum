@@ -58,7 +58,7 @@ pnpm dev:unlink                       # 用完摘掉
 cd ~/你的代码项目 && npx @deepseek-ai/dsh web
 ```
 
-当前只有 node 半边会加载，`dsh web` 里还看不到 Scrum 界面。完整循环、构建、探针与边界说明见[本地开发循环](docs/development/local-development.md)。
+挂载后 Sidebar 底部会出现 Scrum 入口，但它目前只是打通链路的最小入口，尚无 Scrum 功能。完整循环、构建、探针与边界说明见[本地开发循环](docs/development/local-development.md)。
 
 ## 文档
 

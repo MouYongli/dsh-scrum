@@ -15,7 +15,7 @@
   },
   "scripts": {
     "build": "pnpm -r build",
-    "watch": "pnpm --filter @dsh-scrum/scrum-harness-client watch",
+    "watch": "pnpm --filter @dsh-scrum/scrum-harness-bundle watch",
     "dev:link": "node scripts/dev-profile.js add",
     "dev:config": "node scripts/dev-profile.js config",
     "dev:unlink": "node scripts/dev-profile.js remove",

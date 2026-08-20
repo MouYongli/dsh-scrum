@@ -147,6 +147,11 @@ Client 半边不是被 Node 端 import 的，而是由 `@deepseek-ai/dsh-client-
 
 `dsh.client` 还接受可选的 `inject`（字符串数组）与 `immediately`（布尔）。声明了 `dsh.client` 却没有 `exports["./client"]` 会直接报错。
 
+两个实测得出的硬性要求：
+
+- **包必须导出 `"./package.json": "./package.json"`**。Loader 读包自身的清单来定位浏览器产物，取不到时**静默跳过**该插件：没有报错，Boot Graph 里也没有它的条目。Harness 自己的每个包都带这一行。
+- **Patch 行里的包名从 Profile 目录解析**。Profile 里只装了 Bundle，它的依赖在 pnpm 隔离布局下只链在 Bundle 自己的 `node_modules` 中，因此把内部包名直接写进 patch 会让整个 Shell 启动失败（`ERR_MODULE_NOT_FOUND`）。正确做法是 patch 只写 Bundle 一行，由 Bundle re-export 各半边。
+
 产物必须是 CJS 工厂形式，externals 取宿主的固定模块表（React、cordis、`@deepseek-ai/dsh-client-*` 等）。表外的 specifier 在 `require` 时抛错，错误信息会指出是构建期 externals 漂移还是跨插件值导入。
 
 ## 5. Scrum 界面的落点

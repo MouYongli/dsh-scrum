@@ -114,13 +114,19 @@ npx @deepseek-ai/dsh plugin --profile web remove @dsh-scrum/scrum-harness-bundle
 |---|---|
 | node 半边（Host、Domain、Application、Contract） | `pnpm build`，然后重启 `dsh web` |
 | Bundle 的 `cordis.patch.yml` 或 `package.json` | `pnpm dev:config` 确认组合结果，必要时重启 |
-| 浏览器半边 | 见下节，当前尚不可用 |
+| 浏览器半边（Client） | `pnpm watch` 常驻，改完刷新页面即可，不用重启也不用重装 |
+
+```bash
+pnpm watch        # tsdown --watch，持续重建 dist/client.js
+```
+
+浏览器产物由 Web Shell 在 `/plugins/@dsh-scrum/scrum-harness-bundle/client.js` 提供，页面刷新时按内容哈希重新拉取。
 
 ## 6. 当前边界
 
-**`dsh web` 里现在看不到任何 Scrum 界面，这不是配置问题。** Web Shell 按包在 `/plugins/<id>/client.js` 提供浏览器产物，需要包声明 `dsh.client.platform` 并产出符合 Shell 模块加载契约的 bundle；我们目前只有 `tsc` 直出的 `dist/`，所以挂上去只有 node 半边在运行。
+浏览器侧已经打通：挂载后 Sidebar 底部（Settings 旁边）会出现 Scrum 入口，侧栏折叠时退化为图标。但那只是一个证明链路可用的最小入口，**点击还没有任何行为**——Backlog、看板、工作项详情都还没实现。
 
-浏览器产物、真实 Slot 注册和 `pnpm watch` 热迭代属于 Scrum 页面扩展点验证那一步，完成后本文的第 5 节会补上浏览器侧的循环。
+Scrum 业务数据同样还不存在：Host 半边尚未读写 Workspace 的 `.scrum/`，所以启动目录换来换去都不会产生数据。
 
 ## 7. 与安装探针的分工
 
