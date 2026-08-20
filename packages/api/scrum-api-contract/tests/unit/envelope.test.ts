@@ -52,16 +52,20 @@ describe('request envelope', () => {
   })
 
   it('names the fields that failed', () => {
+    // Captured, not asserted inside a catch: a failing assertion there would
+    // itself be caught and misreported as the error under test.
+    let error: unknown
     try {
       parseRequest(createWorkItem, { apiVersion: 1, data: { title: '', estimate: 1.5 } })
-      expect.unreachable('payload must be rejected')
-    } catch (error) {
-      expect(isScrumError(error) && error.code).toBe(ERROR_CODE.validation)
-      expect(isScrumError(error) && error.details['issues']).toEqual([
-        { path: 'title', code: 'too_small', message: expect.any(String) },
-        { path: 'estimate', code: 'invalid_type', message: expect.any(String) },
-      ])
+    } catch (caught) {
+      error = caught
     }
+
+    expect(isScrumError(error) && error.code).toBe(ERROR_CODE.validation)
+    expect(isScrumError(error) && error.details['issues']).toEqual([
+      { path: 'title', code: 'too_small', message: expect.any(String) },
+      { path: 'estimate', code: 'invalid_type', message: expect.any(String) },
+    ])
   })
 })
 

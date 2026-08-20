@@ -18,13 +18,23 @@ import {
 
 const ULID = '01K5TFQ8Z4N7C2M9XPRWD3HABV'
 
-function expectRejects(build: () => unknown, value: string): void {
+// The error is captured rather than asserted inside a catch: with the
+// assertion in the catch block, its own failure would be caught and reported
+// as if the code under test had thrown the wrong error.
+function caughtFrom(build: () => unknown): unknown {
   try {
     build()
-    expect.unreachable(`expected ${value} to be rejected`)
+    return undefined
   } catch (error) {
-    expect(isScrumError(error) && error.code).toBe(ERROR_CODE.validation)
+    return error
   }
+}
+
+function expectRejects(build: () => unknown, value: string): void {
+  const error = caughtFrom(build)
+  expect(isScrumError(error) && error.code, `expected ${value} to be rejected`).toBe(
+    ERROR_CODE.validation,
+  )
 }
 
 describe('prefixed identifiers', () => {
@@ -67,12 +77,8 @@ describe('prefixed identifiers', () => {
       () => toWorkItemId('nonsense'),
       () => toSprintId('nonsense'),
     ]) {
-      try {
-        build()
-        expect.unreachable('nonsense must be rejected')
-      } catch (error) {
-        expect(isScrumError(error) && error.details['value']).toBe('nonsense')
-      }
+      const error = caughtFrom(build)
+      expect(isScrumError(error) && error.details['value']).toBe('nonsense')
     }
   })
 })

@@ -56,17 +56,21 @@ describe('harness detection', () => {
 
 describe('load-time refusal', () => {
   it('names both the version found and the range required', () => {
+    // Captured, not asserted inside a catch: a failing assertion there would
+    // itself be caught and misreported as the error under test.
+    let error: unknown
     try {
       assertSupportedHarness(harnessAt('0.2.0'))
-      expect.unreachable('0.2.0 must be refused')
-    } catch (error) {
-      expect(error).toBeInstanceOf(UnsupportedHarnessVersionError)
-      const refusal = error as UnsupportedHarnessVersionError
-      expect(refusal.foundVersion).toBe('0.2.0')
-      expect(refusal.supportedRange).toBe(SUPPORTED_HARNESS_RANGE)
-      expect(refusal.message).toContain('0.2.0')
-      expect(refusal.message).toContain(SUPPORTED_HARNESS_RANGE)
+    } catch (caught) {
+      error = caught
     }
+
+    expect(error).toBeInstanceOf(UnsupportedHarnessVersionError)
+    const refusal = error as UnsupportedHarnessVersionError
+    expect(refusal.foundVersion).toBe('0.2.0')
+    expect(refusal.supportedRange).toBe(SUPPORTED_HARNESS_RANGE)
+    expect(refusal.message).toContain('0.2.0')
+    expect(refusal.message).toContain(SUPPORTED_HARNESS_RANGE)
   })
 
   it('passes for a supported harness', () => {

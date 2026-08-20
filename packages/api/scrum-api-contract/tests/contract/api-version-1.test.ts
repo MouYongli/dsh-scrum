@@ -82,17 +82,21 @@ describe('api version 1 payloads', () => {
 
 describe('unsupported api versions', () => {
   it('refuses a request from a newer build without reading its payload', () => {
+    // Captured, not asserted inside a catch: a failing assertion there would
+    // itself be caught and misreported as the error under test.
+    let error: unknown
     try {
       parseRequest(createWorkItemRequest, fixture('future-version-request'))
-      expect.unreachable('version 2 must be refused')
-    } catch (error) {
-      expect(error).toBeInstanceOf(UnsupportedApiVersionError)
-      expect(isScrumError(error) && error.code).toBe(ERROR_CODE.unsupportedApiVersion)
-      expect(isScrumError(error) && error.details).toEqual({
-        requestedVersion: 2,
-        supportedVersions: [1],
-      })
+    } catch (caught) {
+      error = caught
     }
+
+    expect(error).toBeInstanceOf(UnsupportedApiVersionError)
+    expect(isScrumError(error) && error.code).toBe(ERROR_CODE.unsupportedApiVersion)
+    expect(isScrumError(error) && error.details).toEqual({
+      requestedVersion: 2,
+      supportedVersions: [1],
+    })
   })
 
   it('refuses a response from a newer build the same way', () => {
