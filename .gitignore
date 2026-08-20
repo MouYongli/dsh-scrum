@@ -3,6 +3,9 @@ dist/
 coverage/
 *.tsbuildinfo
 
+# Scratch output from browser tooling
+.playwright-mcp/
+
 # Local environment and editor state
 .env
 .env.*
