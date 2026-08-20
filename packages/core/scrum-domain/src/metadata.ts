@@ -1,5 +1,6 @@
 import type { Brand } from './brand.js'
 import { UnsupportedSchemaVersionError, ValidationError } from './errors.js'
+import { requirePositiveInteger } from './integers.js'
 import { INITIAL_REVISION, nextRevision, type Revision } from './revision.js'
 import { compareTimestamps, type Timestamp } from './time.js'
 
@@ -21,10 +22,7 @@ export interface EntityMetadata {
 }
 
 export function toSchemaVersion(value: number): SchemaVersion {
-  if (!Number.isSafeInteger(value) || value < 1) {
-    throw new ValidationError('SchemaVersion must be an integer of at least 1', { value })
-  }
-  return value as SchemaVersion
+  return requirePositiveInteger(value, 'SchemaVersion') as SchemaVersion
 }
 
 /**

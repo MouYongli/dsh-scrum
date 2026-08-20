@@ -1,5 +1,6 @@
 import type { Brand } from './brand.js'
 import { ValidationError } from './errors.js'
+import { requirePositiveInteger } from './integers.js'
 
 /** Owner of all data and permissions. Community uses an implicit personal tenant. */
 export type TenantId = Brand<string, 'TenantId'>
@@ -24,19 +25,30 @@ export type IdPrefix = (typeof ID_PREFIX)[keyof typeof ID_PREFIX]
 
 // Crockford base32 without I, L, O and U, as produced by ULID. A ULID sorts
 // lexicographically by creation time, which keeps directory listings and
-// exports stable without a separate sort key.
-const ULID_BODY = '[0-9A-HJKMNP-TV-Z]{26}'
-const PROJECT_KEY = /^[A-Z][A-Z0-9]{1,9}$/
-const WORK_ITEM_ID = /^([A-Z][A-Z0-9]{1,9})-([1-9][0-9]*)$/
+// exports stable without a separate sort key. The first character tops out at
+// `7`: it carries the high bits of the 48-bit timestamp, so `8`-`Z` can only
+// come from something that is not a ULID.
+const ULID_BODY = '[0-7][0-9A-HJKMNP-TV-Z]{25}'
+// One spelling for the key rule, so `PROJECT_KEY` and the prefix inside
+// `WORK_ITEM_ID` cannot drift apart.
+const PROJECT_KEY_BODY = '[A-Z][A-Z0-9]{1,9}'
+const PROJECT_KEY = new RegExp(`^${PROJECT_KEY_BODY}$`)
+const WORK_ITEM_ID = new RegExp(`^(${PROJECT_KEY_BODY})-([1-9][0-9]*)$`)
 const SPRINT_ID = /^sprint-([1-9][0-9]*)$/
 
 function prefixedIdPattern(prefix: IdPrefix): RegExp {
   return new RegExp(`^${prefix}_${ULID_BODY}$`)
 }
 
+const PREFIXED_ID: Record<IdPrefix, RegExp> = {
+  [ID_PREFIX.tenant]: prefixedIdPattern(ID_PREFIX.tenant),
+  [ID_PREFIX.project]: prefixedIdPattern(ID_PREFIX.project),
+  [ID_PREFIX.identity]: prefixedIdPattern(ID_PREFIX.identity),
+}
+
 function parsePrefixedId(prefix: IdPrefix, value: string, kind: string): string {
-  if (!prefixedIdPattern(prefix).test(value)) {
-    throw new ValidationError(`${kind} must look like ${prefix}_<ulid>`, { kind, value })
+  if (!PREFIXED_ID[prefix].test(value)) {
+    throw new ValidationError(`${kind} must look like ${prefix}_<ulid>`, { value })
   }
   return value
 }
@@ -55,7 +67,10 @@ export function toIdentityId(value: string): IdentityId {
 
 export function toProjectKey(value: string): ProjectKey {
   if (!PROJECT_KEY.test(value)) {
-    throw new ValidationError('ProjectKey must be 2 to 10 uppercase letters or digits', { value })
+    throw new ValidationError(
+      'ProjectKey must be an uppercase letter followed by 1 to 9 uppercase letters or digits',
+      { value },
+    )
   }
   return value as ProjectKey
 }
@@ -84,10 +99,7 @@ export function projectKeyOf(workItemId: WorkItemId): ProjectKey {
 }
 
 function requireSequence(sequence: number, kind: string): number {
-  if (!Number.isSafeInteger(sequence) || sequence < 1) {
-    throw new ValidationError(`${kind} sequence must be a positive integer`, { sequence })
-  }
-  return sequence
+  return requirePositiveInteger(sequence, `${kind} sequence`)
 }
 
 /** Builds `SCR-12` from its project key and per-project sequence number. */
