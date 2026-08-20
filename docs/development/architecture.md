@@ -132,7 +132,7 @@ dsh-scrum/
 
 ### `scrum-harness-bundle`
 
-DeepSeek Harness 的最终安装包和 Composition Layer，组合 Host、Client、Tools 与 Edition。
+DeepSeek Harness 的最终安装包和 Composition Layer，组合 Host、Client、Tools 与 Edition。它是唯一对外可安装单元：Profile 的 patch 只写 Bundle 一行，Host 与 Client 两个半边由 Bundle re-export，内部包从 Profile 解析不到。三包分层只在工作区内部成立，机制与坑位见[开发指南](dsh-dev-guide.md)第 4.3 节和 [Harness 兼容矩阵](harness-compatibility.md)第 3 节。
 
 ### `scrum-server-runtime`
 
@@ -732,9 +732,9 @@ Edition 不包含领域规则，只声明 Capability、限制和 Adapter 组合�
 建议至少发布：
 
 ```text
-@your-org/dsh-scrum             Harness Bundle
-@your-org/scrum-server          Teams/Enterprise Server
-@your-org/scrum-api-contract    可选公开 SDK Contract
+@dsh-scrum/scrum-harness-bundle   Harness Bundle
+@dsh-scrum/scrum-server           Teams/Enterprise Server
+@dsh-scrum/scrum-api-contract     可选公开 SDK Contract
 ```
 
 是否将内部包单独发布，应根据构建和部署需求决定；默认保持私有 Workspace Package，避免过早扩大公共 API。
