@@ -1,5 +1,5 @@
 import { Service, type Context } from '@deepseek-ai/cordis'
-import { assertSupportedHarness } from './compatibility.js'
+import { assertSupportedHarness, type ManifestReader } from './compatibility.js'
 
 /** Name the host service is registered under on the Cordis context. */
 export const SCRUM_HOST_SERVICE = 'scrumHost'
@@ -30,10 +30,19 @@ export const name = 'scrum-harness-host'
  */
 export const inject: string[] = []
 
-export function apply(ctx: Context): void {
+export interface ScrumHostConfig {
+  /**
+   * Overrides how the installed Harness manifest is read. A profile never sets
+   * this; it exists so a test can drive the load-time refusal path without an
+   * actual Harness install to point at.
+   */
+  readManifest?: ManifestReader
+}
+
+export function apply(ctx: Context, config: ScrumHostConfig = {}): void {
   // Checked on load rather than on first use: a wrong Harness should stop the
   // plugin at the point the profile composed it, not halfway through a write.
-  assertSupportedHarness()
+  assertSupportedHarness(config.readManifest)
   ctx.plugin(ScrumHostService)
 }
 

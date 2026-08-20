@@ -11,7 +11,11 @@ class SlotsStub extends Service {
 describe('scrum client plugin', () => {
   it('stays pending while the slot registry is missing', async () => {
     const ctx = new Context()
-    ctx.plugin(clientPlugin)
+    const fiber = ctx.plugin(clientPlugin)
+
+    // Settled first: apply() is always deferred by at least a microtask, so
+    // asserting synchronously would pass even with the inject gate removed.
+    await fiber.await()
 
     expect(ctx.get('scrumClient')).toBeUndefined()
   })

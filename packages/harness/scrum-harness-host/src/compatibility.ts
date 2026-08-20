@@ -28,6 +28,12 @@ export type ManifestReader = (specifier: string) => { version?: unknown }
 const readInstalledManifest: ManifestReader = (specifier) =>
   createRequire(import.meta.url)(`${specifier}/package.json`) as { version?: unknown }
 
+/**
+ * Deliberately a plain `Error`, not a `ScrumError`: it is thrown while the
+ * profile composes the plugin, before any API surface exists, and must never
+ * travel through an envelope — `errorResponse()` would degrade it to
+ * `internal error` and drop the version and range the message must name.
+ */
 export class UnsupportedHarnessVersionError extends Error {
   readonly foundVersion: string
   readonly supportedRange: string

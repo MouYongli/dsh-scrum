@@ -76,9 +76,20 @@ describe('load-time refusal', () => {
   it('does not require a harness at all, so bare Cordis still loads the plugin', async () => {
     expect(() => assertSupportedHarness(noHarness)).not.toThrow()
 
+    // The reader is injected: the workspace has a real dsh-base installed, so
+    // loading with the default reader would pass because that version is in
+    // range — not because absence is tolerated, which is what this case is for.
     const ctx = new Context()
-    await ctx.plugin(hostPlugin)
+    await ctx.plugin(hostPlugin, { readManifest: noHarness })
 
     expect(ctx.scrumHost).toBeDefined()
+  })
+
+  it('refuses to load the plugin against a harness outside the range', async () => {
+    const ctx = new Context()
+    const fiber = ctx.plugin(hostPlugin, { readManifest: harnessAt('0.2.0') })
+
+    await expect(fiber.await()).rejects.toBeInstanceOf(UnsupportedHarnessVersionError)
+    expect(ctx.get('scrumHost')).toBeUndefined()
   })
 })
