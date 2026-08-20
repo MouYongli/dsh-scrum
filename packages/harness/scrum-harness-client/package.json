@@ -9,16 +9,16 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./client": "./dist/client.js"
+    "./client": "./dist/client/index.js",
+    "./package.json": "./package.json"
   },
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsc -b && tsdown",
+    "build": "tsc -b",
     "typecheck": "tsc -b",
-    "lint": "eslint src",
-    "watch": "tsdown --watch"
+    "lint": "eslint src"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",
@@ -33,12 +33,6 @@
     "@deepseek-ai/dsh-client-ui-sidebar": "0.1.0-rc.8",
     "@deepseek-ai/dsh-client-ui-slots": "0.1.0-rc.8",
     "@types/react": "~18.3.31",
-    "react": "^18.3.1",
-    "tsdown": "^0.22.14"
-  },
-  "dsh": {
-    "client": {
-      "platform": "web"
-    }
+    "react": "^18.3.1"
   }
 }

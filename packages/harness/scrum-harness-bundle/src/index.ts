@@ -1,6 +1,12 @@
 /**
- * Installable bundle for the DeepSeek Harness. The substance of this package
- * is `cordis.patch.yml`, declared through the `dsh.bundle.patch` manifest
- * field and composed by the profile; the module itself carries no runtime API.
+ * Installable bundle for the DeepSeek Harness: the node half of the plugin,
+ * plus `cordis.patch.yml`, which the profile composer resolves through the
+ * `dsh.bundle.patch` manifest field.
+ *
+ * The plugin itself lives in `@dsh-scrum/scrum-harness-host`; this package
+ * re-exports it because a patch row's package name is resolved from the
+ * profile directory, where only the installed bundle exists.
+ *
+ * @module @dsh-scrum/scrum-harness-bundle
  */
-export {}
+export { apply, inject, name } from '@dsh-scrum/scrum-harness-host'

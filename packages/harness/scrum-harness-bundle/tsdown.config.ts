@@ -1,6 +1,8 @@
 /**
- * Browser build. The node half is emitted by `tsc -b`; this produces the single
- * bundle the web shell serves under `/plugins/<package>/client.js`.
+ * Browser build of the installable package. The node half is emitted by
+ * `tsc -b`; this produces the single bundle the web shell serves under
+ * `/plugins/<package>/client.js`, with the client package's sources bundled in
+ * — only this package is resolvable from the profile.
  *
  * The wrapper is the shell's contract, not a preference: executing the script
  * must only register a factory, so the body is wrapped in
@@ -9,7 +11,7 @@
  */
 import { defineConfig } from 'tsdown'
 
-const ID = '@dsh-scrum/scrum-harness-client'
+const ID = '@dsh-scrum/scrum-harness-bundle'
 
 /**
  * The shell's frozen module table. Anything not listed here has to be bundled,

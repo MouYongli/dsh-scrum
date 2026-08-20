@@ -71,6 +71,9 @@ importers:
       '@deepseek-ai/cordis':
         specifier: ^4.0.1
         version: 4.0.1(@deepseek-ai/cordis-plugin-include@1.0.6)(@deepseek-ai/cordis-plugin-loader@1.0.2)
+      tsdown:
+        specifier: ^0.22.14
+        version: 0.22.14(typescript@6.0.3)
 
   packages/harness/scrum-harness-client:
     devDependencies:
@@ -92,9 +95,6 @@ importers:
       react:
         specifier: ^18.3.1
         version: 18.3.1
-      tsdown:
-        specifier: ^0.22.14
-        version: 0.22.14(typescript@6.0.3)
 
   packages/harness/scrum-harness-host:
     dependencies:
