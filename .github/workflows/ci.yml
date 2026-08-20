@@ -43,6 +43,9 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      - name: Dependency boundaries
+        run: pnpm lint:deps
+
       - name: Test
         run: pnpm test
 
