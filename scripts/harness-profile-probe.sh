@@ -44,17 +44,17 @@ step "install the bundle into a throwaway profile"
 dsh plugin --profile "$PROFILE" add "link:$BUNDLE_DIR"
 dsh plugin --profile "$PROFILE" list 2>/dev/null || true
 
-step "declare the bundle in the profile manifest"
+step "the cli must have joined the bundle to the profile layer stack"
+# Installing is enough: the CLI reconciles `dsh.profile.bundles` against the
+# installed state, so a dependency declaring `dsh.bundle` joins the stack on
+# its own. Editing the manifest here would test our own choreography instead of
+# the product's behaviour.
 node - "$DSH_HOME/profiles/$PROFILE/package.json" "$BUNDLE_NAME" <<'NODE'
 const [file, bundle] = process.argv.slice(2)
-const { readFileSync, writeFileSync } = await import('node:fs')
+const { readFileSync } = await import('node:fs')
 const manifest = JSON.parse(readFileSync(file, 'utf8'))
-manifest.dsh ??= {}
-manifest.dsh.profile ??= {}
-const bundles = manifest.dsh.profile.bundles ?? ['@deepseek-ai/dsh-base']
-if (!bundles.includes(bundle)) bundles.push(bundle)
-manifest.dsh.profile.bundles = bundles
-writeFileSync(file, `${JSON.stringify(manifest, null, 2)}\n`)
+const bundles = manifest.dsh?.profile?.bundles ?? []
+if (!bundles.includes(bundle)) throw new Error(`${bundle} was not added to dsh.profile.bundles`)
 console.log('bundles:', bundles.join(', '))
 NODE
 
@@ -65,27 +65,21 @@ grep -q 'scrum-harness-client' "$DSH_HOME/composed.txt"
 echo "both rows present"
 
 step "uninstall"
-# Uninstalling is the reverse of installing: drop the bundle from the profile's
-# composition list, then remove the package.
-node - "$DSH_HOME/profiles/$PROFILE/package.json" "$BUNDLE_NAME" <<'NODE'
-const [file, bundle] = process.argv.slice(2)
-const { readFileSync, writeFileSync } = await import('node:fs')
-const manifest = JSON.parse(readFileSync(file, 'utf8'))
-manifest.dsh.profile.bundles = manifest.dsh.profile.bundles.filter((name) => name !== bundle)
-writeFileSync(file, `${JSON.stringify(manifest, null, 2)}\n`)
-console.log('bundles:', manifest.dsh.profile.bundles.join(', '))
-NODE
 dsh plugin --profile "$PROFILE" remove "$BUNDLE_NAME"
 
 step "the profile must be back to where it started"
+# Removal reconciles the layer stack as well, so both the dependency and the
+# bundle entry have to be gone without anyone editing the manifest.
 node - "$DSH_HOME/profiles/$PROFILE/package.json" "$BUNDLE_NAME" <<'NODE'
 const [file, bundle] = process.argv.slice(2)
 const { readFileSync } = await import('node:fs')
 const manifest = JSON.parse(readFileSync(file, 'utf8'))
 const dependencies = Object.keys(manifest.dependencies ?? {})
+const bundles = manifest.dsh?.profile?.bundles ?? []
 if (dependencies.includes(bundle)) throw new Error(`${bundle} is still a profile dependency`)
-if ((manifest.dsh.profile.bundles ?? []).includes(bundle)) throw new Error(`${bundle} is still composed`)
+if (bundles.includes(bundle)) throw new Error(`${bundle} is still in dsh.profile.bundles`)
 console.log('profile dependencies:', dependencies.join(', ') || '(none)')
+console.log('bundles:', bundles.join(', '))
 NODE
 dsh --profile "$PROFILE" --dump-config > "$DSH_HOME/composed-after.txt"
 if grep -q 'scrum-harness' "$DSH_HOME/composed-after.txt"; then
