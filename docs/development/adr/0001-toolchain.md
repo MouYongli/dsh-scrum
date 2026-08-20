@@ -25,7 +25,8 @@
 
 配套约定：
 
-- 测试位于 `<package>/tests/<layer>/`，`layer` 取 `unit`、`integration` 或 `contract`。
+- 包的测试位于 `<package>/tests/<layer>/`，`layer` 取 `unit`、`integration` 或 `contract`。
+- 仓库结构守卫位于根目录 `tests/workspace/`，单独一个 `workspace` project；它断言的是包清单、入口点形状和依赖边界，不是产品行为。
 - 测试通过 workspace alias 指向包的 `src`，不经过 `dist`，因此测试结果不受构建新旧影响。
 - 测试由 `tsconfig.test.json` 做类型检查，但不进入 composite 构建；ESLint 对测试关闭类型感知规则。
 - Node 支持范围 `>=22.12 <25`，CI 在 22 和 24 两端各跑一遍。
