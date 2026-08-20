@@ -1,0 +1,8 @@
+dist/
+coverage/
+pnpm-lock.yaml
+
+# Prose and GitHub templates are authored by hand; Prettier reflows Chinese
+# tables and lists in ways that make the documentation harder to review.
+**/*.md
+.github/

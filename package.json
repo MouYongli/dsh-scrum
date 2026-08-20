@@ -1,0 +1,25 @@
+{
+  "name": "dsh-scrum",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "DeepSeek Harness Scrum plugin workspace",
+  "license": "MIT",
+  "packageManager": "pnpm@10.22.0",
+  "engines": {
+    "node": ">=22.12 <25",
+    "pnpm": ">=10.10"
+  },
+  "scripts": {
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "prettier": "^3.9.6",
+    "typescript": "^6.0.3"
+  }
+}
