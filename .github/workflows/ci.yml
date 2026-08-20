@@ -51,3 +51,11 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      # After the build, because it resolves what `exports` names rather than
+      # comparing it as a string. Tests reach workspace packages through a
+      # Vitest alias to `src`, so this is the only check that an entry point
+      # a consumer would resolve actually exists. Errors only: the browser
+      # bundle is CJS on purpose, and publint warns about that on every run.
+      - name: Package entry points
+        run: pnpm lint:publish

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "composite": false,
+    "paths": {
+      "@dsh-scrum/scrum-api-contract": ["./packages/api/scrum-api-contract/src/index.ts"],
+      "@dsh-scrum/scrum-application": ["./packages/core/scrum-application/src/index.ts"],
+      "@dsh-scrum/scrum-domain": ["./packages/core/scrum-domain/src/index.ts"],
+      "@dsh-scrum/scrum-harness-bundle": ["./packages/harness/scrum-harness-bundle/src/index.ts"],
+      "@dsh-scrum/scrum-harness-bundle/client": [
+        "./packages/harness/scrum-harness-bundle/src/client/index.ts"
+      ],
+      "@dsh-scrum/scrum-harness-client": ["./packages/harness/scrum-harness-client/src/index.ts"],
+      "@dsh-scrum/scrum-harness-client/client": [
+        "./packages/harness/scrum-harness-client/src/client/index.ts"
+      ],
+      "@dsh-scrum/scrum-harness-host": ["./packages/harness/scrum-harness-host/src/index.ts"]
+    }
+  },
+  "include": ["packages/*/*/src/**/*.ts", "packages/*/*/tests/**/*.ts", "tests/**/*.ts"]
+}
