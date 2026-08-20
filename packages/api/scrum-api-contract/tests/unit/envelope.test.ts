@@ -10,6 +10,7 @@ import {
   parseRequest,
   parseResponse,
   successResponse,
+  toValidationError,
 } from '@dsh-scrum/scrum-api-contract'
 
 const createWorkItem = z.object({ title: z.string().min(1), estimate: z.number().int().optional() })
@@ -23,6 +24,29 @@ function codeOf(build: () => unknown): string | undefined {
     return isScrumError(error) ? error.code : undefined
   }
 }
+
+describe('toValidationError', () => {
+  it('maps each schema issue to a dotted path and keeps the given message', () => {
+    const result = createWorkItem.safeParse({ title: 42, estimate: 1.5 })
+    if (result.success) throw new Error('expected the schema to reject the payload')
+
+    const error = toValidationError(result.error, 'work item is invalid')
+
+    expect(error.code).toBe(ERROR_CODE.validation)
+    expect(error.message).toBe('work item is invalid')
+    expect(error.details['issues']).toEqual([
+      { path: 'title', code: 'invalid_type', message: expect.any(String) },
+      { path: 'estimate', code: 'invalid_type', message: expect.any(String) },
+    ])
+  })
+
+  it('falls back to a generic message when the caller gives none', () => {
+    const result = workItem.safeParse(null)
+    if (result.success) throw new Error('expected the schema to reject the payload')
+
+    expect(toValidationError(result.error).message).toBe('payload is invalid')
+  })
+})
 
 describe('request envelope', () => {
   it('round trips a request built by this build', () => {
