@@ -13,7 +13,7 @@
 - Teams 和 Enterprise 通过 Harness 插件连接同一个 `scrum-server` Runtime。
 - 普通 Scrum UI 位于 Harness 内；独立 Admin App 只用于企业治理。
 
-详细集成方式见 [DeepSeek Harness Scrum 开发指南](docs/dsh-dev-guide.md)。
+详细集成方式见 [DeepSeek Harness Scrum 开发指南](docs/development/dsh-dev-guide.md)。
 
 ## 模块边界
 
@@ -29,7 +29,7 @@ packages/   被 App 或 Harness Bundle 组合的模块
 - Harness Client 不得直接读取 Workspace 文件，必须通过 Harness Host API 操作。
 - Host、Client、Agent Tools 和 Server 必须通过公开 Contract 协作，不能导入其他插件的内部实现。
 
-完整目录、模块职责和依赖方向见[系统架构](docs/architecture.md)。
+完整目录、模块职责和依赖方向见[系统架构](docs/development/architecture.md)。
 
 ## 数据与存储约束
 
@@ -45,7 +45,7 @@ packages/   被 App 或 Harness Bundle 组合的模块
 - Token、密码、企业密钥和登录凭证不得写入 `.scrum/`。
 - UI 与 Agent 必须通过同一 Application Service 和 Storage Adapter 写入数据。
 
-完整 Schema、文件格式、并发和迁移规则见[系统架构](docs/architecture.md)。
+完整 Schema、文件格式、并发和迁移规则见[系统架构](docs/development/architecture.md)。
 
 ## Harness 开发约束
 
@@ -60,7 +60,7 @@ packages/   被 App 或 Harness Bundle 组合的模块
 - UI 隐藏操作入口不能替代 Host 或 Server 权限检查。
 - 产品界面文案使用中文；代码、类型和代码注释使用英文。
 
-当前 Sidebar 扩展限制、建议 Slot、页面状态和授权模型见 [DeepSeek Harness Scrum 开发指南](docs/dsh-dev-guide.md)。
+当前 Sidebar 扩展限制、建议 Slot、页面状态和授权模型见 [DeepSeek Harness Scrum 开发指南](docs/development/dsh-dev-guide.md)。
 
 ## 推荐开发顺序
 
@@ -72,7 +72,7 @@ packages/   被 App 或 Harness Bundle 组合的模块
 6. 实现 Teams/Enterprise Server、远端 Adapter、身份与同步。
 7. 增加迁移、导入导出、审计和恢复测试。
 
-版本范围和 Capability 规则见[版本设计](docs/editions.md)，产品首版范围见 [Scrum 产品设计](docs/scrum.md#6-首个版本范围)。
+版本范围和 Capability 规则见[版本设计](docs/product/editions.md)，产品首版范围见 [Scrum 产品设计](docs/product/scrum.md#6-首个版本范围)。
 
 ## 测试要求
 

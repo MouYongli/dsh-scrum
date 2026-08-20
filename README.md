@@ -39,10 +39,10 @@ Community 不启动独立 Server。Teams 和 Enterprise 共用 `apps/scrum-serve
 
 ## 文档
 
-- [Scrum 产品设计](docs/scrum.md)：Scrum 概念、角色、产品功能、使用流程和首版范围。
-- [版本设计](docs/editions.md)：Community、Teams 与 Enterprise 的定位、能力和授权差异。
-- [系统架构](docs/architecture.md)：运行拓扑、模块、数据模型、存储、一致性、迁移和发布。
-- [DeepSeek Harness Scrum 开发指南](docs/dsh-dev-guide.md)：插件、UI、Workspace、Session、Agent 工具和权限集成。
-- [Scrum 术语表](docs/glossary.md)：产品文档和界面使用的统一术语。
+- [Scrum 产品设计](docs/product/scrum.md)：Scrum 概念、角色、产品功能、使用流程和首版范围。
+- [版本设计](docs/product/editions.md)：Community、Teams 与 Enterprise 的定位、能力和授权差异。
+- [Scrum 术语表](docs/product/glossary.md)：产品文档和界面使用的统一术语。
+- [系统架构](docs/development/architecture.md)：运行拓扑、模块、数据模型、存储、一致性、迁移和发布。
+- [DeepSeek Harness Scrum 开发指南](docs/development/dsh-dev-guide.md)：插件、UI、Workspace、Session、Agent 工具和权限集成。
 
 仓库内编码 Agent 的实现约束见 [Agent Guide](AGENT.md)。
