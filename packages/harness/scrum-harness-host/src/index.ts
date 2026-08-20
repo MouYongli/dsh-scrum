@@ -1,4 +1,5 @@
 import { Service, type Context } from '@deepseek-ai/cordis'
+import { assertSupportedHarness } from './compatibility.js'
 
 /** Name the host service is registered under on the Cordis context. */
 export const SCRUM_HOST_SERVICE = 'scrumHost'
@@ -30,5 +31,19 @@ export const name = 'scrum-harness-host'
 export const inject: string[] = []
 
 export function apply(ctx: Context): void {
+  // Checked on load rather than on first use: a wrong Harness should stop the
+  // plugin at the point the profile composed it, not halfway through a write.
+  assertSupportedHarness()
   ctx.plugin(ScrumHostService)
 }
+
+export type { ManifestReader } from './compatibility.js'
+export {
+  HARNESS_VERSION_PACKAGE,
+  SUPPORTED_HARNESS_RANGE,
+  UnsupportedHarnessVersionError,
+  VERIFIED_HARNESS_VERSION,
+  assertSupportedHarness,
+  detectHarnessVersion,
+  isSupportedHarnessVersion,
+} from './compatibility.js'
