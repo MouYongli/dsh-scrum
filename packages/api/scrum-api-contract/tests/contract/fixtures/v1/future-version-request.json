@@ -1,0 +1,10 @@
+{
+  "apiVersion": 2,
+  "data": {
+    "projectId": "prj_01K5TFQ8Z4N7C2M9XPRWD3HABV",
+    "type": "story",
+    "title": "用户使用优惠券",
+    "estimate": 5,
+    "productGoalId": "goal_01K5TFQ8Z4N7C2M9XPRWD3HABV"
+  }
+}

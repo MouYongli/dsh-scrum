@@ -1,0 +1,11 @@
+{
+  "apiVersion": 1,
+  "error": {
+    "code": "CONFLICT",
+    "message": "work item changed since it was read",
+    "details": {
+      "expectedRevision": 7,
+      "actualRevision": 9
+    }
+  }
+}
