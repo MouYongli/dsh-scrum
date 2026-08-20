@@ -9,6 +9,7 @@ import {
   isScrumError,
   nextRevision,
   timestampFromDate,
+  timestampToDate,
   toRevision,
   toSchemaVersion,
   toTimestamp,
@@ -43,6 +44,19 @@ describe('timestamps', () => {
       expect(codeOf(() => toTimestamp(value))).toBe(ERROR_CODE.validation)
     }
     expect(codeOf(() => timestampFromDate(new Date('nonsense')))).toBe(ERROR_CODE.validation)
+  })
+
+  it('rejects dates outside the four-digit-year range instead of changing spelling', () => {
+    // `toISOString` renders these as `+275760-…` and `-000001-…`, which would
+    // break both the canonical pattern and plain-string ordering.
+    for (const date of [new Date(Date.UTC(275760, 8, 13)), new Date(-62167219200001)]) {
+      expect(codeOf(() => timestampFromDate(date))).toBe(ERROR_CODE.validation)
+    }
+  })
+
+  it('round-trips through a Date without rewriting the stored value', () => {
+    const stored = toTimestamp('2026-08-20T10:00:00.123Z')
+    expect(timestampFromDate(timestampToDate(stored))).toBe(stored)
   })
 
   it('orders canonical instants as plain strings', () => {

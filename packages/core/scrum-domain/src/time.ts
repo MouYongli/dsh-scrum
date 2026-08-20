@@ -23,7 +23,11 @@ export function timestampFromDate(date: Date): Timestamp {
   if (!Number.isFinite(time)) {
     throw new ValidationError('Timestamp must come from a valid date', { value: String(date) })
   }
-  return date.toISOString() as Timestamp
+  // Round-tripped through the string constructor rather than cast: for years
+  // outside 0000-9999 `toISOString` switches to the expanded form
+  // (`+275760-…`, `-000001-…`), which breaks the fixed-width spelling and,
+  // because `'+' < '0'` in code-unit order, the string-comparison guarantee.
+  return toTimestamp(date.toISOString())
 }
 
 /**
