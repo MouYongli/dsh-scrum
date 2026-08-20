@@ -2,7 +2,7 @@
 
 面向 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的 Scrum 项目管理插件，让用户和 Agent 在同一个 Workspace 中共同维护 Product Backlog、Sprint、看板、工作项和基础度量。
 
-项目目前处于规格与架构设计阶段，尚无可发布构建。
+项目处于工程基线阶段：monorepo、契约骨架和 Harness 集成探针已经就绪，Scrum 业务功能尚未实现，也还没有可发布构建。
 
 ## 产品概览
 
@@ -36,6 +36,22 @@ docs/       产品、架构和开发文档
 ```
 
 Community 不启动独立 Server。Teams 和 Enterprise 共用 `apps/scrum-server`，Harness 插件位于 `packages/harness/`。
+
+## 开发
+
+```bash
+pnpm install
+
+# 提交前
+pnpm typecheck && pnpm lint && pnpm lint:deps && pnpm test
+
+# 挂进 DeepSeek Harness 的 web profile
+pnpm dev:link && pnpm dev:config
+cd ~/你的项目 && npx @deepseek-ai/dsh web
+pnpm dev:unlink
+```
+
+当前只有 node 半边会加载，`dsh web` 里还看不到 Scrum 界面。完整循环、构建、探针与边界说明见[本地开发循环](docs/development/local-development.md)。
 
 ## 文档
 

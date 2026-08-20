@@ -76,6 +76,8 @@ packages/   被 App 或 Harness Bundle 组合的模块
 
 ## 测试要求
 
+本地执行的检查、构建与 Harness 挂载命令见[本地开发循环](docs/development/local-development.md)。
+
 - Domain：业务规则、状态迁移、数据不变量和权限矩阵。
 - Workspace Storage：原子写、冲突、损坏 JSONL 尾部、Journal 恢复和 Schema Migration。
 - Application：用例、授权、幂等性和并发冲突。
