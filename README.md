@@ -46,6 +46,7 @@ Community 不启动独立 Server。Teams 和 Enterprise 共用 `apps/scrum-serve
 - [DeepSeek Harness Scrum 开发指南](docs/development/dsh-dev-guide.md)：插件、UI、Workspace、Session、Agent 工具和权限集成。
 - [分级实施计划](docs/development/implementation-plan.md)：Release、Epic、Feature PR 与 Task/commit 的执行顺序和完成标准。
 - [架构决策记录](docs/development/adr/README.md)：已生效的工具链、依赖和格式决策及其理由。
+- [本地开发循环](docs/development/local-development.md)：提交前的检查、构建，以及把插件挂进 Harness 跑起来。
 - [Harness 兼容矩阵](docs/development/harness-compatibility.md)：支持的 Harness 版本范围、依赖方式与升级检查项。
 - [Git 与 GitHub 协作规范](docs/development/git-workflow.md)：Issue、分支、Commit 和 PR 的命名、内容与合并流程。
 

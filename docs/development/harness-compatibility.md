@@ -68,6 +68,8 @@ DSH_BIN=$(which dsh) scripts/harness-profile-probe.sh
 
 它不进 `pnpm test`：需要 Harness CLI 和一次网络安装，耗时和外部依赖都不适合放进每次提交的检查。改动 Bundle、patch 或支持范围时手动跑一次，并把输出贴进 PR。
 
+探针只验证一次性 Profile 的装卸；把插件挂进日常使用的 Profile 开发，见[本地开发循环](local-development.md)。
+
 Bundle 尚未发布，因此探针用 `link:` 指向工作区目录，其 workspace 依赖通过仓库自身的 `node_modules` 解析。发布流程建立后（见实施计划的 Community Bundle 部分），这里应改为安装真实的发布产物。
 
 ## 7. 升级检查项
