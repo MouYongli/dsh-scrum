@@ -84,11 +84,18 @@ packages/   被 App 或 Harness Bundle 组合的模块
 - Server：租户隔离、身份、RBAC、实时事件和审计。
 - Edition：Community、Teams 和 Enterprise 分别执行组合测试。
 
-## Git 与变更规模
+## Git 与 GitHub 协作
 
-- 一个 Feature 对应一个 Git PR；PR 必须可独立评审、测试和回滚。
-- Feature 下的 Task 默认对应一个 commit；确需独立集成或评审时可以拆成前置 PR。
+- 每个变更先建 GitHub Issue 再动手，Issue 标题使用 `[Type] Imperative English summary`。
+- 分支命名为 `<type>/<issue-number>-<slug>`，从最新 `main` 切出，禁止直接向 `main` push。
+- Commit 与 PR 标题使用 Conventional Commits；Issue、分支、Commit 和 PR 一律使用英文。
+- PR 只允许以 merge commit 合入，禁止 squash 与 rebase merge，以保留 PR 内的提交历史。
+- Issue、分支、Commit 和 PR 中不写计划编号，追溯通过 `Refs #<issue>` 完成。
+- 一个 Issue 对应一个 Git PR；PR 必须可独立评审、测试和回滚。
+- 变更内部的实现步骤默认各对应一个 commit；确需独立集成或评审时可以拆成前置 PR。
 - 单个 commit 的手写代码变更不得超过 500 行，按 `git diff --numstat <commit>^ <commit>` 的新增与删除行数之和计算。
 - 文档、测试快照、生成文件和 lockfile 不计入上述 500 行，但必须与其对应的代码变更同源且可复现；不得借此隐藏大规模手写代码变更。
-- 预计超过限制的 Task 必须在编码前继续拆分；禁止完成后再用无语义的切片 commit 规避限制。
+- 预计超过限制的步骤必须在编码前继续拆分；禁止完成后再用无语义的切片 commit 规避限制。
 - 每个 commit 只表达一个可验证意图，并通过该范围适用的 lint、类型检查和测试。
+
+Issue、分支、Commit 和 PR 的完整命名与流程见 [Git 与 GitHub 协作规范](docs/development/git-workflow.md)；可执行版本为 `.claude/skills/git-workflow/SKILL.md`，两者必须同步修改。

@@ -1,0 +1,70 @@
+name: Feature
+description: A new user-visible capability, public Contract or Agent Tool.
+title: "[Feature] "
+labels:
+  - type:feature
+body:
+  - type: markdown
+    attributes:
+      value: |
+        One issue means one branch and one pull request, scoped so it can be
+        reviewed, tested and rolled back on its own.
+        Keep the title as `[Feature] <Imperative English summary>`.
+        See [the collaboration guideline](https://github.com/MouYongli/dsh-scrum/blob/main/docs/development/git-workflow.md).
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What this change must achieve.
+    validations:
+      required: true
+
+  - type: textarea
+    id: non-goals
+    attributes:
+      label: Non-goals
+      description: What is explicitly out of scope, so the pull request cannot drift.
+      placeholder: |
+        - Multi-user access
+        - Server-side storage
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance criteria
+      description: Verifiable conditions. Each one must be checkable before merge.
+      value: |
+        - [ ]
+    validations:
+      required: true
+
+  - type: textarea
+    id: tasks
+    attributes:
+      label: Tasks
+      description: Implementation steps. Each entry becomes exactly one commit.
+      value: |
+        - [ ]
+        - [ ]
+    validations:
+      required: true
+
+  - type: input
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: Issues that block this one. Use `None` if there are none.
+      placeholder: "#3, #7"
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Design constraints, open questions, links to relevant documents or plan entries.
+    validations:
+      required: false

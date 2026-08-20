@@ -1,0 +1,63 @@
+name: Bug
+description: Something behaves differently from the documented design.
+title: "[Fix] "
+labels:
+  - type:fix
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Keep the title as `[Fix] <Imperative English summary>`, for example
+        `[Fix] Reject workspace write on revision conflict`.
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Where the problem was observed.
+      value: |
+        - Harness version:
+        - Edition: Community / Teams / Enterprise
+        - Plugin version or commit:
+        - OS:
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+      description: Reference the document or rule that defines the expected behaviour when possible.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: Include error messages, logs or the affected `.scrum/` file content.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Impact
+      options:
+        - Data loss or corruption
+        - Blocks a documented workflow
+        - Workaround exists
+        - Cosmetic
+    validations:
+      required: true

@@ -11,7 +11,14 @@
 - 按编号和依赖顺序实施。同一 Epic 内无依赖的 Feature 才能并行。
 - 单个 commit 的手写代码变更不超过 500 行，具体口径见仓库根目录 `AGENT.md`。
 
-每个 Feature PR 至少包含：目标和非目标、关联编号、测试证据、兼容性影响、数据迁移影响和回滚方式。新增公共 Contract、Schema 或持久化格式时还必须提供版本策略。
+每个 Feature PR 至少包含：目标和非目标、测试证据、兼容性影响、数据迁移影响和回滚方式。新增公共 Contract、Schema 或持久化格式时还必须提供版本策略。
+
+本计划的编号落到 GitHub 上的方式：
+
+- 每个 `F-*` 建一个 Issue，Issue 的 Tasks 清单对应它下面的 `T-*`。
+- 每个 Release 建一个 Milestone，该 Release 的 Issue 与 PR 绑定到它。
+- Epic 不建 GitHub 对象；需要标注时写在 Issue 正文的 Notes 里。
+- 编号不写进 Issue 标题、分支名、commit 消息和 PR 标题。[Git 与 GitHub 协作规范](git-workflow.md)是与本计划无关的通用规范，命名一律以它为准。
 
 ## 2. 总体路线与范围
 

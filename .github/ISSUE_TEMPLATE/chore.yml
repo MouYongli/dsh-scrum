@@ -1,0 +1,78 @@
+name: Chore, refactor, test, CI or spike
+description: Engineering work that is not a user-visible feature, a bug fix or a documentation change.
+title: "[Chore] "
+labels:
+  - type:chore
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Pick the real type below and **change the title prefix to match it**:
+        `[Chore]`, `[Refactor]`, `[Test]`, `[CI]` or `[Spike]`.
+        Also replace the default `type:chore` label with the matching `type:*` label.
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: Type
+      options:
+        - Chore - dependencies, scripts, build configuration
+        - Refactor - restructuring without behaviour change
+        - Test - test coverage only
+        - CI - pipeline and automation
+        - Spike - time-boxed investigation
+    validations:
+      required: true
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: For a spike, state the question to answer and the time box. For everything else, state the outcome.
+    validations:
+      required: true
+
+  - type: textarea
+    id: non-goals
+    attributes:
+      label: Non-goals
+      description: What is explicitly out of scope.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance criteria
+      description: For a spike, name the document or prototype that closes it.
+      value: |
+        - [ ]
+    validations:
+      required: true
+
+  - type: textarea
+    id: tasks
+    attributes:
+      label: Tasks
+      description: Implementation steps. Each entry becomes exactly one commit.
+      value: |
+        - [ ]
+    validations:
+      required: true
+
+  - type: input
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: Issues that block this one. Use `None` if there are none.
+      placeholder: None
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Constraints, open questions, links to relevant documents or plan entries.
+    validations:
+      required: false
