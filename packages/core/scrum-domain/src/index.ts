@@ -35,7 +35,7 @@ export {
   isScrumError,
   serializeScrumError,
 } from './errors.js'
-export type { ErrorCode, ErrorDetails, SerializedScrumError } from './errors.js'
+export type { ErrorCode, ErrorDetails, JsonValue, SerializedScrumError } from './errors.js'
 export type { Clock, Timestamp } from './time.js'
 export { compareTimestamps, timestampFromDate, timestampToDate, toTimestamp } from './time.js'
 export type { Revision } from './revision.js'

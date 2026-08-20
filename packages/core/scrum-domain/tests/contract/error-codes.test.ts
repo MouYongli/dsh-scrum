@@ -21,6 +21,8 @@ describe('error code surface', () => {
       forbidden: 'FORBIDDEN',
       notFound: 'NOT_FOUND',
       unsupportedSchemaVersion: 'UNSUPPORTED_SCHEMA_VERSION',
+      unsupportedApiVersion: 'UNSUPPORTED_API_VERSION',
+      internal: 'INTERNAL',
     })
   })
 
