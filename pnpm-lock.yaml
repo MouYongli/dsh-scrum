@@ -57,6 +57,13 @@ importers:
   packages/core/scrum-domain: {}
 
   packages/harness/scrum-harness-bundle:
+    dependencies:
+      '@dsh-scrum/scrum-harness-client':
+        specifier: workspace:*
+        version: link:../scrum-harness-client
+      '@dsh-scrum/scrum-harness-host':
+        specifier: workspace:*
+        version: link:../scrum-harness-host
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: ^4.0.1

@@ -1,0 +1,10 @@
+# Scrum bundle patch. It inserts the plugin rows over whatever the profile has
+# composed so far; later layers, including the user's own profile patch,
+# address these rows by id and replace their whole config.
+
+- insert:
+    - id: scrum-host
+      name: '@dsh-scrum/scrum-harness-host'
+
+    - id: scrum-client
+      name: '@dsh-scrum/scrum-harness-client'
