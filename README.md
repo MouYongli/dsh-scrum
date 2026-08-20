@@ -45,5 +45,6 @@ Community 不启动独立 Server。Teams 和 Enterprise 共用 `apps/scrum-serve
 - [系统架构](docs/development/architecture.md)：运行拓扑、模块、数据模型、存储、一致性、迁移和发布。
 - [DeepSeek Harness Scrum 开发指南](docs/development/dsh-dev-guide.md)：插件、UI、Workspace、Session、Agent 工具和权限集成。
 - [分级实施计划](docs/development/implementation-plan.md)：Release、Epic、Feature PR 与 Task/commit 的执行顺序和完成标准。
+- [Git 与 GitHub 协作规范](docs/development/git-workflow.md)：Issue、分支、Commit 和 PR 的命名、内容与合并流程。
 
 仓库内编码 Agent 的实现约束见 [Agent Guide](AGENT.md)。
