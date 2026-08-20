@@ -3,7 +3,10 @@
 // separately by tests/workspace/workspace-packages.test.ts; this configuration
 // checks the actual import graph, including relative imports that bypass
 // package names.
-const FILESYSTEM = '^(node:)?(fs|fs/promises|child_process|worker_threads)$'
+// `module` belongs on this list because `createRequire` reads files off disk —
+// it is exactly how the host resolves manifests; `os`, `path` and `process`
+// are host-environment probes that have no place in browser-destined code.
+const FILESYSTEM = '^(node:)?(fs|fs/promises|module|os|path|process|child_process|worker_threads)$'
 
 /**
  * The rules, anchored on a package root. A rule that matches nothing reports
