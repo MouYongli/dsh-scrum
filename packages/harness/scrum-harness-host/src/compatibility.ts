@@ -14,8 +14,13 @@ export const HARNESS_VERSION_PACKAGE = '@deepseek-ai/dsh-base'
  */
 export const SUPPORTED_HARNESS_RANGE = '>=0.1.0-rc.7 <0.2.0-0'
 
-/** Highest Harness version this plugin has actually been exercised against. */
-export const VERIFIED_HARNESS_VERSION = '0.1.0-rc.7'
+/**
+ * Harness version this plugin targets and has been exercised against. Must
+ * equal `dsh.targetHarnessVersion` in the root manifest, which is what the
+ * install probe and the local development loop run; a workspace test fails if
+ * the two drift apart.
+ */
+export const VERIFIED_HARNESS_VERSION = '0.1.0-rc.8'
 
 /** Reads a package manifest by specifier; injectable so tests need no Harness install. */
 export type ManifestReader = (specifier: string) => { version?: unknown }

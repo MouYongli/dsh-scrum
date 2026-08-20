@@ -28,14 +28,12 @@ function readJson(path) {
 const BUNDLE_NAME = readJson(join(BUNDLE_DIR, 'package.json')).name
 
 /**
- * Harness version to run, taken from the declared peer range so that the loop
- * cannot drift from the supported range in the compatibility matrix.
+ * Harness version to run. The repository keeps one copy of it, in the root
+ * manifest, so the loop, the install probe and the runtime range cannot drift
+ * apart. Not the same thing as the supported floor, which is older.
  */
 function harnessVersion() {
-  const host = readJson(
-    join(REPO_ROOT, 'packages', 'harness', 'scrum-harness-host', 'package.json'),
-  )
-  return host.peerDependencies['@deepseek-ai/dsh-base'].replace(/^[\^~]/, '')
+  return readJson(join(REPO_ROOT, 'package.json')).dsh.targetHarnessVersion
 }
 
 /** Runs the Harness CLI, printing the command first so it can be pasted anywhere. */

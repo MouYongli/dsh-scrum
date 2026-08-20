@@ -9,9 +9,13 @@ DeepSeek Harness 处于 Developer Preview，全部包仍是 `0.1.0-rc.x` 预发�
 | 项 | 版本 | 说明 |
 |---|---|---|
 | 最低支持 | `0.1.0-rc.7` | 低于此版本不加载，直接拒绝并提示升级 |
-| 目标版本 | `0.1.0-rc.7` | 开发与测试针对的版本 |
-| 已验证最高 | `0.1.0-rc.7` | 实际跑过安装、加载、卸载的最高版本 |
+| 目标版本 | `0.1.0-rc.8` | 开发、探针与本地循环默认针对的版本 |
+| 已验证最高 | `0.1.0-rc.8` | 实际跑过安装、组合、卸载的最高版本 |
 | 声明范围 | `>=0.1.0-rc.7 <0.2.0-0` | `peerDependencies` 写 `^0.1.0-rc.7`，运行时检测用完整区间 |
+
+目标版本是 `0.1.0-rc.8`，但**最低支持仍保留 `0.1.0-rc.7`**，因为 rc.8 目前发布在 `next` 标签上，`latest` 还是 rc.7：用户执行 `npx @deepseek-ai/dsh` 默认装到的是 rc.7，把下限抬到 rc.8 等于拒绝 CLI 默认安装的版本。两个版本都用探针实测过。
+
+目标版本在仓库里只有一处：根 `package.json` 的 `dsh.targetHarnessVersion`。安装探针和本地开发循环都从这里读，运行时检测的 `VERIFIED_HARNESS_VERSION` 与它由 `tests/workspace/harness-target-version.test.ts` 保证一致。
 
 `@deepseek-ai/cordis` 单独声明为 `^4.0.1`：它是插件模型本身的依赖，版本节奏与 `dsh-*` 不同。
 
@@ -61,8 +65,8 @@ Patch 以行 id 寻址，后写覆盖整行 `config`，不做深合并。
 `scripts/harness-profile-probe.sh` 在临时 `DSH_HOME` 里建一个一次性 Profile，把 Bundle 以 `link:` 方式装进去，检查组合后的配置树包含两行插件，然后卸载并确认 Profile 回到原状。
 
 ```bash
-scripts/harness-profile-probe.sh              # 默认对 0.1.0-rc.7
-scripts/harness-profile-probe.sh 0.1.0-rc.8   # 验证其他版本
+scripts/harness-profile-probe.sh              # 默认对目标版本
+scripts/harness-profile-probe.sh 0.1.0-rc.7   # 验证其他版本，例如当前的最低支持
 DSH_BIN=$(which dsh) scripts/harness-profile-probe.sh
 ```
 
