@@ -2,7 +2,7 @@
 
 面向 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的 Scrum 项目管理插件，让用户和 Agent 在同一个 Workspace 中共同维护 Product Backlog、Sprint、看板、工作项和基础度量。
 
-项目目前处于规格与架构设计阶段，尚无可发布构建。
+项目处于工程基线阶段：monorepo、契约骨架和 Harness 集成探针已经就绪，Scrum 业务功能尚未实现，也还没有可发布构建。
 
 ## 产品概览
 
@@ -37,6 +37,29 @@ docs/       产品、架构和开发文档
 
 Community 不启动独立 Server。Teams 和 Enterprise 共用 `apps/scrum-server`，Harness 插件位于 `packages/harness/`。
 
+## 开发
+
+在本仓库根目录：
+
+```bash
+pnpm install
+
+# 提交前
+pnpm typecheck && pnpm lint && pnpm lint:deps && pnpm test
+
+# 挂进 DeepSeek Harness 的 web profile（一次挂载对所有项目生效）
+pnpm dev:link && pnpm dev:config
+pnpm dev:unlink                       # 用完摘掉
+```
+
+在你想用 Scrum 管理的代码项目目录里启动 Harness——启动目录就是 Workspace，数据落在它的 `.scrum/`：
+
+```bash
+cd ~/你的代码项目 && npx @deepseek-ai/dsh web
+```
+
+当前只有 node 半边会加载，`dsh web` 里还看不到 Scrum 界面。完整循环、构建、探针与边界说明见[本地开发循环](docs/development/local-development.md)。
+
 ## 文档
 
 - [Scrum 产品设计](docs/product/scrum.md)：Scrum 概念、角色、产品功能、使用流程和首版范围。
@@ -46,6 +69,7 @@ Community 不启动独立 Server。Teams 和 Enterprise 共用 `apps/scrum-serve
 - [DeepSeek Harness Scrum 开发指南](docs/development/dsh-dev-guide.md)：插件、UI、Workspace、Session、Agent 工具和权限集成。
 - [分级实施计划](docs/development/implementation-plan.md)：Release、Epic、Feature PR 与 Task/commit 的执行顺序和完成标准。
 - [架构决策记录](docs/development/adr/README.md)：已生效的工具链、依赖和格式决策及其理由。
+- [本地开发循环](docs/development/local-development.md)：提交前的检查、构建，以及把插件挂进 Harness 跑起来。
 - [Harness 兼容矩阵](docs/development/harness-compatibility.md)：支持的 Harness 版本范围、依赖方式与升级检查项。
 - [Git 与 GitHub 协作规范](docs/development/git-workflow.md)：Issue、分支、Commit 和 PR 的命名、内容与合并流程。
 

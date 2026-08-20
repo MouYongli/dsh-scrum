@@ -16,6 +16,14 @@ export default tseslint.config(
     },
   },
   {
+    // Repository scripts run under Node and are plain JavaScript, so they get
+    // the Node globals rather than a TypeScript project.
+    files: ['scripts/**/*.js'],
+    languageOptions: {
+      globals: { console: 'readonly', process: 'readonly' },
+    },
+  },
+  {
     // Tests and build configuration are typechecked by `tsconfig.test.json`,
     // which stays out of the composite build, so they belong to no ESLint
     // project and are linted without type-aware rules.
