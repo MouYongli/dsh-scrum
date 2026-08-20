@@ -44,5 +44,6 @@ Community 不启动独立 Server。Teams 和 Enterprise 共用 `apps/scrum-serve
 - [Scrum 术语表](docs/product/glossary.md)：产品文档和界面使用的统一术语。
 - [系统架构](docs/development/architecture.md)：运行拓扑、模块、数据模型、存储、一致性、迁移和发布。
 - [DeepSeek Harness Scrum 开发指南](docs/development/dsh-dev-guide.md)：插件、UI、Workspace、Session、Agent 工具和权限集成。
+- [分级实施计划](docs/development/implementation-plan.md)：Release、Epic、Feature PR 与 Task/commit 的执行顺序和完成标准。
 
 仓库内编码 Agent 的实现约束见 [Agent Guide](AGENT.md)。
