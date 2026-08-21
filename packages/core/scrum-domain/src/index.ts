@@ -1,6 +1,7 @@
 export type {
   IdGenerator,
   IdentityId,
+  MemberId,
   ProjectId,
   ProjectKey,
   SprintId,
@@ -13,10 +14,12 @@ export {
   formatSprintId,
   formatWorkItemId,
   newIdentityId,
+  newMemberId,
   newProjectId,
   newTenantId,
   projectKeyOf,
   toIdentityId,
+  toMemberId,
   toProjectId,
   toProjectKey,
   toSprintId,
@@ -79,3 +82,19 @@ export {
   toEstimationMethod,
   updateProjectConfig,
 } from './project-config.js'
+export type { Identity, IdentityKind, CreateLocalIdentityInput } from './identity.js'
+export { IDENTITY_KIND, createLocalIdentity, toIdentityKind } from './identity.js'
+export type { ProjectRole } from './roles.js'
+export { PROJECT_ROLE, PROJECT_ROLES, toProjectRole, toProjectRoles } from './roles.js'
+export type { Capability, CapabilitySet } from './capabilities.js'
+export { CAPABILITIES, CAPABILITY, toCapability } from './capabilities.js'
+export type { CreateProjectMemberInput, MemberStatus, ProjectMember } from './membership.js'
+export {
+  MEMBER_STATUS,
+  createOwnerMember,
+  createProjectMember,
+  memberRoles,
+  setMemberRoles,
+  setMemberStatus,
+  toMemberStatus,
+} from './membership.js'

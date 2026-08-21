@@ -8,6 +8,8 @@ export type TenantId = Brand<string, 'TenantId'>
 export type ProjectId = Brand<string, 'ProjectId'>
 /** Actor identity: a local user in Community, a directory account elsewhere. */
 export type IdentityId = Brand<string, 'IdentityId'>
+/** Membership of one identity in one project. Carries the roles. */
+export type MemberId = Brand<string, 'MemberId'>
 /** Short uppercase project key such as `SCR`, used as the work item prefix. */
 export type ProjectKey = Brand<string, 'ProjectKey'>
 /** Human-readable work item key such as `SCR-12`. */
@@ -19,6 +21,7 @@ export const ID_PREFIX = {
   tenant: 'tnt',
   project: 'prj',
   identity: 'idt',
+  member: 'mbr',
 } as const
 
 export type IdPrefix = (typeof ID_PREFIX)[keyof typeof ID_PREFIX]
@@ -44,6 +47,7 @@ const PREFIXED_ID: Record<IdPrefix, RegExp> = {
   [ID_PREFIX.tenant]: prefixedIdPattern(ID_PREFIX.tenant),
   [ID_PREFIX.project]: prefixedIdPattern(ID_PREFIX.project),
   [ID_PREFIX.identity]: prefixedIdPattern(ID_PREFIX.identity),
+  [ID_PREFIX.member]: prefixedIdPattern(ID_PREFIX.member),
 }
 
 function parsePrefixedId(prefix: IdPrefix, value: string, kind: string): string {
@@ -63,6 +67,10 @@ export function toProjectId(value: string): ProjectId {
 
 export function toIdentityId(value: string): IdentityId {
   return parsePrefixedId(ID_PREFIX.identity, value, 'IdentityId') as IdentityId
+}
+
+export function toMemberId(value: string): MemberId {
+  return parsePrefixedId(ID_PREFIX.member, value, 'MemberId') as MemberId
 }
 
 export function toProjectKey(value: string): ProjectKey {
@@ -135,4 +143,8 @@ export function newProjectId(ids: IdGenerator): ProjectId {
 
 export function newIdentityId(ids: IdGenerator): IdentityId {
   return newPrefixedId(ids, ID_PREFIX.identity, 'IdentityId') as IdentityId
+}
+
+export function newMemberId(ids: IdGenerator): MemberId {
+  return newPrefixedId(ids, ID_PREFIX.member, 'MemberId') as MemberId
 }
