@@ -10,24 +10,21 @@
 - 不得依赖相邻 Harness Checkout、仓库内符号链接或个人绝对路径。
 - Harness 仍处于 Developer Preview；插件必须声明、检测并测试兼容版本。
 - Community 在 Harness Host 内运行，不得引入独立 Scrum Server。
-- Teams 和 Enterprise 通过 Harness 插件连接同一个 `scrum-server` Runtime。
-- 普通 Scrum UI 位于 Harness 内；独立 Admin App 只用于企业治理。
+- 远程模式通过 Harness 插件连接符合公共 Contract 的外部服务。
+- Teams/Enterprise 服务端、商业身份、服务端存储、治理和 Admin App 不在本仓库实现。
 
 详细集成方式见 [DeepSeek Harness Scrum 开发指南](docs/development/dsh-dev-guide.md)。
 
 ## 模块边界
 
-```text
-apps/       可独立启动和部署的进程
-packages/   被 App 或 Harness Bundle 组合的模块
-```
+本仓库的实现模块位于 `packages/`。不得新增 `apps/scrum-server`、`packages/server/`、商业 Edition 实现，或通过相邻 Checkout、源码路径和符号链接耦合外部服务仓库。
 
 - `scrum-domain` 不得依赖 React、Harness、HTTP 或存储 Adapter。
 - `scrum-application` 不得依赖具体 Edition。
 - `scrum-ui` 不得直接访问文件、数据库或 Harness Context。
-- Edition 只组合 Capability 和 Adapter，不得实现或复制领域规则。
+- Community 组合只声明 Capability 和 Adapter，不得实现或复制领域规则。
 - Harness Client 不得直接读取 Workspace 文件，必须通过 Harness Host API 操作。
-- Host、Client、Agent Tools 和 Server 必须通过公开 Contract 协作，不能导入其他插件的内部实现。
+- Host、Client、Agent Tools 和远程服务必须通过公开 Contract 协作，不能跨仓库导入内部实现。
 
 完整目录、模块职责和依赖方向见[系统架构](docs/development/architecture.md)。
 
@@ -49,7 +46,7 @@ packages/   被 App 或 Harness Bundle 组合的模块
 
 ## Harness 开发约束
 
-- Host 插件负责 Workspace、Session、文件系统、远端 API 和 Agent Tool 的业务接入。
+- Host 插件负责 Workspace、Session、文件系统、Remote Gateway 和 Agent Tool 的业务接入。
 - Client 插件负责 Sidebar 按钮、Scrum 主页面和交互展示。
 - Browser 组件使用 `ctx.slots.register(...)` 注册到宿主声明的 Slot。
 - 注册到其他插件的 Slot 时，使用 `ctx.slots.inject(...)` 等待声明。
@@ -57,9 +54,9 @@ packages/   被 App 或 Harness Bundle 组合的模块
 - 每个包的 `exports` 必须包含 `"./package.json"`；缺失时 Harness Loader 会静默跳过插件。
 - 对外可安装单元只有 `scrum-harness-bundle`；Profile patch 只写它的包名，Host 和 Client 由 Bundle re-export，patch 写工作区内部包名会让整个 Shell 启动失败。
 - Scrum Tool 只在允许访问 Scrum 的 Session 或 Agent Scope 中可见。
-- Agent 必须使用当前用户身份，并同时接受 Edition、角色、Session Access 和操作策略约束。
+- Agent 必须使用当前用户身份，并同时接受 Capability、角色、Session Access 和操作策略约束。
 - 高风险 Tool 必须请求确认并写入 Activity。
-- UI 隐藏操作入口不能替代 Host 或 Server 权限检查。
+- UI 隐藏操作入口不能替代 Host 或远程服务的权限检查。
 - 产品界面文案使用中文；代码、类型和代码注释使用英文。
 
 当前 Sidebar 扩展限制、实测 Slot 契约、页面状态和授权模型见 [DeepSeek Harness Scrum 开发指南](docs/development/dsh-dev-guide.md)。
@@ -71,8 +68,8 @@ packages/   被 App 或 Harness Bundle 组合的模块
 3. 实现 `scrum-application` 用例与 `scrum-api-contract`。
 4. 接入 Harness Host 和 Agent Tools，完成无 UI 端到端验证。
 5. 接入 Harness Client 和 Scrum UI。
-6. 实现 Teams/Enterprise Server、远端 Adapter、身份与同步。
-7. 增加迁移、导入导出、审计和恢复测试。
+6. 实现 Remote Gateway Port、远程 Adapter、Contract 兼容和故障处理。
+7. 增加迁移、导入导出、本地审计和恢复测试。
 
 版本范围和 Capability 规则见[版本设计](docs/product/editions.md)，产品首版范围见 [Scrum 产品设计](docs/product/scrum.md#6-首个版本范围)。
 
@@ -85,8 +82,8 @@ packages/   被 App 或 Harness Bundle 组合的模块
 - Application：用例、授权、幂等性和并发冲突。
 - Harness Host：Workspace/Session Scope、Tool 可见性和确认流程。
 - Harness Client：Slot 注册、无 Workspace、无项目、归档项目和已绑定项目状态。
-- Server：租户隔离、身份、RBAC、实时事件和审计。
-- Edition：Community、Teams 和 Enterprise 分别执行组合测试。
+- Remote：Contract、认证失效、超时、断网、Conflict、Capability 降级和敏感信息脱敏。
+- Composition：Community Local 与 Remote Connector 分别执行组合测试；服务端测试属于外部项目。
 
 ## Git 与 GitHub 协作
 

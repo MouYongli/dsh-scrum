@@ -182,7 +182,7 @@ Refs #12
 | body | 说明「做了什么、为什么」，按 72 列换行；仅当变更显而易见时可省略 |
 | footer | `Refs #12` 关联 Issue；破坏性变更用 `BREAKING CHANGE:`；真人共同作者用 `Co-Authored-By:` |
 
-常用 scope 取包目录名，见[系统架构](architecture.md)的推荐目录，例如 `scrum-domain`、`scrum-application`、`scrum-api-contract`、`scrum-ui`、`scrum-harness-host`、`scrum-harness-client`、`scrum-agent-tools`、`scrum-harness-bundle`、`adapter-storage-workspace-files`、`edition-community`、`scrum-server`。
+常用 scope 取包目录名，见[系统架构](architecture.md)的推荐目录，例如 `scrum-domain`、`scrum-application`、`scrum-api-contract`、`scrum-ui`、`scrum-harness-host`、`scrum-harness-client`、`scrum-agent-tools`、`scrum-harness-bundle`、`adapter-storage-workspace-files`、`adapter-remote-api`、`edition-community`。
 
 ### 5.3 约束
 
@@ -264,9 +264,9 @@ PR 正文不要求填写计划编号。需要关联计划时，通过 `Closes #<
 | `area:api` | `packages/api/`：API Contract |
 | `area:ui` | `packages/ui/`：Scrum UI |
 | `area:harness` | `packages/harness/`：Host、Client、Agent Tools、Bundle |
-| `area:server` | `packages/server/` 与 `apps/scrum-server` |
-| `area:adapters` | `packages/adapters/`：Storage、Identity、Sync、Audit、Notification |
-| `area:editions` | `packages/editions/`：Community、Teams、Enterprise 组合 |
+| `area:remote` | 公共远程 Contract、Gateway、Adapter 与兼容测试 |
+| `area:adapters` | `packages/adapters/`：Community Storage、Personal Identity、Local Audit 与 Remote API |
+| `area:editions` | `packages/editions/`：Community 本地组合 |
 | `area:docs` | `docs/` 与仓库根文档 |
 | `area:repo` | 工作区配置、脚本、CI 和发布流程 |
 | `status:blocked` | 被其他 Issue 阻塞 |
@@ -300,14 +300,17 @@ gh label create area:core     --color bfd4f2 --description "packages/core: domai
 gh label create area:api      --color bfd4f2 --description "packages/api: API contract" --force
 gh label create area:ui       --color bfd4f2 --description "packages/ui: Scrum UI" --force
 gh label create area:harness  --color bfd4f2 --description "packages/harness: host, client, agent tools, bundle" --force
-gh label create area:server   --color bfd4f2 --description "packages/server and apps/scrum-server" --force
-gh label create area:adapters --color bfd4f2 --description "packages/adapters: storage, identity, sync, audit, notification" --force
-gh label create area:editions --color bfd4f2 --description "packages/editions: Community, Teams, Enterprise composition" --force
+gh label create area:remote   --color bfd4f2 --description "Remote contract, gateway, adapter and compatibility tests" --force
+gh label create area:adapters --color bfd4f2 --description "packages/adapters: Community storage, personal identity, local audit and remote API" --force
+gh label create area:editions --color bfd4f2 --description "packages/editions: Community local composition" --force
 gh label create area:docs     --color bfd4f2 --description "docs/ and root documentation" --force
 gh label create area:repo     --color bfd4f2 --description "Workspace configuration, scripts, CI and release process" --force
 
 gh label create status:blocked        --color b60205 --description "Blocked by another issue" --force
 gh label create status:needs-decision --color e99695 --description "Waiting for a product or architecture decision" --force
+
+# 迁移旧标签（确认没有未关闭 Issue 使用后执行）
+gh label delete area:server --yes 2>/dev/null || true
 
 # 未使用的 GitHub 默认标签（保留 good first issue 和 accessibility）
 for name in bug documentation duplicate enhancement "help wanted" invalid question wontfix; do

@@ -48,7 +48,7 @@ Community 面向单个本地用户：
 - 提供完整的 Backlog、Sprint、看板、工作项和基础报表。
 - 支持当前用户通过 Agent 查询和修改 Scrum 数据。
 - 数据以多个 JSON/JSONL 文件存储在绑定 Workspace 的 `.scrum/` 目录中。
-- 提供导出和升级到 Teams 的迁移能力。
+- 提供导出和迁移到兼容远程服务的能力。
 - 不提供多人协作、组织成员管理和企业身份系统。
 
 ## 4. Teams
@@ -117,18 +117,32 @@ type Capability =
 Community 也使用 `tenant_id`、`actor_id` 等字段，只是只有一个隐式个人 Tenant。这样可以：
 
 - 避免为 Community 单独维护 Schema。
-- 允许将本地项目迁移到 Teams。
+- 允许将本地项目迁移到兼容远程服务。
 - 让导入、导出和备份格式保持统一。
 - 让权限、审计和活动记录使用相同模型。
 
 ## 8. 开发与发布策略
 
-建议采用：
+产品版本与代码仓库不是同一个边界：
 
-- 单一代码仓库。
-- 单一领域模型和 API Contract。
-- Edition 作为插件组合清单。
-- 公共迁移脚本和版本化 Schema。
-- Community、Teams、Enterprise 独立集成测试。
+- `dsh-scrum` 实现 Core、Community、Harness 插件、远程连接和公共 API Contract。
+- `dsh-scrum-server` 实现 Teams/Enterprise 服务端、商业身份、存储、同步、审计、通知、Admin 和部署。
+- 插件只区分 `local` 与 `remote`；Teams/Enterprise Edition 由远程服务组合。
+- 公共迁移格式和 API Contract 版本化发布，是两个仓库之间唯一的代码级协作面。
+- Community 在插件仓库执行集成测试；Teams/Enterprise 在服务端仓库执行集成测试；两边共同运行 Contract 兼容测试。
 - Harness 版本兼容矩阵。
-- 商业版本功能由 Capability Gate 控制，而不是条件编译复制代码。
+- 商业版本功能由远程服务返回的 Capability 控制，而不是客户端条件编译或 Edition 布尔值。
+
+## 9. 实现归属
+
+| 能力 | `dsh-scrum` | `dsh-scrum-server` |
+|---|---|---|
+| Domain / Application Core | ✓ | 通过稳定公共包或 Contract 复用 |
+| Community Workspace 存储 | ✓ | — |
+| Harness UI / Agent Tools | ✓ | — |
+| Remote Gateway / Client Adapter | ✓ | — |
+| API Contract 与兼容 fixture | 权威来源 | 消费并验证 |
+| Tenant、成员与最终 RBAC | — | ✓ |
+| 服务端存储与事务 | — | ✓ |
+| Realtime、通知与审计后端 | — | ✓ |
+| SSO、SCIM、Policy、HA 与 Admin | — | ✓ |

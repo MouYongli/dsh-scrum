@@ -6,7 +6,7 @@
 
 ## 背景
 
-`scrum-api-contract` 需要在运行时校验跨边界的载荷。边界有四处：Harness Host 与 Client 之间的 Host API、Agent Tool 的参数、Teams/Enterprise 的 HTTP API，以及从 `.scrum/` 读回的数据。
+`scrum-api-contract` 需要在运行时校验跨边界的载荷。边界有四处：Harness Host 与 Client 之间的 Host API、Agent Tool 的参数、插件与外部远程服务的公共 API，以及从 `.scrum/` 读回的数据。
 
 约束：
 

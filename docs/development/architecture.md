@@ -1,18 +1,15 @@
 # 系统架构
 
-## 1. `apps` 与 `packages`
+## 1. 仓库职责
 
-```text
-apps/       可以独立启动和部署的程序入口
-packages/   被 App 或 DeepSeek Harness Bundle 组合的可复用模块
-```
+本仓库只包含被 Community 或 DeepSeek Harness Bundle 组合的 `packages/`：共享 Core、公共 Contract、UI、Harness 集成、本地 Adapter 和远程客户端 Adapter。
 
 因此：
 
-- `apps/scrum-server` 是 Teams/Enterprise 的独立后端，不是 Harness 插件。
-- `apps/scrum-admin` 是 Enterprise 可选管理后台，不是普通 Scrum 看板。
-- Harness 插件位于 `packages/harness/`。
-- Community 完全运行在 Harness Host 中，不需要 `apps/community` 或独立 Server。
+- Community 完全运行在 Harness Host 中，不需要独立 Server。
+- Teams/Enterprise 服务端及 Admin App 位于独立的 `dsh-scrum-server` 项目。
+- 本仓库不得新增 `apps/scrum-server`、`packages/server/` 或商业身份与治理实现。
+- 两个项目只通过已发布的版本化 Contract 协作，不依赖相邻 Checkout 或彼此的内部源码。
 
 ## 2. 运行拓扑
 
@@ -29,7 +26,7 @@ DeepSeek Harness
       └─ <workspace>/.scrum/
 ```
 
-### Teams / Enterprise
+### Remote
 
 ```text
 DeepSeek Harness
@@ -40,7 +37,7 @@ DeepSeek Harness
    └─ Remote API Adapter
            │
            ▼
-     apps/scrum-server
+     External dsh-scrum-server
      ├─ HTTP API / Realtime
      ├─ Application / Domain
      ├─ Identity / Policy
@@ -52,13 +49,6 @@ DeepSeek Harness
 
 ```text
 dsh-scrum/
-├─ apps/
-│  ├─ scrum-server/
-│  │  ├─ src/main.ts
-│  │  ├─ src/bootstrap.ts
-│  │  └─ package.json
-│  └─ scrum-admin/                         # 可选
-│
 ├─ packages/
 │  ├─ core/
 │  │  ├─ scrum-domain/
@@ -72,25 +62,13 @@ dsh-scrum/
 │  │  ├─ scrum-harness-client/
 │  │  ├─ scrum-agent-tools/
 │  │  └─ scrum-harness-bundle/
-│  ├─ server/
-│  │  ├─ scrum-server-runtime/
-│  │  ├─ scrum-http-api/
-│  │  ├─ scrum-realtime/
-│  │  └─ scrum-worker/
 │  ├─ adapters/
 │  │  ├─ adapter-storage-workspace-files/
-│  │  ├─ adapter-storage-server/
 │  │  ├─ adapter-remote-api/
 │  │  ├─ adapter-identity-personal/
-│  │  ├─ adapter-identity-team/
-│  │  ├─ adapter-identity-enterprise/
-│  │  ├─ adapter-sync/
-│  │  ├─ adapter-audit/
-│  │  └─ adapter-notification/
+│  │  └─ adapter-audit-local/
 │  └─ editions/
-│     ├─ edition-community/
-│     ├─ edition-teams/
-│     └─ edition-enterprise/
+│     └─ edition-community/
 ├─ docs/
 ├─ scripts/
 ├─ package.json
@@ -98,7 +76,7 @@ dsh-scrum/
 └─ tsconfig.json
 ```
 
-服务端具体存储实现可在确定技术栈后将 `adapter-storage-server` 改成更精确的名称，例如 `adapter-storage-postgres`。
+远程服务的目录、存储和部署设计属于 `dsh-scrum-server`，不在本仓库复制。
 
 ## 4. 模块职责
 
@@ -120,7 +98,7 @@ dsh-scrum/
 
 ### `scrum-harness-host`
 
-运行在 Harness Host 中，读取 Workspace/Session，管理绑定，选择 Community 文件 Adapter 或 Teams/Enterprise Remote Adapter，并向 Client 暴露 Host API。
+运行在 Harness Host 中，读取 Workspace/Session，管理绑定，选择 Local Community Gateway 或 Remote Gateway，并向 Client 暴露 Host API。
 
 ### `scrum-harness-client`
 
@@ -132,65 +110,45 @@ dsh-scrum/
 
 ### `scrum-harness-bundle`
 
-DeepSeek Harness 的最终安装包和 Composition Layer，组合 Host、Client、Tools 与 Edition。它是唯一对外可安装单元：Profile 的 patch 只写 Bundle 一行，Host 与 Client 两个半边由 Bundle re-export，内部包从 Profile 解析不到。三包分层只在工作区内部成立，机制与坑位见[开发指南](dsh-dev-guide.md)第 4.3 节和 [Harness 兼容矩阵](harness-compatibility.md)第 3 节。
-
-### `scrum-server-runtime`
-
-Teams/Enterprise 的服务端运行时。`apps/scrum-server` 只负责读取配置、选择 Edition 和启动 Runtime。
+DeepSeek Harness 的最终安装包和 Composition Layer，组合 Host、Client、Tools、Community 与 Remote Connector。它是唯一对外可安装单元：Profile 的 patch 只写 Bundle 一行，Host 与 Client 两个半边由 Bundle re-export，内部包从 Profile 解析不到。三包分层只在工作区内部成立，机制与坑位见[开发指南](dsh-dev-guide.md)第 4.3 节和 [Harness 兼容矩阵](harness-compatibility.md)第 3 节。
 
 ### Adapters
 
 - `adapter-storage-workspace-files`：Community 的 `.scrum/` JSON/JSONL 存储。
-- `adapter-storage-server`：服务端权威存储实现。
-- `adapter-remote-api`：Harness Host 连接 Teams/Enterprise Server。
-- Identity Adapter：个人、团队或企业身份实现。
-- Sync/Audit/Notification Adapter：按 Edition 组合的外围能力。
+- `adapter-remote-api`：Harness Host 连接符合 Contract 的外部服务。
+- `adapter-identity-personal`：Community 的隐式个人身份。
+- `adapter-audit-local`：Community 本地 Activity 记录。
 
-### Editions
+### Runtime composition
 
-Edition 不包含领域规则，只声明 Capability、限制和 Adapter 组合：
+插件只区分数据来源，不在客户端组合商业 Edition：
 
 ```text
-edition-community
+local
 ├─ workspace file storage
 └─ personal identity
 
-edition-teams
-├─ remote API
-├─ team identity
-├─ realtime sync
-├─ basic audit
-└─ notification
-
-edition-enterprise
-├─ edition-teams capabilities
-├─ enterprise identity
-├─ policy engine
-├─ advanced audit
-└─ enterprise deployment
+remote
+├─ remote API adapter
+├─ credential provider port
+└─ server-provided principal and capabilities
 ```
 
-## 5. Server 设计
+## 5. 远程服务边界
 
-不创建三套 Server。使用一个可执行程序和两个服务端 Edition：
+远程服务负责身份、租户隔离、最终授权、服务端存储、同步、审计、通知和商业 Capability。插件负责连接配置、协议校验、凭证引用、错误映射、幂等重试和 UI/Agent 的能力降级。
 
-```bash
-scrum-server --edition teams
-scrum-server --edition enterprise
-```
-
-Community 不启动 Server。`edition-community` 被 Harness Bundle 直接组合。
+连接时先完成版本化握手，获取服务版本、支持的 API 版本、当前 Principal 和 Capability。插件不能根据 Endpoint、产品名称或客户端布尔值推断 Teams/Enterprise 权限。
 
 ## 6. 依赖方向
 
 ```text
-apps
-└─ editions
-   ├─ integrations
-   ├─ adapters
-   ├─ ui
-   └─ application
-      └─ domain
+harness bundle
+├─ community composition
+├─ remote adapter
+├─ ui
+└─ application
+   └─ domain
 ```
 
 禁止：
@@ -198,9 +156,10 @@ apps
 ```text
 domain      → adapter
 domain      → ui
-application → edition
+application → composition
 ui          → workspace filesystem
-ui          → server database
+ui          → remote network
+plugin      → external server source
 ```
 
 ## 7. 领域与数据架构
@@ -445,7 +404,7 @@ Session Log    = Agent 对话、工具调用和操作结果
 Activity Log   = 操作者、来源、动作及资源版本
 ```
 
-Community 的权威副本位于 Workspace 的 `.scrum/`；Teams 和 Enterprise 的权威副本位于服务端。不同版本共享领域模型和 API Contract。
+Community 的权威副本位于 Workspace 的 `.scrum/`；Remote 模式的权威副本位于外部服务。两种模式共享业务语义和版本化 API Contract，但外部服务不导入本仓库未发布的内部模块。
 
 ### 9.1 Community
 
@@ -454,16 +413,16 @@ Community 的权威副本位于 Workspace 的 `.scrum/`；Teams 和 Enterprise �
 - 一个实体使用一个 JSON 文件，追加历史使用拆分的 JSONL。
 - 使用 Revision、原子重命名、文件锁和 Operation Journal 检测冲突并支持恢复。
 - 必须提供备份、导出和恢复能力。
-- 导出格式与 Teams 导入格式一致。
+- 导出格式与远程导入 Contract 一致。
 
-### 9.2 Teams
+### 9.2 Remote
 
 ```text
 Local Harness Plugin
         │
         │ Authenticated API
         ▼
-Team Scrum Service
+Compatible Remote Scrum Service
 ├─ PostgreSQL
 ├─ Realtime Event Stream
 ├─ Identity / RBAC
@@ -473,18 +432,18 @@ Team Scrum Service
 
 - 权威数据位于团队服务端。
 - 本地只保存项目绑定、会话授权和可丢弃缓存。
-- 多个用户共享同一个 Backlog 和 Sprint。
+- 多个用户可以共享同一个 Backlog 和 Sprint；具体商业能力由远程服务声明。
 - Agent 使用当前登录用户身份，不能使用共享管理员身份。
 - 所有写操作包含用户身份、Session ID 和预期 Revision。
 - 服务端发布实时变更事件。
 
-### 9.3 Enterprise
+### 9.3 Commercial service responsibilities
 
 ```text
-Enterprise Harness Nodes
+Harness Nodes
         │
         ▼
-Enterprise Scrum Platform
+External Scrum Platform
 ├─ PostgreSQL / 企业数据库
 ├─ SSO / SCIM
 ├─ Policy Engine
@@ -494,7 +453,7 @@ Enterprise Scrum Platform
 └─ Data Residency Controls
 ```
 
-Enterprise 与 Teams 使用相同领域模型和 API Contract，并增加企业身份、策略、审计、部署和合规 Adapter。
+Teams 与 Enterprise 的身份、策略、审计、部署和合规实现全部属于外部项目。本仓库只消费它公开的 Principal、Permission、Capability 和业务资源 Contract。
 
 ## 10. Community JSON/JSONL 存储
 
@@ -665,11 +624,11 @@ sessions/
 - Migration 必须可重复执行，并在修改前创建 Backup。
 - 迁移通过同样的原子写入和 Operation Journal 完成。
 - 未知的新 Schema Version 必须拒绝写入，避免旧插件损坏新格式。
-- Community 升级 Teams 时上传一致性校验后的项目快照和 JSONL 历史，不依赖 Harness Session Log 重建。
+- Community 迁移到远程服务时上传一致性校验后的项目快照和 JSONL 历史，不依赖 Harness Session Log 重建。
 
-Community 升级到 Teams 的步骤：
+Community 迁移到远程服务的步骤：
 
-1. 创建或选择 Teams Tenant。
+1. 在远程服务创建或选择 Tenant。
 2. 上传本地项目快照。
 3. 服务端重新生成或映射全局 ID。
 4. 保留旧 ID 到新 ID 的迁移映射。
@@ -685,7 +644,7 @@ Community 升级到 Teams 的步骤：
 
 - `.scrum/` 不保存账号密码、Token、SSO 凭证或企业密钥。
 - Attachment 使用相对路径，不能把 Workspace 外的绝对路径作为唯一来源。
-- Teams/Enterprise 的本地 `.scrum/` 只允许保存非敏感绑定声明和可丢弃缓存。
+- Remote 模式的本地 `.scrum/` 只允许保存非敏感绑定声明、凭证引用和可丢弃缓存。
 
 ## 13. 架构组合规则
 
@@ -702,7 +661,7 @@ interface RealtimePublisher {}
 interface EntitlementService {}
 ```
 
-不同版本提供不同组合：
+不同运行模式提供不同组合：
 
 ```text
 Community
@@ -711,21 +670,14 @@ Community
 ├─ LocalAuditWriter
 └─ NoopRealtimePublisher
 
-Teams
-├─ TeamIdentityProvider
+Remote
+├─ RemotePrincipalProvider
 ├─ RemoteApiRepository
-├─ BasicAuditWriter
-└─ RealtimePublisher
-
-Enterprise
-├─ EnterpriseIdentityProvider
-├─ RemoteApiRepository
-├─ ComplianceAuditWriter
-├─ PolicyAuthorizationService
-└─ RealtimePublisher
+├─ CredentialProvider
+└─ RemoteCapabilityProvider
 ```
 
-Edition 不包含领域规则，只声明 Capability、限制和 Adapter 组合。版本判断不能散落在 Domain 或 React 组件中；具体授权规则见[版本设计](../product/editions.md)。
+Community 组合不包含领域规则，只声明本地 Capability 和 Adapter。Remote Capability 来自服务端握手；模式判断不能散落在 Domain 或 React 组件中。具体授权规则见[版本设计](../product/editions.md)。
 
 ## 14. 发布产物
 
@@ -733,8 +685,7 @@ Edition 不包含领域规则，只声明 Capability、限制和 Adapter 组合�
 
 ```text
 @dsh-scrum/scrum-harness-bundle   Harness Bundle
-@dsh-scrum/scrum-server           Teams/Enterprise Server
-@dsh-scrum/scrum-api-contract     可选公开 SDK Contract
+@dsh-scrum/scrum-api-contract     公开的远程协议 Contract
 ```
 
-是否将内部包单独发布，应根据构建和部署需求决定；默认保持私有 Workspace Package，避免过早扩大公共 API。
+`scrum-api-contract` 必须使用 SemVer 发布，并同时产出机器可读 Schema。其他内部包默认保持私有；若外部项目确需复用 Core，必须先通过独立 ADR 明确公共 API、版本和弃用策略，不能通过相邻 Checkout 直接引用。

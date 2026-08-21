@@ -6,17 +6,16 @@
 
 ## 产品概览
 
-产品提供三个版本：
+产品提供本地和远程两种运行模式：
 
 ```text
-Community  = 免费的本地个人 Scrum
-Teams      = Community + 多人协作和共享服务
-Enterprise = Teams + 企业治理、安全和私有部署
+Local  = Community，本地个人 Scrum
+Remote = 连接独立的 Teams / Enterprise 服务
 ```
 
-三个版本共享 Domain、Application、API Contract、UI 和 Agent Tools，通过不同的 Storage、Identity、Sync、Audit 与 Notification Adapter 组合能力。
+本仓库实现共享 Core、Community 本地存储、Harness 插件、UI、Agent Tools、远程连接 Port/Adapter 和版本化 API Contract。Community 直接在 Harness Host 中运行，并将权威数据存放在绑定 Workspace 的 `.scrum/` 目录。
 
-Community 直接在 Harness Host 中运行，并将权威数据存放在绑定 Workspace 的 `.scrum/` 目录。Teams 和 Enterprise 通过 Harness 插件连接独立的 `scrum-server`。
+Teams 和 Enterprise 的服务端、商业身份、服务端存储、同步、审计、通知和部署能力由独立的 `dsh-scrum-server` 项目实现。本插件只连接符合公共 Contract 的远程服务，不在客户端推断商业授权。
 
 ## 核心原则
 
@@ -30,12 +29,11 @@ Community 直接在 Harness Host 中运行，并将权威数据存放在绑定 W
 ## 代码组织
 
 ```text
-apps/       可独立启动和部署的程序
-packages/   被 App 或 Harness Bundle 组合的模块
+packages/   Core、Contract、Community、UI、Harness 与远程连接模块
 docs/       产品、架构和开发文档
 ```
 
-Community 不启动独立 Server。Teams 和 Enterprise 共用 `apps/scrum-server`，Harness 插件位于 `packages/harness/`。
+本仓库不包含可部署的 Scrum Server 或企业 Admin App。远程服务的仓库边界和 Contract 兼容规则见[系统架构](docs/development/architecture.md)与 [ADR 0003](docs/development/adr/0003-repository-boundary.md)。
 
 ## 开发
 
@@ -52,6 +50,26 @@ pnpm build && pnpm lint:publish
 pnpm dev:link && pnpm dev:config
 pnpm dev:unlink                       # 用完摘掉
 ```
+
+也可以绕过仓库脚本，直接调用项目当前验证的 Harness CLI 版本。添加插件时必须传 Bundle 的绝对路径；下面的 `$PWD` 写法需要在本仓库根目录执行：
+
+```bash
+# 添加本地 Bundle 到 web profile
+npx --yes @deepseek-ai/dsh@0.1.0-rc.8 \
+  plugin --profile web add \
+  "$PWD/packages/harness/scrum-harness-bundle"
+
+# 验证 web profile 已组合出 Scrum 插件配置
+npx --yes @deepseek-ai/dsh@0.1.0-rc.8 \
+  --profile web --dump-config
+
+# 按包名从 web profile 移除插件（可在任意目录执行）
+npx --yes @deepseek-ai/dsh@0.1.0-rc.8 \
+  plugin --profile web remove \
+  @dsh-scrum/scrum-harness-bundle
+```
+
+如果不在仓库根目录执行添加命令，请将 `$PWD/packages/harness/scrum-harness-bundle` 换成该目录的完整绝对路径。移除命令按包名操作 profile，不依赖当前目录。
 
 在你想用 Scrum 管理的代码项目目录里启动 Harness——启动目录就是 Workspace，数据落在它的 `.scrum/`：
 

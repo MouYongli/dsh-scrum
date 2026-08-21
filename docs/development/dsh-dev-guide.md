@@ -239,7 +239,7 @@ Scrum 工作台是注册在 `shell.overlay` 的根级浮层，从 Sidebar 右缘
 │ 此工作区尚未启用 Scrum 项目管理                        │
 │                                                       │
 │ [创建新的 Scrum 项目]                                 │
-│ [绑定已有 Scrum 项目]       Teams / Enterprise        │
+│ [连接远程 Scrum 项目]       Remote                    │
 │                                                       │
 │ 项目名称：shop-service                                │
 │ Sprint 周期：2 周                                     │
@@ -277,7 +277,7 @@ Harness Instance
 
 参考资料：[DeepSeek Harness Workspace 子系统](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/workspace.md)
 
-Workspace 和 Session ID 只应被视为某个 Harness 实例中的稳定标识。Teams 和 Enterprise 可能存在多台 Harness 主机，因此所有跨实例引用必须同时携带 `harness_instance_id`：
+Workspace 和 Session ID 只应被视为某个 Harness 实例中的稳定标识。Remote 模式可能存在多台 Harness 主机，因此所有跨实例引用必须同时携带 `harness_instance_id`：
 
 ```text
 (harness_instance_id, harness_workspace_id)
@@ -408,6 +408,6 @@ Session Log 只记录必要引用和操作结果，例如：
 
 ## 11. 插件与独立应用的边界
 
-Harness 插件位于 `packages/harness/`，由 Host、Client、Agent Tools 和 Bundle 组成。`apps/scrum-server` 不是插件，而是 Teams/Enterprise 连接的独立后端；Community 不启动该服务，直接通过 Host 插件读写 Workspace 下的 `.scrum/` JSON/JSONL 数据。
+Harness 插件位于 `packages/harness/`，由 Host、Client、Agent Tools 和 Bundle 组成。Teams/Enterprise 后端位于独立的 `dsh-scrum-server` 项目；本仓库不包含 `apps/scrum-server`。Community 直接通过 Host 插件读写 Workspace 下的 `.scrum/` JSON/JSONL 数据，Remote 模式通过公开 Contract 连接外部服务。
 
 模块、数据和存储设计见[系统架构](architecture.md)，版本能力见[版本设计](../product/editions.md)。

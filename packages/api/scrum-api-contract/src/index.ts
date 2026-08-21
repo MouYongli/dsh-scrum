@@ -16,3 +16,19 @@ export {
   successResponse,
   toValidationError,
 } from './envelope.js'
+export type {
+  RemoteCapability,
+  RemoteHandshakeRequest,
+  RemoteHandshakeResponse,
+  RemotePrincipal,
+} from './remote.js'
+export {
+  REMOTE_CAPABILITY,
+  REMOTE_PROTOCOL,
+  createRemoteHandshakeRequest,
+  parseRemoteHandshakeResponse,
+  remoteCapabilitySchema,
+  remoteHandshakeRequestSchema,
+  remoteHandshakeResponseSchema,
+  remotePrincipalSchema,
+} from './remote.js'
