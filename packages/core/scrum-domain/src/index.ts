@@ -155,3 +155,19 @@ export {
   setWorkItemParent,
   workItemReferences,
 } from './work-item-graph.js'
+export type { CreateSprintInput, Sprint, SprintDetailChanges, SprintStatus } from './sprint.js'
+export {
+  SPRINT_STATUS,
+  createSprint,
+  rescheduleSprint,
+  toSprintStatus,
+  updateSprintDetails,
+} from './sprint.js'
+export type { SprintWorkItemState } from './sprint.js'
+export {
+  assertSprintAcceptsWorkItems,
+  closeSprint,
+  isSprintActive,
+  startSprint,
+  unfinishedSprintWorkItems,
+} from './sprint.js'
