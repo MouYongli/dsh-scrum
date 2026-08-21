@@ -147,3 +147,11 @@ export {
   removeWorkItemFromSprint,
   unblockWorkItem,
 } from './work-item.js'
+export type { WorkItemLookup, WorkItemReferences } from './work-item-graph.js'
+export {
+  addWorkItemDependency,
+  assertWorkItemDeletable,
+  removeWorkItemDependency,
+  setWorkItemParent,
+  workItemReferences,
+} from './work-item-graph.js'
