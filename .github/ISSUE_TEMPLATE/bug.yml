@@ -17,7 +17,9 @@ body:
       description: Where the problem was observed.
       value: |
         - Harness version:
-        - Edition: Community / Teams / Enterprise
+        - Runtime mode: Local / Remote
+        - Remote service version (if applicable):
+        - API contract version:
         - Plugin version or commit:
         - OS:
     validations:

@@ -1,6 +1,6 @@
 # 分级实施计划
 
-本文把产品路线拆成四级：`Release → Epic → Feature → Task`。计划以 Community 的首个可用闭环为第一目标，Teams 和 Enterprise 在共享 Domain、Application 与 API Contract 稳定后推进。
+本文把本仓库路线拆成四级：`Release → Epic → Feature → Task`。计划覆盖共享 Core、Community、Harness 插件与 Remote Connector；Teams 和 Enterprise 服务端由独立项目规划。
 
 ## 1. 执行模型
 
@@ -27,10 +27,9 @@
 | R0 工程与集成基线 | 可持续开发的 monorepo、契约骨架、Harness 兼容性结论 | Scrum 业务功能 | CI 通过；目标 Harness 版本和 Slot 接入方案有自动化验证 |
 | R1 Community MVP | 单用户在一个 Workspace 内完成首版 Scrum 闭环，UI 与 Agent 共用权威数据 | 多人、评论通知、会议模式、高级报表 | 安装 Bundle 后完成创建项目到关闭 Sprint 的端到端验收 |
 | R1.1 Community 稳定版 | 可恢复、可迁移、可发布的本地版本 | 远端协作 | 故障恢复、导入导出、兼容矩阵和发布检查全部通过 |
-| R2 Teams | 多用户共享项目、RBAC、实时协作和基础审计 | 企业 SSO/SCIM、策略治理、HA | 多租户隔离与并发协作验收通过，可从 Community 迁移 |
-| R3 Enterprise | 企业身份、策略、审计、部署和灾备 | 与 Scrum 无关的通用 ALM 能力 | 安全、恢复、升级和隔离验收通过 |
+| R1.2 Remote Connector | 插件连接符合公共 Contract 的远程服务 | 服务端、商业身份、存储、治理和部署 | Contract 兼容、远程绑定、故障降级和 Community 迁移验收通过 |
 
-当前承诺范围是 R0、R1 和 R1.1。R2、R3 是方向性计划，在前一 Release 结束时重新估算，不提前冻结服务端技术选型。
+当前承诺范围是 R0、R1 和 R1.1。R1.2 在公共用例和导出格式稳定后重新估算；服务端路线不在本文件维护。
 
 ## 3. R0 工程与集成基线
 
@@ -154,7 +153,7 @@
 #### F-1.4.2 Session Scrum Access（PR）
 
 - T-1.4.2a：实现 Off/Read/Write Context 的本地持久化（commit）。
-- T-1.4.2b：实现 Edition ∩ Role ∩ Session ∩ Policy 的最终权限计算（commit）。
+- T-1.4.2b：实现 Capability ∩ Role ∩ Session ∩ Policy 的最终权限计算（commit）。
 - T-1.4.2c：覆盖默认 Off、绑定变化和项目归档时的降级测试（commit）。
 
 #### F-1.4.3 只读 Agent Tools（PR）
@@ -235,7 +234,7 @@
 
 - T-1.1.1.3a：定义版本化、可校验且不含凭证的导出包（commit）。
 - T-1.1.1.3b：实现导出、导入预检、ID 冲突报告和原子导入（commit）。
-- T-1.1.1.3c：加入往返一致性和未来 Teams 上传 fixture（commit）。
+- T-1.1.1.3c：加入往返一致性和未来远程导入 fixture（commit）。
 
 ### E-1.1.2 发布可靠性
 
@@ -251,111 +250,31 @@
 - T-1.1.2.2b：实现版本、变更日志、包完整性和 provenance 检查（commit）。
 - T-1.1.2.2c：完成干净 Workspace 与已有数据的发布候选验收（commit）。
 
-## 6. R2 Teams（方向性）
+## 6. R1.2 Remote Connector（方向性）
 
-### E-2.1 服务端权威数据
+### E-1.2.1 公共远程边界
 
-#### F-2.1.1 Server Runtime 与存储 Adapter（PR）
+#### F-1.2.1.1 Remote Gateway Port 与绑定（PR）
 
-- T-2.1.1a：基于 ADR 初始化单一 `scrum-server` Runtime（commit）。
-- T-2.1.1b：实现共享 Repository Ports 的服务端存储和事务（commit）。
-- T-2.1.1c：覆盖 Tenant 隔离、Revision 和迁移测试（commit）。
+- T-1.2.1.1a：在 Application 定义协议无关的 Remote Gateway Port（commit）。
+- T-1.2.1.1b：实现 `local | remote` Workspace Binding 和非敏感连接配置（commit）。
+- T-1.2.1.1c：覆盖绑定切换、失效和凭证引用测试（commit）。
 
-#### F-2.1.2 HTTP API 与 Remote Adapter（PR）
+#### F-1.2.1.2 API Contract 与 Remote Adapter（PR）
 
-- T-2.1.2a：实现版本化 API、认证上下文和错误映射（commit）。
-- T-2.1.2b：实现 Harness Host Remote Adapter 和幂等重试（commit）。
-- T-2.1.2c：加入 Contract、断网、超时和 Conflict 测试（commit）。
+- T-1.2.1.2a：定义握手、Principal、Capability、资源 DTO 和实时事件 Contract（commit）。
+- T-1.2.1.2b：实现 Harness Host Remote Adapter、错误映射和幂等重试（commit）。
+- T-1.2.1.2c：加入版本不兼容、认证失效、断网、超时和 Conflict 测试（commit）。
 
-#### F-2.1.3 Community 升级 Teams（PR）
+#### F-1.2.1.3 Community 迁移到远程服务（PR）
 
-- T-2.1.3a：实现快照上传、校验和 ID 映射（commit）。
-- T-2.1.3b：迁移 Activity/Actor 并切换 Workspace Link（commit）。
-- T-2.1.3c：验证失败回滚和本地只读备份（commit）。
+- T-1.2.1.3a：实现版本化快照上传和预检（commit）。
+- T-1.2.1.3b：消费服务端 ID 映射并原子切换 Workspace Binding（commit）。
+- T-1.2.1.3c：验证失败回滚和本地只读备份（commit）。
 
-### E-2.2 多人协作
+## 7. 外部服务依赖
 
-#### F-2.2.1 Team Identity 与基础 RBAC（PR）
-
-- T-2.2.1a：实现成员、邀请和多角色模型（commit）。
-- T-2.2.1b：实现服务器端权限矩阵和当前用户身份传播（commit）。
-- T-2.2.1c：覆盖越权、撤权和跨 Tenant 攻击测试（commit）。
-
-#### F-2.2.2 Realtime Sync（PR）
-
-- T-2.2.2a：定义可恢复的版本化实时事件（commit）。
-- T-2.2.2b：实现发布、订阅、重连和缺口重取（commit）。
-- T-2.2.2c：实现 UI 缓存失效及并发编辑提示（commit）。
-
-#### F-2.2.3 评论、提及与通知（PR）
-
-- T-2.2.3a：实现不可变评论事件和编辑/删除更正（commit）。
-- T-2.2.3b：实现提及解析、通知 Port 和应用内通知（commit）。
-- T-2.2.3c：实现邮件/Webhook Adapter 与失败重试（commit）。
-
-### E-2.3 Teams 发布
-
-#### F-2.3.1 基础审计与运维（PR）
-
-- T-2.3.1a：实现可查询的服务端审计记录（commit）。
-- T-2.3.1b：加入健康检查、结构化日志、指标和备份钩子（commit）。
-- T-2.3.1c：覆盖审计完整性和数据恢复演练（commit）。
-
-#### F-2.3.2 Teams 端到端验收（PR）
-
-- T-2.3.2a：自动化两个用户并发规划和看板协作（commit）。
-- T-2.3.2b：验证 RBAC、断线重连、通知和 Agent 身份（commit）。
-- T-2.3.2c：产出部署、升级、回滚和迁移手册（commit）。
-
-## 7. R3 Enterprise（方向性）
-
-### E-3.1 企业身份与策略
-
-#### F-3.1.1 SSO/OIDC/SAML 与 SCIM（PR）
-
-- T-3.1.1a：实现企业身份 Adapter 和账号链接（commit）。
-- T-3.1.1b：实现 SCIM 用户/组同步及停用（commit）。
-- T-3.1.1c：覆盖身份接管、撤权和断言校验测试（commit）。
-
-#### F-3.1.2 Policy 与自定义角色（PR）
-
-- T-3.1.2a：定义版本化策略和决策解释 Contract（commit）。
-- T-3.1.2b：实现 Policy Authorization Adapter 和自定义角色（commit）。
-- T-3.1.2c：覆盖 UI、API、Agent 三入口一致执行测试（commit）。
-
-### E-3.2 合规与安全
-
-#### F-3.2.1 高级审计与保留（PR）
-
-- T-3.2.1a：实现防篡改审计、检索和导出（commit）。
-- T-3.2.1b：实现保留、Legal Hold 和删除策略（commit）。
-- T-3.2.1c：覆盖策略冲突、导出完整性和访问审计（commit）。
-
-#### F-3.2.2 加密与数据驻留（PR）
-
-- T-3.2.2a：实现 KMS/企业密钥 Adapter 和轮换（commit）。
-- T-3.2.2b：实现区域放置、跨区限制和敏感配置管理（commit）。
-- T-3.2.2c：完成威胁模型与安全测试（commit）。
-
-### E-3.3 企业部署
-
-#### F-3.3.1 HA、备份和灾备（PR）
-
-- T-3.3.1a：实现无状态扩展、Worker 协调和故障转移（commit）。
-- T-3.3.1b：实现备份、时间点恢复和跨环境恢复（commit）。
-- T-3.3.1c：执行并记录 RPO/RTO 演练（commit）。
-
-#### F-3.3.2 Enterprise Admin 与管理 API（PR）
-
-- T-3.3.2a：实现组织、策略、许可证管理 API（commit）。
-- T-3.3.2b：实现独立 Admin App 的最小治理界面（commit）。
-- T-3.3.2c：覆盖管理员权限分离和审计测试（commit）。
-
-#### F-3.3.3 Enterprise 发布验收（PR）
-
-- T-3.3.3a：自动化私有部署、滚动升级和回滚（commit）。
-- T-3.3.3b：完成隔离、安全、性能和灾备验收（commit）。
-- T-3.3.3c：发布运维、安全和兼容性文档（commit）。
+多人协作、服务端 RBAC、Realtime 发布、通知、服务端审计、SSO/SCIM、Policy、HA、备份、Admin 和部署验收由 `dsh-scrum-server` 项目规划和测试。本仓库只维护它们所需的公共 Contract、客户端行为和跨仓库兼容 fixture。
 
 ## 8. 开始执行时的队列
 

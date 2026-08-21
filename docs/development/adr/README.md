@@ -26,3 +26,4 @@
 
 - [0001 工程工具链](0001-toolchain.md)：包管理、TypeScript、测试、Lint 与依赖边界检查的选型。
 - [0002 运行时 Schema 方案](0002-runtime-schema.md)：跨边界载荷校验使用 Zod 4 及其边界约束。
+- [0003 插件与远程服务仓库边界](0003-repository-boundary.md)：拆分 Community 插件与 Teams/Enterprise 服务端，并以公共 Contract 协作。

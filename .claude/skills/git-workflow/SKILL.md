@@ -20,7 +20,7 @@ description: Drive a change through this repository's GitHub process — create 
 
 类型词表（Issue 前缀 ↔ 分支/commit type）：`[Feature]`/`feat`、`[Fix]`/`fix`、`[Docs]`/`docs`、`[Refactor]`/`refactor`、`[Test]`/`test`、`[CI]`/`ci`、`[Chore]`/`chore`、`[Spike]`/`spike`。`perf`、`build`、`revert` 只用作 commit type。
 
-Commit scope 取包名，例如 `scrum-domain`、`scrum-application`、`scrum-api-contract`、`scrum-ui`、`scrum-harness-host`、`scrum-harness-client`、`scrum-agent-tools`、`adapter-storage-workspace-files`、`edition-community`、`scrum-server`；跨包或仓库级用 `repo`、`docs`、`ci`。
+Commit scope 取包名，例如 `scrum-domain`、`scrum-application`、`scrum-api-contract`、`scrum-ui`、`scrum-harness-host`、`scrum-harness-client`、`scrum-agent-tools`、`adapter-storage-workspace-files`、`adapter-remote-api`、`edition-community`；跨包或仓库级用 `repo`、`docs`、`ci`。
 
 Issue、分支、Commit、PR 一律英文；文档正文中文。
 

@@ -53,7 +53,7 @@ export function createBoundaryRules(root = 'packages') {
       comment:
         'scrum-application must not depend on an edition, an adapter, the UI or a Harness plugin. Those depend on it.',
       from: { path: APPLICATION },
-      to: { path: `^${root}/(editions|adapters|ui|harness|server)/` },
+      to: { path: `^${root}/(editions|adapters|ui|harness)/` },
     },
     {
       name: 'ui-has-no-infrastructure',
