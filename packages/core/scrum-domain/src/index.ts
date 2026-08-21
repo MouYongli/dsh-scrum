@@ -117,3 +117,5 @@ export {
   toPermission,
   toPermissionPolicy,
 } from './permissions.js'
+export type { Rank } from './rank.js'
+export { compareRanks, rankBetween, toRank } from './rank.js'
