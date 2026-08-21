@@ -1,5 +1,5 @@
 import { realpath } from 'node:fs/promises'
-import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { ValidationError, type SprintId, type WorkItemId } from '@dsh-scrum/scrum-domain'
 
 /** Directory holding the authoritative Scrum data inside a workspace. */
@@ -116,12 +116,29 @@ export async function realPathInside(root: string, target: string): Promise<stri
   return realTarget
 }
 
+/**
+ * The real path of something that may not exist yet.
+ *
+ * Walks up to the nearest ancestor that does exist, resolves that, and puts
+ * the missing segments back. Resolving only the immediate parent is not
+ * enough: an unbound workspace has no `.scrum` directory either, so the parent
+ * is missing too and the caller would get a raw filesystem error instead of
+ * the answer that the project is simply not there.
+ */
 async function realPathOf(target: string): Promise<string> {
-  try {
-    return await realpath(target)
-  } catch {
-    // Not there yet. Its parent has to exist for a write to be possible at
-    // all, and resolving that is what catches a linked directory.
-    return join(await realpath(dirname(target)), target.slice(dirname(target).length + 1))
+  const missing: string[] = []
+  let current = target
+  for (;;) {
+    try {
+      return join(await realpath(current), ...[...missing].reverse())
+    } catch {
+      const parent = dirname(current)
+      if (parent === current) {
+        // Nothing along the whole chain exists, including the root itself.
+        return resolve(target)
+      }
+      missing.push(basename(current))
+      current = parent
+    }
   }
 }
