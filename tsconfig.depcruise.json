@@ -5,6 +5,9 @@
     "noEmit": true,
     "composite": false,
     "paths": {
+      "@dsh-scrum/adapter-storage-workspace-files": [
+        "./packages/adapters/adapter-storage-workspace-files/src/index.ts"
+      ],
       "@dsh-scrum/scrum-api-contract": ["./packages/api/scrum-api-contract/src/index.ts"],
       "@dsh-scrum/scrum-application": ["./packages/core/scrum-application/src/index.ts"],
       "@dsh-scrum/scrum-domain": ["./packages/core/scrum-domain/src/index.ts"],
