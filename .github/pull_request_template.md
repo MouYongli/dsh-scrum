@@ -26,7 +26,7 @@ Closes #
 
 ## Compatibility impact
 
-<!-- Harness versions, public Contract, Agent Tool surface, Edition composition. Write None if there is no impact. -->
+<!-- Harness versions, public Contract, Agent Tool surface, local/remote composition. Write None if there is no impact. -->
 
 ## Data migration impact
 
