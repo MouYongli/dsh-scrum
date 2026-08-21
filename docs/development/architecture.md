@@ -207,7 +207,9 @@ scrum_tenant
   updated_at
 ```
 
-Community 自动创建隐式个人 Tenant；Teams 和 Enterprise 使用组织 Tenant。Community 同样保留 `tenant_id` 和 `actor_identity_id` 等字段，以便共享 Schema、导入导出和迁移。
+Community 自动创建隐式个人 Tenant；Teams 和 Enterprise 使用组织 Tenant。Community 保留同一套 Tenant 与 Identity 概念，而不是把它们省掉，以便共享 Schema、导入导出和迁移。
+
+但 Tenant 归属只由 `scrum_project.tenant_id` 表达一次。Project 之下的实体经 project 派生 Tenant，不各自再存一份——见 7.4 的说明。
 
 ### 7.3 Scrum Project
 
@@ -232,28 +234,27 @@ scrum_project
 ```text
 project_member
   id
-  tenant_id
   project_id
   identity_id
-  status
-  joined_at
+  roles                    // 多个 Project Role
+  status                   // active | suspended
+  created_at
   updated_at
-
-project_member_role
-  member_id
-  role
+  revision
 ```
 
-角色可以是 `product_owner`、`scrum_master`、`developer`、`stakeholder` 或 `administrator`。同一成员可以拥有多个角色。
+角色可以是 `product_owner`、`scrum_master`、`developer`、`stakeholder` 或 `administrator`。同一成员可以拥有多个角色。停用成员保留角色但不再授予任何权限，以便历史记录和指派仍可解析。
+
+成员不重复保存 `tenant_id`：Tenant 经 project 派生，重复保存等于给「这个成员属于哪个 Tenant」留下第二个答案，其中一次写入失败它们就会分叉。同理，`joined_at` 就是 `created_at`，不另设字段。
+
+Community 不落成员文件。本地用户的 `IdentityId` 只出现在 `project.json` 的 `createdBy` 和 Tenant 的 `ownerIdentityId` 里；唯一成员由存储层按「owner 持有全部五个角色」在内存中合成。这样 Community 不需要一个永远只有一行的文件，权限矩阵对它也照常生效——owner 不是豁免权限检查，而是恰好满足其版本能力允许的全部检查。迁移到 Teams 时再补一次真实成员表。
 
 ### 7.5 Work Item
 
 ```text
 work_item
-  id
-  tenant_id
+  id                       // 即 SCR-12，本身就是人类可读的 Key
   project_id
-  key
   type                     // epic | story | task | bug
   title
   description
@@ -264,13 +265,17 @@ work_item
   estimate
   sprint_id
   parent_id
+  depends_on               // Work Item ID 列表
   rank
-  blocked
-  blocked_reason
+  blocked_reason           // null 表示未阻塞
+  labels
+  acceptance_criteria
   created_at
   updated_at
   revision
 ```
+
+`id` 已经是 `SCR-12` 这样的可读 Key，不再另设 `key` 字段。阻塞只存 `blocked_reason`，`blocked` 由它派生——两个必须保持一致的字段最终一定会不一致，而「已阻塞但没有原因」正是不允许出现的状态。工作项同样不重复保存 `tenant_id`。
 
 相关子模型包括：
 
@@ -290,14 +295,13 @@ external_link
 ```text
 sprint
   id
-  tenant_id
   project_id
   name
   goal
   status                   // planned | active | closed
-  start_date
+  start_date               // 约定的时间盒
   end_date
-  started_at
+  started_at               // 实际开启与关闭的时刻
   closed_at
   result_summary
   created_by
@@ -305,6 +309,8 @@ sprint
   updated_at
   revision
 ```
+
+计划日期和实际时间戳分开保存：合并它们会让「延期交付」被悄悄改写成「按时交付」。Sprint 同样不重复保存 `tenant_id`。
 
 同一 Project 最多有一个 active Sprint。closed Sprint 不再接收新事项；结束 Sprint 时必须处理所有未完成事项；Done 事项可以保留原 Sprint 引用用于历史统计。
 
