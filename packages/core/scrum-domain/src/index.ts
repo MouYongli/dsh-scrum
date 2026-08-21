@@ -119,3 +119,21 @@ export {
 } from './permissions.js'
 export type { Rank } from './rank.js'
 export { compareRanks, rankBetween, toRank } from './rank.js'
+export type {
+  AcceptanceCriterion,
+  CreateWorkItemInput,
+  Priority,
+  WorkItem,
+  WorkItemDetailChanges,
+  WorkItemType,
+} from './work-item.js'
+export {
+  PRIORITY,
+  WORK_ITEM_TYPE,
+  createWorkItem,
+  isWorkItemAccepted,
+  setAcceptanceCriterionSatisfied,
+  toPriority,
+  toWorkItemType,
+  updateWorkItemDetails,
+} from './work-item.js'
