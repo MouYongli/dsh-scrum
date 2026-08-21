@@ -48,3 +48,16 @@ export {
   toSchemaVersion,
   touchEntityMetadata,
 } from './metadata.js'
+export type { Edition } from './edition.js'
+export { EDITION, toEdition } from './edition.js'
+export type { Tenant, CreateTenantInput } from './tenant.js'
+export { createTenant, renameTenant } from './tenant.js'
+export type { WorkItemStatus } from './workflow.js'
+export {
+  BOARD_STATUSES,
+  DEFAULT_WORKFLOW_STATUSES,
+  WORK_ITEM_STATUS,
+  isBoardStatus,
+  statusRank,
+  toWorkItemStatus,
+} from './workflow.js'
