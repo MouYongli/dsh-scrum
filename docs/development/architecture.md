@@ -492,20 +492,28 @@ Workspace 中存在有效 project.json   → 已绑定一个 Scrum Project
 
 ### 10.2 文件职责
 
-`project.json` 是项目身份和存储入口：
+`project.json` 是项目身份和存储入口，字段与 7.3 的 `scrum_project` 一一对应：
 
 ```json
 {
   "schemaVersion": 1,
   "projectId": "prj_01K...",
+  "tenantId": "tnt_01K...",
   "edition": "community",
   "key": "SCR",
   "name": "shop-service",
+  "description": "",
+  "status": "active",
+  "createdBy": "idt_01K...",
   "revision": 1,
   "createdAt": "2026-08-20T10:00:00Z",
   "updatedAt": "2026-08-20T10:00:00Z"
 }
 ```
+
+实体的主键字段一律叫 `id`，只有项目文件把自己的主键写成 `projectId`，以便和文件里出现的其他实体 ID 区分。这一处映射由领域包的契约测试钉死，不允许两侧各自演化。
+
+`edition` 只是持久化标签，用于导出和迁移时识别数据来源。任何领域规则都不得基于它分支，行为差异一律由 Capability 决定，规则见[版本设计](../product/editions.md)第 6 节。
 
 `config.json` 保存工作流、估算方式、Sprint 周期、Definition of Done 和本地显示设置，不能保存敏感凭证。
 
@@ -518,7 +526,7 @@ Workspace 中存在有效 project.json   → 已绑定一个 Scrum Project
   "projectId": "prj_01K...",
   "type": "story",
   "title": "用户使用优惠券",
-  "status": "in-progress",
+  "status": "in_progress",
   "sprintId": "sprint-12",
   "parentId": null,
   "rank": "0|hzzzzz:",
