@@ -137,3 +137,13 @@ export {
   toWorkItemType,
   updateWorkItemDetails,
 } from './work-item.js'
+export {
+  assignWorkItemToSprint,
+  blockWorkItem,
+  isWorkItemBlocked,
+  isWorkItemFinished,
+  moveWorkItemRank,
+  moveWorkItemStatus,
+  removeWorkItemFromSprint,
+  unblockWorkItem,
+} from './work-item.js'

@@ -13,6 +13,7 @@ const MAX_LABEL_LENGTH = 40
 const MAX_ACCEPTANCE_CRITERIA = 50
 const MAX_ACCEPTANCE_CRITERION_LENGTH = 500
 const MAX_ESTIMATE = 1000
+const MAX_BLOCKED_REASON_LENGTH = 500
 
 /**
  * The kinds of work a project tracks. Persisted, so the values may be added to
@@ -269,4 +270,133 @@ function toAcceptanceCriteria(
     text: requireText(criterion.text, 'Acceptance criterion', MAX_ACCEPTANCE_CRITERION_LENGTH),
     satisfied: criterion.satisfied,
   }))
+}
+
+/**
+ * An item is in the backlog exactly when it belongs to no sprint. Tying the
+ * two together makes both documented invariants structural rather than checks
+ * somebody has to remember: a backlog item cannot be in an active sprint
+ * because it is in no sprint at all, and an unfinished item in a sprint can
+ * only be `todo`, `in_progress` or `review` because those are the remaining
+ * statuses. Neither rule needs to read the sprint, which the work item cannot
+ * see anyway.
+ */
+function assertInASprint(item: WorkItem, action: string): SprintId {
+  if (item.sprintId === null) {
+    throw new ValidationError(`a backlog item cannot ${action}`, {
+      workItemId: item.id,
+      status: item.status,
+    })
+  }
+  return item.sprintId
+}
+
+/**
+ * Moves an item between the board columns. Reaching `backlog` is not a status
+ * move but a removal from the sprint, so it has its own operation; letting it
+ * happen here would leave an item in the backlog still pointing at a sprint.
+ */
+export function moveWorkItemStatus(
+  item: WorkItem,
+  status: WorkItemStatus,
+  now: Timestamp,
+): WorkItem {
+  if (status === WORK_ITEM_STATUS.backlog) {
+    throw new ValidationError('returning an item to the backlog removes it from its sprint', {
+      workItemId: item.id,
+    })
+  }
+  assertInASprint(item, 'move across the board')
+  if (item.status === status) {
+    throw new ValidationError(`item is already ${status}`, { workItemId: item.id, status })
+  }
+  return { ...item, ...touchEntityMetadata(item, now), status }
+}
+
+/**
+ * Plans an item into a sprint. An item still in the backlog enters as `todo`;
+ * one already being worked on keeps the column it is in, so moving a card
+ * between sprints does not silently reset its progress.
+ */
+export function assignWorkItemToSprint(
+  item: WorkItem,
+  sprintId: SprintId,
+  now: Timestamp,
+): WorkItem {
+  if (item.sprintId === sprintId) {
+    throw new ValidationError('item is already in this sprint', {
+      workItemId: item.id,
+      sprintId,
+    })
+  }
+  return {
+    ...item,
+    ...touchEntityMetadata(item, now),
+    sprintId,
+    status: item.status === WORK_ITEM_STATUS.backlog ? WORK_ITEM_STATUS.todo : item.status,
+  }
+}
+
+/**
+ * Returns an unfinished item to the backlog, which is how closing a sprint
+ * disposes of work that did not land. A finished item is refused: its sprint
+ * is the record of where it was delivered, and dropping that silently rewrites
+ * the history the sprint report reads.
+ */
+export function removeWorkItemFromSprint(item: WorkItem, now: Timestamp): WorkItem {
+  assertInASprint(item, 'leave a sprint')
+  if (item.status === WORK_ITEM_STATUS.done) {
+    throw new ValidationError('a finished item keeps the sprint that delivered it', {
+      workItemId: item.id,
+      sprintId: item.sprintId,
+    })
+  }
+  return {
+    ...item,
+    ...touchEntityMetadata(item, now),
+    sprintId: null,
+    status: WORK_ITEM_STATUS.backlog,
+  }
+}
+
+export function isWorkItemBlocked(item: WorkItem): boolean {
+  return item.blockedReason !== null
+}
+
+/** Whether the item counts as delivered, which sprint progress and closing read. */
+export function isWorkItemFinished(item: WorkItem): boolean {
+  return item.status === WORK_ITEM_STATUS.done
+}
+
+/**
+ * Blocking always carries a reason. A block nobody explained is one nobody can
+ * act on, and it is the state a stand-up is supposed to surface.
+ */
+export function blockWorkItem(item: WorkItem, reason: string, now: Timestamp): WorkItem {
+  const blockedReason = requireText(reason, 'Blocked reason', MAX_BLOCKED_REASON_LENGTH)
+  if (item.blockedReason === blockedReason) {
+    throw new ValidationError('item is already blocked for this reason', {
+      workItemId: item.id,
+      blockedReason,
+    })
+  }
+  return { ...item, ...touchEntityMetadata(item, now), blockedReason }
+}
+
+export function unblockWorkItem(item: WorkItem, now: Timestamp): WorkItem {
+  if (!isWorkItemBlocked(item)) {
+    throw new ValidationError('item is not blocked', { workItemId: item.id })
+  }
+  return { ...item, ...touchEntityMetadata(item, now), blockedReason: null }
+}
+
+/**
+ * Reorders one item. The caller computes the rank from the neighbours it is
+ * dropped between, so a reorder writes this file and no other.
+ */
+export function moveWorkItemRank(item: WorkItem, rank: Rank, now: Timestamp): WorkItem {
+  if (item.rank === rank) {
+    throw new ValidationError('item already holds this rank', { workItemId: item.id, rank })
+  }
+  return { ...item, ...touchEntityMetadata(item, now), rank }
 }
