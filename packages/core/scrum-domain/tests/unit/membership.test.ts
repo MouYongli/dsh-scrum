@@ -24,7 +24,6 @@ import {
   toProjectRoles,
   toProjectStatus,
   toIdentityId,
-  toTenantId,
   toTimestamp,
   type IdGenerator,
   type ProjectMember,
@@ -55,7 +54,6 @@ function expectRejects(run: () => unknown, what: string): void {
 function member(roles: readonly (typeof PROJECT_ROLE)[keyof typeof PROJECT_ROLE][]): ProjectMember {
   return createProjectMember({
     ids,
-    tenantId: toTenantId(`tnt_${ULID}`),
     projectId: toProjectId(`prj_${ULID}`),
     identityId: toIdentityId(`idt_${ULID}`),
     roles,
@@ -76,7 +74,6 @@ describe('project membership', () => {
   it('gives the project owner every role', () => {
     const owner = createOwnerMember({
       ids,
-      tenantId: toTenantId(`tnt_${ULID}`),
       projectId: toProjectId(`prj_${ULID}`),
       identityId: toIdentityId(`idt_${ULID}`),
       now: NOW,

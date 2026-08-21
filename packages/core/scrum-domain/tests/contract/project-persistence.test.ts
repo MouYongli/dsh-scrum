@@ -11,6 +11,7 @@ import {
   WORK_ITEM_STATUS,
   assertSupportedSchemaVersion,
   createDefaultProjectConfig,
+  createOwnerMember,
   createProject,
   toEdition,
   toIdentityId,
@@ -20,6 +21,7 @@ import {
   toRevision,
   toTenantId,
   toTimestamp,
+  toIdentityId as toIdentity,
   type IdGenerator,
   type Project,
 } from '@dsh-scrum/scrum-domain'
@@ -137,6 +139,37 @@ describe('project persistence contract', () => {
         'workInProgressLimit',
       ].sort(),
     )
+  })
+
+  // The tenant is reachable through the project, so repeating it on a member
+  // would be a second answer to which tenant owns them, and the two would drift
+  // the first time a write to one of them failed. Pinned by name because a
+  // field nothing reads is easy to add back without anyone noticing.
+  it('stores a project membership without restating the tenant', () => {
+    const owner = createOwnerMember({
+      ids,
+      projectId: toProjectId(`prj_${ULID}`),
+      identityId: toIdentity(`idt_${ULID}`),
+      now: CREATED,
+    })
+    const stored = JSON.parse(JSON.stringify(owner)) as Record<string, unknown>
+
+    expect(Object.keys(stored).sort()).toEqual(
+      [
+        'createdAt',
+        'id',
+        'identityId',
+        'projectId',
+        'revision',
+        'roles',
+        'schemaVersion',
+        'status',
+        'updatedAt',
+      ].sort(),
+    )
+    expect('tenantId' in stored).toBe(false)
+    // `joined_at` of the data model is `createdAt`, not a field beside it.
+    expect('joinedAt' in stored).toBe(false)
   })
 })
 
