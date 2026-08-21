@@ -83,6 +83,13 @@ describe('ranking between neighbours', () => {
     expect([...produced].sort()).toEqual([...produced].reverse())
   })
 
+  // Adjacent first digits leave no room for a shorter answer, so the midpoint
+  // has to borrow the head of the upper bound instead of extending the lower.
+  it('finds room between neighbours whose first digits are adjacent', () => {
+    expect(rankBetween(toRank('a'), toRank('b1'))).toBe('b')
+    expect(rankBetween(toRank('a'), toRank('b'))).toBe('ai')
+  })
+
   it('keeps a backlog in the order the ranks were built', () => {
     const middle = rankBetween(null, null)
     const head = rankBetween(null, middle)

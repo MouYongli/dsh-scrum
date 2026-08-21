@@ -111,6 +111,20 @@ describe('parent links', () => {
     // reason if the walk were removed.
     expect(isScrumError(error) && error.details['throughId']).toBe(bottom.id)
   })
+
+  // The guard exists for a store that is already broken, from a corrupted file
+  // or an older build. Without a bound this walk would never return, turning a
+  // repairable file into a hung process.
+  it('gives up on a parent chain that already contains a cycle', () => {
+    const first = { ...item('SCR-1'), parentId: toWorkItemId('SCR-2') }
+    const second = { ...item('SCR-2'), parentId: toWorkItemId('SCR-1') }
+    const fresh = item('SCR-3')
+
+    const error = caughtFrom(() =>
+      setWorkItemParent(fresh, first.id, lookup(first, second, fresh), T2),
+    )
+    expect(isScrumError(error) && error.details['maxDepth']).toBe(100)
+  })
 })
 
 describe('dependency links', () => {
@@ -176,6 +190,24 @@ describe('dependency links', () => {
         ),
       'a dependency that closes a cycle',
     )
+  })
+
+  // A diamond reaches the same item down two paths. Without the visited set
+  // the walk would re-expand the shared tail once per path, which is where a
+  // wide graph turns into an exponential traversal.
+  it('walks a diamond shaped graph once per item', () => {
+    const shared = item('SCR-4')
+    const left = addWorkItemDependency(item('SCR-2'), shared.id, lookup(item('SCR-2'), shared), T2)
+    const right = addWorkItemDependency(item('SCR-3'), shared.id, lookup(item('SCR-3'), shared), T2)
+    const top = addWorkItemDependency(item('SCR-1'), left.id, lookup(item('SCR-1'), left), T2)
+    const both = addWorkItemDependency(top, right.id, lookup(top, right), T3)
+
+    expect(both.dependsOn).toEqual([left.id, right.id])
+
+    const error = caughtFrom(() =>
+      addWorkItemDependency(shared, both.id, lookup(both, left, right, shared), T3),
+    )
+    expect(isScrumError(error) && error.details['throughId']).toBe(both.id)
   })
 
   it('tolerates a dependency whose target is missing from the index', () => {

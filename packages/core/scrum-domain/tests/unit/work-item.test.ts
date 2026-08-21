@@ -178,6 +178,15 @@ describe('acceptance criteria', () => {
         ),
       'a blank criterion',
     )
+    expectRejects(
+      () =>
+        updateWorkItemDetails(
+          item(),
+          { acceptanceCriteria: Array(51).fill({ text: 'x', satisfied: false }) as [] },
+          T2,
+        ),
+      'more criteria than an item may carry',
+    )
   })
 })
 
