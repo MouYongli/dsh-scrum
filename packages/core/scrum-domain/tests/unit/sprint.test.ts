@@ -194,8 +194,13 @@ describe('sprint edits', () => {
     const renamed = updateSprintDetails(active, { goal: '交付优惠券结算与退款' }, T3)
     const closed = closeSprint(renamed, [], '', T4)
 
+    const withBothChanged = updateSprintDetails(renamed, { name: '第 12 个 Sprint' }, T3)
+
     expect(renamed.goal).toBe('交付优惠券结算与退款')
     expect(renamed.name).toBe('sprint-1')
+    expect(withBothChanged.name).toBe('第 12 个 Sprint')
+    expect(withBothChanged.goal).toBe('交付优惠券结算与退款')
+    expectRejects(() => updateSprintDetails(renamed, { name: '  ' }, T3), 'a blank name')
     expectRejects(() => updateSprintDetails(closed, { name: 'x' }, T4), 'editing a closed sprint')
   })
 
