@@ -21,7 +21,6 @@ import {
   toPermissionPolicy,
   toProjectId,
   toIdentityId,
-  toTenantId,
   toTimestamp,
   type Capability,
   type IdGenerator,
@@ -194,7 +193,6 @@ describe('effective permissions', () => {
   it('gives a community owner everything their edition allows', () => {
     const owner = createOwnerMember({
       ids,
-      tenantId: toTenantId(`tnt_${ULID}`),
       projectId: toProjectId(`prj_${ULID}`),
       identityId: toIdentityId(`idt_${ULID}`),
       now: NOW,
@@ -213,7 +211,6 @@ describe('effective permissions', () => {
   it('grants a suspended member nothing, without discarding their roles', () => {
     const owner = createOwnerMember({
       ids,
-      tenantId: toTenantId(`tnt_${ULID}`),
       projectId: toProjectId(`prj_${ULID}`),
       identityId: toIdentityId(`idt_${ULID}`),
       now: NOW,

@@ -1,6 +1,6 @@
 import { ValidationError } from './errors.js'
 import { newMemberId, type IdGenerator, type IdentityId, type MemberId } from './ids.js'
-import type { ProjectId, TenantId } from './ids.js'
+import type { ProjectId } from './ids.js'
 import { createEntityMetadata, touchEntityMetadata, type EntityMetadata } from './metadata.js'
 import { PROJECT_ROLES, toProjectRoles, type ProjectRole } from './roles.js'
 import type { Timestamp } from './time.js'
@@ -32,10 +32,14 @@ export function toMemberStatus(value: string): MemberStatus {
  * The stored `joined_at` of the data model is `createdAt` here rather than a
  * second field: they describe the same instant, and two fields that must agree
  * are two fields that will eventually disagree.
+ *
+ * The tenant is not repeated here. It is reachable through the project, and
+ * the storage rules forbid restating a relationship that can be derived; a
+ * second copy is a second answer that drifts the first time a write to one of
+ * them fails.
  */
 export interface ProjectMember extends EntityMetadata {
   readonly id: MemberId
-  readonly tenantId: TenantId
   readonly projectId: ProjectId
   readonly identityId: IdentityId
   readonly roles: readonly ProjectRole[]
@@ -44,7 +48,6 @@ export interface ProjectMember extends EntityMetadata {
 
 export interface CreateProjectMemberInput {
   readonly ids: IdGenerator
-  readonly tenantId: TenantId
   readonly projectId: ProjectId
   readonly identityId: IdentityId
   readonly roles: readonly ProjectRole[]
@@ -55,7 +58,6 @@ export function createProjectMember(input: CreateProjectMemberInput): ProjectMem
   return {
     ...createEntityMetadata(input.now),
     id: newMemberId(input.ids),
-    tenantId: input.tenantId,
     projectId: input.projectId,
     identityId: input.identityId,
     roles: toProjectRoles(input.roles),
