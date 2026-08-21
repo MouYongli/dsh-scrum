@@ -61,3 +61,21 @@ export {
   statusRank,
   toWorkItemStatus,
 } from './workflow.js'
+export type { CreateProjectInput, Project, ProjectDetailChanges, ProjectStatus } from './project.js'
+export {
+  PROJECT_STATUS,
+  archiveProject,
+  assertProjectWritable,
+  createProject,
+  isProjectWritable,
+  restoreProject,
+  toProjectStatus,
+  updateProjectDetails,
+} from './project.js'
+export type { EstimationMethod, ProjectConfig, ProjectConfigChanges } from './project-config.js'
+export {
+  ESTIMATION_METHOD,
+  createDefaultProjectConfig,
+  toEstimationMethod,
+  updateProjectConfig,
+} from './project-config.js'
