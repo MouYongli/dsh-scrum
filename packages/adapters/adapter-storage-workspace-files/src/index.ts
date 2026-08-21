@@ -31,3 +31,11 @@ export {
   encodeSprint,
   encodeWorkItem,
 } from './codecs.js'
+export type { InitialiseProjectInput, StoreProblem, WorkspaceSnapshot } from './store.js'
+export {
+  initialiseProject,
+  isProjectInitialised,
+  readProjectConfig,
+  readProjectFile,
+  scanWorkspace,
+} from './store.js'
