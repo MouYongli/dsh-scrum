@@ -2,6 +2,11 @@ import { ValidationError } from './errors.js'
 import type { ProjectId } from './ids.js'
 import { requirePositiveInteger } from './integers.js'
 import { createEntityMetadata, touchEntityMetadata, type EntityMetadata } from './metadata.js'
+import {
+  DEFAULT_PERMISSION_POLICY,
+  toPermissionPolicy,
+  type ProjectPermissionPolicy,
+} from './permissions.js'
 import { requireText } from './text.js'
 import type { Timestamp } from './time.js'
 import { DEFAULT_WORKFLOW_STATUSES, toWorkItemStatus, type WorkItemStatus } from './workflow.js'
@@ -50,6 +55,7 @@ export interface ProjectConfig extends EntityMetadata {
   readonly sprintLengthInDays: number
   readonly definitionOfDone: readonly string[]
   readonly workInProgressLimit: number | null
+  readonly permissionPolicy: ProjectPermissionPolicy
 }
 
 export function createDefaultProjectConfig(projectId: ProjectId, now: Timestamp): ProjectConfig {
@@ -62,6 +68,7 @@ export function createDefaultProjectConfig(projectId: ProjectId, now: Timestamp)
     sprintLengthInDays: DEFAULT_SPRINT_LENGTH_IN_DAYS,
     definitionOfDone: [],
     workInProgressLimit: null,
+    permissionPolicy: DEFAULT_PERMISSION_POLICY,
   }
 }
 
@@ -71,6 +78,7 @@ export interface ProjectConfigChanges {
   readonly sprintLengthInDays?: number | undefined
   readonly definitionOfDone?: readonly string[] | undefined
   readonly workInProgressLimit?: number | null | undefined
+  readonly permissionPolicy?: Readonly<Record<string, readonly string[]>> | undefined
 }
 
 /**
@@ -103,6 +111,10 @@ export function updateProjectConfig(
       changes.workInProgressLimit === undefined
         ? config.workInProgressLimit
         : toWorkInProgressLimit(changes.workInProgressLimit),
+    permissionPolicy:
+      changes.permissionPolicy === undefined
+        ? config.permissionPolicy
+        : toPermissionPolicy(changes.permissionPolicy),
   }
 }
 

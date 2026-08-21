@@ -98,3 +98,22 @@ export {
   setMemberStatus,
   toMemberStatus,
 } from './membership.js'
+export type {
+  Permission,
+  PermissionContext,
+  PermissionGrant,
+  ProjectPermissionPolicy,
+} from './permissions.js'
+export {
+  DEFAULT_PERMISSION_POLICY,
+  PERMISSION,
+  PERMISSIONS,
+  PERMISSION_GRANT,
+  assertPermission,
+  effectivePermissions,
+  hasPermission,
+  requiredCapability,
+  roleGrant,
+  toPermission,
+  toPermissionPolicy,
+} from './permissions.js'
