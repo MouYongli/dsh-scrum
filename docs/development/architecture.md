@@ -526,17 +526,30 @@ Workspace 中存在有效 project.json   → 已绑定一个 Scrum Project
   "projectId": "prj_01K...",
   "type": "story",
   "title": "用户使用优惠券",
+  "description": "",
   "status": "in_progress",
+  "priority": "medium",
+  "assigneeId": null,
+  "reporterId": "idt_01K...",
+  "estimate": null,
   "sprintId": "sprint-12",
   "parentId": null,
-  "rank": "0|hzzzzz:",
+  "dependsOn": [],
+  "rank": "i",
+  "blockedReason": null,
+  "labels": [],
+  "acceptanceCriteria": [],
   "revision": 8,
   "createdAt": "2026-08-20T10:00:00Z",
   "updatedAt": "2026-08-20T12:00:00Z"
 }
 ```
 
-Sprint 成员关系只由 `sprintId` 表达，Sprint 文件不重复保存 Work Item ID 列表。Backlog 排序使用可局部更新的 `rank`，避免一次拖拽重写大量文件。
+Sprint 成员关系只由 `sprintId` 表达，Sprint 文件不重复保存 Work Item ID 列表。
+
+`rank` 用 Fractional Indexing：字符集是数字加小写字母，按字符串直接比较即为 Backlog 顺序，任意两个 rank 之间总能取到新值，因此一次拖拽只重写被拖动的那一个文件，也不存在需要重排整个 Backlog 的时刻。代价是反复拖进同一个间隙会让 rank 逐字符变长，由长度上限兜住。不使用 LexoRank 的 `0|` 桶前缀：那个前缀的用途正是支持重排，而这里不需要重排。
+
+阻塞只存 `blockedReason`，不再存一个可从它派生的 `blocked` 布尔值：两个必须保持一致的字段最终一定会不一致，而 `blocked` 为真却没有原因正是不允许出现的状态。
 
 - `sprints/<id>.json`：保存 Sprint Goal、状态、日期和 Revision，不重复保存可从 Work Item 派生的数据。
 - `comments/<work-item-id>.jsonl`：每行一条不可变 Comment Event；编辑或删除通过追加更正事件表达。

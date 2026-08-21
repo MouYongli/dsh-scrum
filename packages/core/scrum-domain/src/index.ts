@@ -117,3 +117,41 @@ export {
   toPermission,
   toPermissionPolicy,
 } from './permissions.js'
+export type { Rank } from './rank.js'
+export { compareRanks, rankBetween, toRank } from './rank.js'
+export type {
+  AcceptanceCriterion,
+  CreateWorkItemInput,
+  Priority,
+  WorkItem,
+  WorkItemDetailChanges,
+  WorkItemType,
+} from './work-item.js'
+export {
+  PRIORITY,
+  WORK_ITEM_TYPE,
+  createWorkItem,
+  isWorkItemAccepted,
+  setAcceptanceCriterionSatisfied,
+  toPriority,
+  toWorkItemType,
+  updateWorkItemDetails,
+} from './work-item.js'
+export {
+  assignWorkItemToSprint,
+  blockWorkItem,
+  isWorkItemBlocked,
+  isWorkItemFinished,
+  moveWorkItemRank,
+  moveWorkItemStatus,
+  removeWorkItemFromSprint,
+  unblockWorkItem,
+} from './work-item.js'
+export type { WorkItemLookup, WorkItemReferences } from './work-item-graph.js'
+export {
+  addWorkItemDependency,
+  assertWorkItemDeletable,
+  removeWorkItemDependency,
+  setWorkItemParent,
+  workItemReferences,
+} from './work-item-graph.js'
