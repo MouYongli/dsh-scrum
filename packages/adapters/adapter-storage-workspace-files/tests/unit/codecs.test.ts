@@ -27,6 +27,8 @@ import {
   toTenantId,
   toTimestamp,
   toWorkItemId,
+  updateProjectConfig,
+  updateWorkItemDetails,
   type ErrorCode,
   type IdGenerator,
 } from '@dsh-scrum/scrum-domain'
@@ -101,6 +103,56 @@ describe('round trips', () => {
     expect(decodeProjectConfig(stored(encodeProjectConfig(config)))).toEqual(config)
     expect(decodeWorkItem(stored(encodeWorkItem(workItem)))).toEqual(workItem)
     expect(decodeSprint(stored(encodeSprint(sprint)))).toEqual(sprint)
+  })
+
+  // Neither field is set on a freshly created entity, so a round trip of the
+  // defaults never exercises the code that reads them back.
+  it('returns acceptance criteria and status display names unchanged', () => {
+    const detailed = updateWorkItemDetails(
+      workItem,
+      {
+        acceptanceCriteria: [
+          { text: '优惠券可叠加', satisfied: true },
+          { text: '过期优惠券被拒绝', satisfied: false },
+        ],
+        labels: ['payments'],
+      },
+      T2,
+    )
+    const configured = updateProjectConfig(
+      config,
+      {
+        statusDisplayNames: { in_progress: '进行中', review: '评审中' },
+        permissionPolicy: { 'sprint.transition': ['product_owner'] },
+        definitionOfDone: ['已评审'],
+        workInProgressLimit: 3,
+      },
+      T2,
+    )
+
+    expect(decodeWorkItem(stored(encodeWorkItem(detailed)))).toEqual(detailed)
+    expect(decodeProjectConfig(stored(encodeProjectConfig(configured)))).toEqual(configured)
+  })
+
+  it('refuses an acceptance criterion that is not an object or lacks its state', () => {
+    const encoded = stored(
+      encodeWorkItem(
+        updateWorkItemDetails(
+          workItem,
+          { acceptanceCriteria: [{ text: 'x', satisfied: true }] },
+          T2,
+        ),
+      ),
+    )
+
+    expectRejects(
+      () => decodeWorkItem({ ...encoded, acceptanceCriteria: ['x'] }),
+      'a criterion stored as a bare string',
+    )
+    expectRejects(
+      () => decodeWorkItem({ ...encoded, acceptanceCriteria: [{ text: 'x', satisfied: 'yes' }] }),
+      'a criterion whose state is not a boolean',
+    )
   })
 
   it('stores the project identifier as projectId and reads it back as id', () => {
