@@ -151,6 +151,9 @@ importers:
 
   packages/harness/scrum-harness-bundle:
     dependencies:
+      '@dsh-scrum/edition-community':
+        specifier: workspace:*
+        version: link:../../editions/edition-community
       '@dsh-scrum/scrum-harness-client':
         specifier: workspace:*
         version: link:../scrum-harness-client

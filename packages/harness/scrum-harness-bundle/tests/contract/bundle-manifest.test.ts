@@ -54,3 +54,9 @@ describe('profile layer patch', () => {
     }
   })
 })
+
+describe('what the bundle composes', () => {
+  it('depends on the Community edition, which is where the adapters are chosen', () => {
+    expect(Object.keys(manifest.dependencies)).toContain('@dsh-scrum/edition-community')
+  })
+})

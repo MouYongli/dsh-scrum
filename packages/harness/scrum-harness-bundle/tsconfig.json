@@ -6,5 +6,15 @@
     "tsBuildInfoFile": "dist/.tsbuildinfo"
   },
   "include": ["src/**/*"],
-  "references": [{ "path": "../scrum-harness-host" }, { "path": "../scrum-harness-client" }]
+  "references": [
+    {
+      "path": "../scrum-harness-host"
+    },
+    {
+      "path": "../scrum-harness-client"
+    },
+    {
+      "path": "../../editions/edition-community"
+    }
+  ]
 }
