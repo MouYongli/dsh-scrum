@@ -11,8 +11,15 @@
 import { act, createElement } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createScrumModeStore, disconnectedClient, type ScrumClient } from '@dsh-scrum/scrum-ui'
+import {
+  createScrumModeStore,
+  createTranslate,
+  disconnectedClient,
+  type ScrumClient,
+} from '@dsh-scrum/scrum-ui'
 import { registrations, sessionsStub, workspacesStub } from '../support/shell.js'
+
+const t = createTranslate()
 
 const roots: Root[] = []
 
@@ -85,7 +92,7 @@ describe('when the workspace behind the workbench changes', () => {
 
     expect(view.entries()).toBe(before + 1)
     expect((view.host.querySelector('#scrum-workspace') as HTMLSelectElement).value).toBe('')
-    expect(view.host.textContent).toContain('当前未绑定工作区，请选择工作区')
+    expect(view.host.textContent).toContain(t('topbar.unbound'))
   })
 
   it('switches from the title bar and keeps Scrum open', () => {
@@ -96,7 +103,7 @@ describe('when the workspace behind the workbench changes', () => {
     const picker = view.host.querySelector('#scrum-workspace') as HTMLSelectElement
 
     expect(picker.value).toBe('ws-1')
-    expect(view.host.textContent).toContain('Scrum 项目管理：')
+    expect(view.host.textContent).toContain(t('topbar.bound'))
     expect(view.host.textContent).toContain('商城')
 
     act(() => {
