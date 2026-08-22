@@ -9,7 +9,7 @@ import {
   type WorkItemReferences,
 } from '@dsh-scrum/scrum-domain'
 import {
-  resolveSessionAuthorization,
+  resolveProjectAuthorization,
   type SprintProgress,
   type StoredProject,
   type WorkItemFilter,
@@ -18,16 +18,11 @@ import { requireBoundProject, resolveRequest, type ScrumRuntime, type ScrumHostA
 import type { HarnessContext } from './workspace.js'
 
 /**
- * The host API as one agent session sees it.
+ * The host API as an agent in one workspace sees it.
  *
- * A second narrowing rather than a second enforcement path: the use cases
- * still ask whether the actor's roles allow the action, and this asks whether
- * the session was given that much reach. They answer different questions and
- * both have to hold, so neither can be dropped in favour of the other.
- *
- * The session is resolved on every call. An agent that was granted write
- * access and then had it lowered mid-conversation loses it on its next tool
- * call, not when something remembers to refresh.
+ * Tool calls resolve the current user's effective project permissions on
+ * every call. The Session remains available to Activity as provenance but
+ * does not grant or narrow access.
  */
 export interface ScrumAgentApi {
   readonly version: number
@@ -70,44 +65,39 @@ export function createAgentApi(
    * Refuses before the call reaches a use case.
    *
    * Refusing here rather than inside the tool keeps the reason attributable:
-   * a tool that checked for itself would be a second place the session rule
+   * a tool that checked for itself would be a second place the permission rule
    * lives, and the two would eventually disagree.
    */
-  async function assertSessionAllows(permission: Permission): Promise<StoredProject> {
+  async function assertProjectAllows(permission: Permission): Promise<StoredProject> {
     const request = await resolveRequest(harness, runtime)
     const { project } = await requireBoundProject(request, harness)
-    const authorization = await resolveSessionAuthorization(request.deps, {
+    const authorization = await resolveProjectAuthorization(request.deps, {
       actor: request.actor,
-      command: {
-        harnessInstanceId: harness.instanceId,
-        sessionId,
-        projectId: project.project.id,
-      },
+      command: { projectId: project.project.id },
     })
     if (!authorization.permissions.has(permission)) {
-      throw new ForbiddenError(`this session may not ${permission}`, {
+      throw new ForbiddenError(`the current user may not ${permission}`, {
         permission,
         sessionId,
-        accessMode: authorization.mode,
       })
     }
     return project
   }
 
   /**
-   * A write, gated on a permission the session must hold.
+   * A write, gated on a permission the current user must hold.
    *
    * The permission named here is the one the use case will check for the
    * ordinary case. Where the use case decides between two — moving your own
    * card versus anyone's — the gate names the weaker, because its question is
-   * only whether the session may write at all; the role check that follows is
+   * only whether the user may write at all; the role check that follows is
    * what decides which.
    */
   async function writing<Result>(
     permission: Permission,
     run: () => Promise<Result>,
   ): Promise<Result> {
-    await assertSessionAllows(permission)
+    await assertProjectAllows(permission)
     return await run()
   }
 
@@ -115,7 +105,7 @@ export function createAgentApi(
     permission: Permission,
     run: (project: StoredProject) => Result | Promise<Result>,
   ): Promise<Result> {
-    return await run(await assertSessionAllows(permission))
+    return await run(await assertProjectAllows(permission))
   }
 
   return {

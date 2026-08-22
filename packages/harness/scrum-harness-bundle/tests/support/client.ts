@@ -70,25 +70,11 @@ export function clientOver(host: ScrumHostApi): ScrumClient {
     planSprint: async (command) => await host.planSprint(command),
     startSprint: async (command) => await host.startSprint(command),
     closeSprint: async (command) => await host.closeSprint(command),
-    session: async () => {
-      const authorization = await host.session()
-      const project = await host.entry()
+    authorization: async () => {
+      const authorization = await host.authorization()
       return {
-        mode: authorization.mode,
-        granted: [...authorization.granted],
         permissions: [...authorization.permissions],
-        projectArchived: project.state === 'archived',
-      }
-    },
-    setSessionAccess: async (mode) => {
-      await host.setSessionAccess(mode)
-      const authorization = await host.session()
-      const project = await host.entry()
-      return {
-        mode: authorization.mode,
-        granted: [...authorization.granted],
-        permissions: [...authorization.permissions],
-        projectArchived: project.state === 'archived',
+        projectArchived: authorization.projectArchived,
       }
     },
   }

@@ -15,12 +15,17 @@ export {
   scrumCallSchema,
   scrumScopeSchema,
 } from './channel.js'
-export type { EntryPayload, ProjectPayload, SessionPayload, WorkspacePayload } from './results.js'
+export type {
+  AuthorizationPayload,
+  EntryPayload,
+  ProjectPayload,
+  WorkspacePayload,
+} from './results.js'
 export {
   entryPayloadSchema,
   payloadSchema,
   projectPayloadSchema,
-  sessionPayloadSchema,
+  authorizationPayloadSchema,
   sprintPayloadSchema,
   sprintsPayloadSchema,
   workItemPayloadSchema,

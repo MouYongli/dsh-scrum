@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ACCESS_MODE } from '@dsh-scrum/scrum-application'
-import { WORK_ITEM_STATUS, WORK_ITEM_TYPE } from '@dsh-scrum/scrum-domain'
+import { PERMISSION, PERMISSIONS, WORK_ITEM_STATUS, WORK_ITEM_TYPE } from '@dsh-scrum/scrum-domain'
 import {
   READ_TOOL,
   WRITE_TOOL,
@@ -24,7 +23,7 @@ async function call(api: Api, name: string, args: Record<string, unknown> = {}):
 }
 
 async function writing(state: Store): Promise<Api> {
-  return (await boundHost(state, ACCESS_MODE.write)).api
+  return (await boundHost(state)).api
 }
 
 async function seedItem(api: Api): Promise<{ id: string; revision: number }> {
@@ -35,17 +34,19 @@ async function seedItem(api: Api): Promise<{ id: string; revision: number }> {
   return created.result
 }
 
-describe('what a session sees', () => {
-  it('shows a read session no writing tools at all', () => {
-    const visible = new Set<string>(visibleTools(ACCESS_MODE.read))
+describe('what the current user sees', () => {
+  it('shows a reader no writing tools at all', () => {
+    const visible = new Set<string>(
+      visibleTools(new Set([PERMISSION.projectView, PERMISSION.backlogView])),
+    )
 
     for (const name of WRITE_TOOL_NAMES) {
       expect(visible.has(name)).toBe(false)
     }
   })
 
-  it('shows a write session both halves', () => {
-    const visible = new Set<string>(visibleTools(ACCESS_MODE.write))
+  it('shows an owner both halves', () => {
+    const visible = new Set<string>(visibleTools(new Set(PERMISSIONS)))
 
     for (const name of WRITE_TOOL_NAMES) {
       expect(visible.has(name)).toBe(true)
@@ -53,9 +54,9 @@ describe('what a session sees', () => {
     expect(visible.has(READ_TOOL.getProject)).toBe(true)
   })
 
-  it('registers only the readable half for a read session', async () => {
+  it('registers only the readable half for a reader', async () => {
     const state = store()
-    const { api } = await boundHost(state, ACCESS_MODE.read)
+    const { api } = await boundHost(state)
     const registered: string[] = []
     const registry = {
       register: (definition: { name: string }) => {
@@ -64,7 +65,11 @@ describe('what a session sees', () => {
       },
     }
 
-    registerScrumTools(registry, api, ACCESS_MODE.read)
+    registerScrumTools(
+      registry,
+      api,
+      new Set([PERMISSION.projectView, PERMISSION.backlogView]),
+    )
 
     expect(registered.some((name) => (WRITE_TOOL_NAMES as readonly string[]).includes(name))).toBe(
       false,
@@ -239,9 +244,10 @@ describe('provenance', () => {
     expect(state.projects.size).toBe(1)
   })
 
-  it('refuses every write from a read session', async () => {
+  it('refuses every write after the current user loses membership', async () => {
     const state = store()
-    const { api } = await boundHost(state, ACCESS_MODE.read)
+    const { api } = await boundHost(state)
+    state.owners.clear()
 
     const error = await call(api, WRITE_TOOL.createWorkItem, {
       type: WORK_ITEM_TYPE.story,

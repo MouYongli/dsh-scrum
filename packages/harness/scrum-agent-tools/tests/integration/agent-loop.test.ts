@@ -1,6 +1,5 @@
 import { Context } from '@deepseek-ai/cordis'
 import { describe, expect, it } from 'vitest'
-import { ACCESS_MODE } from '@dsh-scrum/scrum-application'
 import { SPRINT_STATUS, WORK_ITEM_STATUS, WORK_ITEM_TYPE } from '@dsh-scrum/scrum-domain'
 import {
   READ_TOOL,
@@ -27,7 +26,7 @@ function value(outcome: unknown): Record<string, unknown> {
 }
 
 async function writing(state: Store): Promise<Api> {
-  return (await boundHost(state, ACCESS_MODE.write)).api
+  return (await boundHost(state)).api
 }
 
 // One agent working a sprint end to end through the tools, because the loop is

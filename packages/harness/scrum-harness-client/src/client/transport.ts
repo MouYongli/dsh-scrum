@@ -10,7 +10,7 @@ import {
   type ProjectPayload,
   type ScrumEndpoint,
   type ScrumScope,
-  type SessionPayload,
+  type AuthorizationPayload,
 } from '@dsh-scrum/scrum-api-contract'
 import type { Sprint, WorkItem } from '@dsh-scrum/scrum-domain'
 import type {
@@ -31,8 +31,7 @@ import type {
   ScrumClient,
   SetCriterion,
   SprintRef,
-  AccessMode,
-  SessionView,
+  AuthorizationView,
 } from '@dsh-scrum/scrum-ui'
 
 /**
@@ -79,7 +78,7 @@ export type ScopeReader = () => ScrumScope
  * The client interface over one channel.
  *
  * Every call is one round trip and nothing is cached. The host resolves the
- * binding, the session mode and the project state on each call, and a client
+ * binding, the current permissions and the project state on each call, and a client
  * that remembered an answer would be a second place those decisions live —
  * one that keeps showing write controls after the mode was lowered.
  */
@@ -107,9 +106,8 @@ export function createTransportClient(call: RpcCall, scope: ScopeReader): ScrumC
   }
 
   return {
-    session: async () => toSessionView(await send<SessionPayload>(SCRUM_ENDPOINT.session, {})),
-    setSessionAccess: async (mode: AccessMode) =>
-      toSessionView(await send<SessionPayload>(SCRUM_ENDPOINT.setSessionAccess, { mode })),
+    authorization: async () =>
+      toAuthorizationView(await send<AuthorizationPayload>(SCRUM_ENDPOINT.authorization, {})),
     entry: async () => toEntryView(await send<EntryPayload>(SCRUM_ENDPOINT.entry, {})),
     createProject: async (input: CreateProjectInput) =>
       toProjectView(await send<ProjectPayload>(SCRUM_ENDPOINT.createProject, input)),
@@ -155,7 +153,7 @@ function toProjectView(payload: ProjectPayload): ProjectView {
   return payload
 }
 
-function toSessionView(payload: SessionPayload): SessionView {
+function toAuthorizationView(payload: AuthorizationPayload): AuthorizationView {
   return payload
 }
 

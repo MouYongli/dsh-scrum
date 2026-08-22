@@ -12,11 +12,11 @@ import {
   type ScrumEndpoint,
   type ScrumInput,
   type ScrumScope,
-  type SessionPayload,
+  type AuthorizationPayload,
   type WorkspacePayload,
 } from '@dsh-scrum/scrum-api-contract'
 import { ValidationError, type Project } from '@dsh-scrum/scrum-domain'
-import type { SessionAuthorization, StoredProject } from '@dsh-scrum/scrum-application'
+import type { ProjectAuthorization, StoredProject } from '@dsh-scrum/scrum-application'
 import type { ScrumHostApi } from './api.js'
 import type { EntryState } from './entry.js'
 import type { HarnessWorkspace } from './workspace.js'
@@ -113,11 +113,8 @@ type Dispatchable = {
  */
 async function dispatch(api: ScrumHostApi, call: Dispatchable): Promise<unknown> {
   switch (call.endpoint) {
-    case SCRUM_ENDPOINT.session:
-      return toSessionPayload(await api.session(), await isArchived(api))
-    case SCRUM_ENDPOINT.setSessionAccess:
-      await api.setSessionAccess(call.input.mode)
-      return toSessionPayload(await api.session(), await isArchived(api))
+    case SCRUM_ENDPOINT.authorization:
+      return toAuthorizationPayload(await api.authorization())
     case SCRUM_ENDPOINT.entry:
       return toEntryPayload(await api.entry())
     case SCRUM_ENDPOINT.createProject:
@@ -153,9 +150,11 @@ async function dispatch(api: ScrumHostApi, call: Dispatchable): Promise<unknown>
   }
 }
 
-/** Whether the project is archived, which the session answer has to carry. */
-async function isArchived(api: ScrumHostApi): Promise<boolean> {
-  return (await api.entry()).state === 'archived'
+function toAuthorizationPayload(authorization: ProjectAuthorization): AuthorizationPayload {
+  return {
+    permissions: [...authorization.permissions],
+    projectArchived: authorization.projectArchived,
+  }
 }
 
 function toWorkspacePayload(workspace: HarnessWorkspace): WorkspacePayload {
@@ -191,19 +190,5 @@ function toEntryPayload(entry: EntryState): EntryPayload {
         project: toProjectPayload(entry.project),
         moved: entry.moved,
       }
-  }
-}
-
-function toSessionPayload(
-  authorization: SessionAuthorization,
-  projectArchived: boolean,
-): SessionPayload {
-  // Sets do not survive JSON, and the difference between the two lists is the
-  // whole explanation of a degraded mode, so both are spelled out as arrays.
-  return {
-    mode: authorization.mode,
-    granted: [...authorization.granted],
-    permissions: [...authorization.permissions],
-    projectArchived,
   }
 }

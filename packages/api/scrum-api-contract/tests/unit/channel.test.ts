@@ -127,15 +127,6 @@ describe('the endpoint inputs', () => {
     expect(everything.success && 'sprintId' in everything.data).toBe(false)
   })
 
-  it('refuses an access mode outside the three', () => {
-    expect(SCRUM_INPUT[SCRUM_ENDPOINT.setSessionAccess].safeParse({ mode: 'admin' }).success).toBe(
-      false,
-    )
-    expect(SCRUM_INPUT[SCRUM_ENDPOINT.setSessionAccess].safeParse({ mode: 'write' }).success).toBe(
-      true,
-    )
-  })
-
   it('refuses a sprint whose dates are not canonical instants', () => {
     const result = SCRUM_INPUT[SCRUM_ENDPOINT.createSprint].safeParse({
       name: 'Sprint 1',
