@@ -19,6 +19,7 @@ import {
   SCRUM_NAMESPACE,
   createTranslate,
   createWorkbenchStore,
+  disconnectedClient,
   type ScrumClient,
   type WorkbenchStore,
 } from '@dsh-scrum/scrum-ui'
@@ -45,13 +46,6 @@ const ENTRY_ID = 'scrum'
 export interface ScrumClientConfig {
   readonly client?: ScrumClient | undefined
   readonly store?: WorkbenchStore | undefined
-}
-
-const NOT_CONNECTED = 'Scrum is not connected to a workspace in this shell.'
-
-const disconnected: ScrumClient = {
-  entry: () => Promise.reject(new Error(NOT_CONNECTED)),
-  createProject: () => Promise.reject(new Error(NOT_CONNECTED)),
 }
 
 /** Reads the open flag without owning it, so both registrations see one answer. */
@@ -129,7 +123,7 @@ function overlayComponent(store: WorkbenchStore, client: ScrumClient): () => Rea
 
 export function apply(ctx: ClientContext, config: ScrumClientConfig = {}): void {
   const store = config.store ?? createWorkbenchStore()
-  const client = config.client ?? disconnected
+  const client = config.client ?? disconnectedClient(createTranslate()('error.notConnected'))
 
   ctx.slots.inject('sidebar.footer.action', () =>
     ctx.slots.register(

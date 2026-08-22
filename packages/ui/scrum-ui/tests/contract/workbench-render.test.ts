@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { ConnectedWorkbench, Workbench, createTranslate, toCreateInput } from '@dsh-scrum/scrum-ui'
 import type { EntryView, WorkbenchState } from '@dsh-scrum/scrum-ui'
+import { stubClient } from '../support/client.js'
 
 // Rendered to markup rather than asserted as an element tree. A tree assertion
 // passes while the page shows nothing, because a component that returns the
@@ -147,10 +148,7 @@ describe('the connected workbench', () => {
   it('shows the loading frame before the client has answered', () => {
     const markup = renderToStaticMarkup(
       createElement(ConnectedWorkbench, {
-        client: {
-          entry: () => new Promise<EntryView>(() => undefined),
-          createProject: () => new Promise<never>(() => undefined),
-        },
+        client: stubClient({ entry: () => new Promise<EntryView>(() => undefined) }),
       }),
     )
 

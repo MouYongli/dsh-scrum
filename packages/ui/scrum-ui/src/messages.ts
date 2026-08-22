@@ -40,6 +40,15 @@ export const SCRUM_MESSAGES = {
     'wizard.cancel': '取消',
     'wizard.creating': '正在创建……',
     'error.title': '操作未完成',
+    'error.notConnected': '此 Shell 没有把 Scrum 接到工作区，暂时无法读取数据。',
+    'type.epic': '史诗',
+    'type.story': '故事',
+    'type.task': '任务',
+    'type.bug': '缺陷',
+    'priority.critical': '最高',
+    'priority.high': '高',
+    'priority.medium': '中',
+    'priority.low': '低',
   },
   en: {
     'entry.label': 'Scrum',
@@ -71,6 +80,16 @@ export const SCRUM_MESSAGES = {
     'wizard.cancel': 'Cancel',
     'wizard.creating': 'Creating…',
     'error.title': 'That did not go through',
+    'error.notConnected':
+      'This shell did not connect Scrum to a workspace, so there is nothing to read.',
+    'type.epic': 'Epic',
+    'type.story': 'Story',
+    'type.task': 'Task',
+    'type.bug': 'Bug',
+    'priority.critical': 'Critical',
+    'priority.high': 'High',
+    'priority.medium': 'Medium',
+    'priority.low': 'Low',
   },
 } as const satisfies Record<Locale, Record<string, string>>
 

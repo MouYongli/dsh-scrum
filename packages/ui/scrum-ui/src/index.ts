@@ -1,10 +1,23 @@
 export type {
+  BacklogQuery,
+  BlockWorkItem,
   CreateProjectInput,
+  DependWorkItem,
+  EditWorkItem,
   EntryView,
+  NewWorkItem,
+  ParentWorkItem,
   ProjectView,
+  RankWorkItem,
   ScrumClient,
+  SetCriterion,
+  WorkItemRef,
   WorkspaceView,
 } from './client.js'
+export { disconnectedClient } from './disconnected.js'
+export type { ScrumFailure } from './failure.js'
+export { toFailure } from './failure.js'
+export { PRIORITIES, WORK_ITEM_TYPES, priorityLabel, typeLabel } from './vocabulary.js'
 export type { Locale, MessageKey, Translate } from './messages.js'
 export { MESSAGE_KEYS, SCRUM_MESSAGES, SCRUM_NAMESPACE, createTranslate } from './messages.js'
 export type { PageView } from './pages.js'

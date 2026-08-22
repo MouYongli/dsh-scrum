@@ -1,18 +1,19 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createWorkbenchController } from '@dsh-scrum/scrum-ui'
 import type { CreateProjectInput, EntryView, ScrumClient } from '@dsh-scrum/scrum-ui'
+import { stubClient } from '../support/client.js'
 
 const WORKSPACE = { id: 'ws_1', name: 'shop-service' }
 const PROJECT = { id: 'prj_1', key: 'SCR', name: 'shop-service', description: '' }
 
 function client(entries: EntryView[], onCreate?: (input: CreateProjectInput) => void): ScrumClient {
-  return {
+  return stubClient({
     entry: () => Promise.resolve(entries.shift() ?? { state: 'no-workspace' }),
     createProject: (input) => {
       onCreate?.(input)
       return Promise.resolve(PROJECT)
     },
-  }
+  })
 }
 
 describe('the workbench controller', () => {
@@ -35,10 +36,12 @@ describe('the workbench controller', () => {
   })
 
   it('reports a client that could not answer', async () => {
-    const controller = createWorkbenchController({
-      entry: () => Promise.reject(new Error('not connected')),
-      createProject: () => Promise.reject(new Error('not connected')),
-    })
+    const controller = createWorkbenchController(
+      stubClient({
+        entry: () => Promise.reject(new Error('not connected')),
+        createProject: () => Promise.reject(new Error('not connected')),
+      }),
+    )
 
     await controller.load()
 
@@ -83,10 +86,12 @@ describe('the workbench controller', () => {
   })
 
   it('reports a creation that failed rather than leaving the button spinning', async () => {
-    const controller = createWorkbenchController({
-      entry: () => Promise.resolve({ state: 'unbound', workspace: WORKSPACE }),
-      createProject: () => Promise.reject(new Error('the key is already taken')),
-    })
+    const controller = createWorkbenchController(
+      stubClient({
+        entry: () => Promise.resolve({ state: 'unbound', workspace: WORKSPACE }),
+        createProject: () => Promise.reject(new Error('the key is already taken')),
+      }),
+    )
     await controller.load()
 
     await controller.create({ key: 'SCR', name: 'shop-service' })
