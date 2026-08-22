@@ -190,7 +190,7 @@ Schema 和 Port 都定了（#47），Community 的落盘实现属于 #54。
 ## E. 已知的跨包重复
 
 - **E0. `todo.md` 已经被提交进仓库**（#43 的第一个 commit 里 `git add -A` 带进去的，非本意）。它原本是本地草稿。要么保留并在每个 PR 里当 `docs(repo)` 更新，要么单独开一个 `[Chore]` PR 把它移出版本控制。**这条需要你定。**
-- **E1. `ACTIVITY_SOURCE` 有两份**：`scrum-application/src/ports/activity.ts`（权威，五个值）和 `adapter-storage-workspace-files/src/activity.ts`（三个值）。两者是结构相同的 union，TypeScript 不会发现它们分叉。当前由 adapter 的契约测试断言「store 的取值是 application 的子集」兜住。Adapter 在 #54 实现 `ActivityRecorder` 时删掉自己那份。
+- ~~**E1. `ACTIVITY_SOURCE` 有两份**~~ — 已收口（#54）。存储适配器那份连同它的漂移契约测试一起删了，改为直接用 `scrum-application` 的五值词表。
 
 ## 当前进度
 

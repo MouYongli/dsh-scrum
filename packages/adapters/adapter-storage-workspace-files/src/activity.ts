@@ -9,27 +9,17 @@ import {
   type Revision,
   type Timestamp,
 } from '@dsh-scrum/scrum-domain'
+import { toActivitySource, type ActivitySource } from '@dsh-scrum/scrum-application'
 import { asRecord, nullableField, numberField, stringField } from './json.js'
 import { resolveInside, type WorkspaceLayout } from './paths.js'
 import type { StoreProblem } from './store.js'
 
-/** Where a change came from. Persisted, so the values may be added to but not renamed. */
-export const ACTIVITY_SOURCE = {
-  ui: 'ui',
-  agent: 'agent',
-  system: 'system',
-} as const
-
-export type ActivitySource = (typeof ACTIVITY_SOURCE)[keyof typeof ACTIVITY_SOURCE]
-
-const SOURCES: readonly string[] = Object.values(ACTIVITY_SOURCE)
-
-export function toActivitySource(value: string): ActivitySource {
-  if (!SOURCES.includes(value)) {
-    throw new ValidationError(`ActivitySource must be one of ${SOURCES.join(', ')}`, { value })
-  }
-  return value as ActivitySource
-}
+/*
+ * The activity vocabulary is the application's. This module used to carry its
+ * own copy, written before that layer existed; it goes away now that the store
+ * writes through the application's port, because two structurally identical
+ * unions are two things nothing would notice drifting apart.
+ */
 
 /**
  * One thing that happened, recorded after it happened.
