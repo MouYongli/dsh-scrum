@@ -93,7 +93,7 @@ const DraftsContext = createContext<DraftRegistry>(NO_DRAFTS)
  */
 export function DraftsProvider(props: {
   readonly registry: DraftRegistry
-  readonly children: ReactNode
+  readonly children?: ReactNode | undefined
 }): ReactElement {
   return createElement(DraftsContext.Provider, { value: props.registry }, props.children)
 }

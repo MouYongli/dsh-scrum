@@ -27,8 +27,10 @@ import {
   ConnectedWorkbench,
   SCRUM_NAMESPACE,
   createTranslate,
+  createDraftRegistry,
   createScrumModeStore,
   disconnectedClient,
+  type DraftRegistry,
   type ScrumClient,
   type ScrumModeStore,
   type ShellMode,
@@ -62,11 +64,17 @@ const ENTRY_ID = 'scrum'
 export interface ScrumClientConfig {
   readonly client?: ScrumClient | undefined
   readonly store?: ScrumModeStore | undefined
+  readonly drafts?: DraftRegistry | undefined
 }
 
 /** Reads the mode without owning it, so both registrations see one answer. */
 function useMode(store: ScrumModeStore): ShellMode {
   return useSyncExternalStore(store.subscribe, store.mode, store.mode)
+}
+
+/** Whether a leave is currently waiting on an answer about unsaved input. */
+function useLeaving(store: ScrumModeStore): boolean {
+  return useSyncExternalStore(store.subscribe, store.leaving, store.leaving)
 }
 
 /**
@@ -420,15 +428,27 @@ function overlayComponent(
   store: ScrumModeStore,
   client: ScrumClient,
   shell: ShellServices,
+  drafts: DraftRegistry,
 ): () => ReactElement | null {
   return function ScrumOverlay(): ReactElement | null {
     const mode = useMode(store)
+    const leaving = useLeaving(store)
     const showing = mode === 'scrum'
     const sidebar = useSidebarInset(showing)
+    // Escape answers whatever is on screen: the question when one is up, the
+    // workbench otherwise. A key that did nothing while the question was
+    // showing would read as the workbench having stopped listening.
+    const escape = useCallback(() => {
+      if (store.leaving()) {
+        store.resume()
+        return
+      }
+      store.leave()
+    }, [])
     // Above the early return, and so still running in conversation mode: the
     // baseline it tracks has to be current when the user next enters Scrum.
     useSessionExit(shell, store)
-    useEscape(showing, sidebar.element, store.leave)
+    useEscape(showing, sidebar.element, escape)
     useModeFocus(mode, sidebar.element)
     if (!showing) {
       return null
@@ -452,7 +472,14 @@ function overlayComponent(
           background: SHELL_BACKGROUND,
         },
       },
-      createElement(ConnectedWorkbench, { client, onExit: store.leave }),
+      createElement(ConnectedWorkbench, {
+        client,
+        drafts,
+        leaving,
+        onExit: store.leave,
+        onResume: store.resume,
+        onDiscard: store.discard,
+      }),
     )
   }
 }
@@ -492,7 +519,8 @@ function shellClient(shell: ShellServices): ScrumClient | null {
 
 export function apply(ctx: ClientContext, config: ScrumClientConfig = {}): void {
   const shell = ctx as unknown as ShellServices
-  const store = config.store ?? createScrumModeStore()
+  const drafts = config.drafts ?? createDraftRegistry()
+  const store = config.store ?? createScrumModeStore({ drafts })
   const client =
     config.client ?? shellClient(shell) ?? disconnectedClient(createTranslate()('error.notConnected'))
 
@@ -508,7 +536,7 @@ export function apply(ctx: ClientContext, config: ScrumClientConfig = {}): void 
   ctx.slots.inject('shell.overlay', () =>
     ctx.slots.register(
       { name: 'shell.overlay', id: ENTRY_ID, order: 0 },
-      overlayComponent(store, client, shell),
+      overlayComponent(store, client, shell, drafts),
     ),
   )
 }

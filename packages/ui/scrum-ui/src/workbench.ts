@@ -16,6 +16,7 @@ import { createSprintController } from './sprint-controller.js'
 import { SprintScreen } from './sprint-view.js'
 import type { CreateProjectInput, ScrumClient } from './client.js'
 import { createWorkbenchController, type WorkbenchState } from './controller.js'
+import { DraftsProvider, NO_DRAFTS, type DraftRegistry } from './drafts.js'
 import { createTranslate, type Translate } from './messages.js'
 import { pageFor } from './pages.js'
 
@@ -33,6 +34,10 @@ export interface WorkbenchProps {
   readonly onCreate?: ((input: CreateProjectInput) => void) | undefined
   /** Back to the conversation. Absent leaves the surface with no way out. */
   readonly onExit?: (() => void) | undefined
+  /** True while a leave is waiting on an answer about unsaved input. */
+  readonly leaving?: boolean | undefined
+  readonly onResume?: (() => void) | undefined
+  readonly onDiscard?: (() => void) | undefined
   /**
    * What a project surface shows once a workspace is attached to one. Handed
    * in rather than built here, so this component stays renderable against any
@@ -68,7 +73,38 @@ export function Workbench(props: WorkbenchProps): ReactElement {
             t('workbench.back'),
           ),
     ),
+    props.leaving === true ? leaveQuestion(props, t) : null,
     body(props, t),
+  )
+}
+
+/**
+ * The question a leave raises when something is half typed.
+ *
+ * Drawn over the workbench rather than in place of it, and the forms behind it
+ * stay mounted and usable: they are holding the drafts this is about, and the
+ * quickest answer for someone who meant to save is to go and save, which
+ * settles the question without them answering it.
+ *
+ * An alert dialog because this one really is an interruption — unlike the
+ * workbench frame around it, which is a mode.
+ */
+function leaveQuestion(props: WorkbenchProps, t: Translate): ReactElement {
+  return createElement(
+    'div',
+    { 'data-scrum-leave': true, role: 'alertdialog', 'aria-label': t('leave.title') },
+    createElement('h2', null, t('leave.title')),
+    createElement('p', null, t('leave.body')),
+    createElement(
+      'button',
+      { type: 'button', onClick: props.onResume, 'data-scrum-leave-resume': true },
+      t('leave.resume'),
+    ),
+    createElement(
+      'button',
+      { type: 'button', onClick: props.onDiscard, 'data-scrum-leave-discard': true },
+      t('leave.discard'),
+    ),
   )
 }
 
@@ -381,6 +417,15 @@ export interface ConnectedWorkbenchProps {
   readonly client: ScrumClient
   readonly t?: Translate | undefined
   readonly onExit?: (() => void) | undefined
+  readonly leaving?: boolean | undefined
+  readonly onResume?: (() => void) | undefined
+  readonly onDiscard?: (() => void) | undefined
+  /**
+   * Where the forms report input the user has not saved. Handed in rather
+   * than created here, because whoever decides that leaving needs a question
+   * has to be reading the same answers.
+   */
+  readonly drafts?: DraftRegistry | undefined
 }
 
 /**
@@ -405,10 +450,16 @@ export function ConnectedWorkbench(props: ConnectedWorkbenchProps): ReactElement
   }, [controller])
 
   const t = props.t ?? createTranslate()
-  return createElement(Workbench, {
+  return createElement(
+    DraftsProvider,
+    { registry: props.drafts ?? NO_DRAFTS },
+    createElement(Workbench, {
     state,
     t: props.t,
     onExit: props.onExit,
+    leaving: props.leaving,
+    onResume: props.onResume,
+    onDiscard: props.onDiscard,
     onCreate: (input) => void controller.create(input),
     surface:
       state.kind === 'ready' && (state.entry.state === 'bound' || state.entry.state === 'archived')
@@ -419,5 +470,6 @@ export function ConnectedWorkbench(props: ConnectedWorkbenchProps): ReactElement
             isBound,
           })
         : null,
-  })
+    }),
+  )
 }
