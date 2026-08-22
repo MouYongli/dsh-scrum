@@ -1,18 +1,19 @@
 import { createElement, useState, type ReactElement, type ReactNode } from 'react'
-import type { Sprint, SprintId, WorkItem, WorkItemId } from '@dsh-scrum/scrum-domain'
+import type { Sprint, SprintId, WorkItem } from '@dsh-scrum/scrum-domain'
 import { SPRINT_STATUS } from '@dsh-scrum/scrum-domain'
+import { Board, type BoardActions } from './board-view.js'
 import type { NewSprint, WorkItemRef } from './client.js'
+import { WorkItemDetail, type WorkItemDetailActions } from './work-item-detail.js'
 import type { SprintState } from './sprint-controller.js'
 import type { MessageKey, Translate } from './messages.js'
 import { SprintForm, toDay } from './sprint-form.js'
 import { priorityLabel, sprintStatusLabel, typeLabel } from './vocabulary.js'
 
 /** What the sprint screen can ask for. See `BacklogActions` for the reasoning. */
-export interface SprintActions {
+export interface SprintActions extends BoardActions, Omit<WorkItemDetailActions, 'close'> {
   readonly select: (sprintId: SprintId) => void
   readonly create: (input: NewSprint) => void
   readonly plan: (items: readonly WorkItemRef[], into: SprintId | null) => void
-  readonly detail: (id: WorkItemId | null) => void
   readonly refresh: () => void
   readonly dismiss: () => void
 }
@@ -45,9 +46,49 @@ export function SprintScreen(props: SprintProps): ReactElement {
             sprintPicker(props),
             props.readOnly ? null : createElement(CreatePanel, props),
             state.selected === null ? emptyState(props) : summary(state.selected, props),
+            state.selected === null ? null : board(props),
             state.selected === null ? null : planning(state.selected, props),
+            drawer(props),
           ),
   )
+}
+
+function board(props: SprintProps): ReactElement {
+  return createElement(Board, {
+    board: props.state.board,
+    actions: props.actions,
+    t: props.t,
+    busy: props.state.busy,
+    readOnly: props.readOnly,
+  })
+}
+
+/**
+ * The drawer, over the same panel the backlog shows. One work item looks the
+ * same wherever it is opened from.
+ */
+function drawer(props: SprintProps): ReactNode {
+  const item = props.state.detail
+  if (item === null) {
+    return null
+  }
+  return createElement(WorkItemDetail, {
+    t: props.t,
+    item,
+    candidates: props.state.unplanned,
+    busy: props.state.busy,
+    readOnly: props.readOnly,
+    actions: {
+      close: () => {
+        props.actions.detail(null)
+      },
+      edit: props.actions.edit,
+      criterion: props.actions.criterion,
+      parent: props.actions.parent,
+      dependency: props.actions.dependency,
+      block: props.actions.block,
+    },
+  })
 }
 
 function failureBanner(props: SprintProps): ReactNode {

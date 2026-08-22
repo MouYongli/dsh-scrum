@@ -15,6 +15,12 @@ const actions: SprintActions = {
   detail: vi.fn(),
   refresh: vi.fn(),
   dismiss: vi.fn(),
+  move: vi.fn(),
+  edit: vi.fn(),
+  criterion: vi.fn(),
+  parent: vi.fn(),
+  dependency: vi.fn(),
+  block: vi.fn(),
 }
 
 function state(overrides: Partial<SprintState> = {}): SprintState {
@@ -139,5 +145,62 @@ describe('the planning panes', () => {
     const markup = render({ sprints: [chosen], selected: chosen, unplanned: [item(2)] }, true)
 
     expect(markup).not.toContain('data-scrum-plan=')
+  })
+})
+
+describe('the board', () => {
+  function board(...items: Parameters<typeof boardView>[0]): Partial<SprintState> {
+    const chosen = sprint(1, { status: SPRINT_STATUS.active })
+    return { sprints: [chosen], selected: chosen, board: boardView(items) }
+  }
+
+  it('draws every column with its heading and totals', () => {
+    const markup = render(board(item(1, { status: WORK_ITEM_STATUS.todo, estimate: 3 })))
+
+    expect(markup).toContain(`data-scrum-column="${WORK_ITEM_STATUS.todo}"`)
+    expect(markup).toContain(`data-scrum-column="${WORK_ITEM_STATUS.done}"`)
+    expect(markup).toContain(t('status.inProgress'))
+    expect(markup).toContain(`${t('backlog.estimate')} 3`)
+  })
+
+  it('says a column is empty rather than leaving a blank space', () => {
+    expect(render(board())).toContain(t('board.column.empty'))
+  })
+
+  it('moves a card through a labelled select, so a keyboard can do it', () => {
+    const markup = render(board(item(1, { status: WORK_ITEM_STATUS.todo })))
+
+    expect(markup).toContain('data-scrum-move="SCR-1"')
+    expect(markup).toContain(`<label for="scrum-move-SCR-1">${t('board.moveTo')}</label>`)
+    // Every other column is offered, not only the next one.
+    expect(markup).toContain(`value="${WORK_ITEM_STATUS.done}"`)
+    expect(markup).not.toContain(`value="${WORK_ITEM_STATUS.todo}"`)
+  })
+
+  it('offers no move control on an archived project', () => {
+    expect(render(board(item(1, { status: WORK_ITEM_STATUS.todo })), true)).not.toContain(
+      'data-scrum-move',
+    )
+  })
+
+  it('reports work the board cannot show instead of losing it', () => {
+    const markup = render(board(item(1, { status: WORK_ITEM_STATUS.backlog })))
+
+    expect(markup).toContain('data-scrum-board-hidden="1"')
+    expect(markup).toContain(t('board.hidden'))
+  })
+
+  it('opens the drawer on the same panel the backlog shows', () => {
+    const chosen = sprint(1, { status: SPRINT_STATUS.active })
+    const opened = item(1, { status: WORK_ITEM_STATUS.todo })
+    const markup = render({
+      sprints: [chosen],
+      selected: chosen,
+      board: boardView([opened]),
+      detail: opened,
+    })
+
+    expect(markup).toContain('data-scrum-detail="SCR-1"')
+    expect(markup).toContain('data-scrum-criteria-list')
   })
 })

@@ -35,6 +35,8 @@ export type {
 export { BACKLOG_GROUPING, backlogPage } from './backlog.js'
 export type { BoardCard, BoardColumn, BoardView } from './board.js'
 export { boardView, moveTargets } from './board.js'
+export type { BoardActions, BoardProps } from './board-view.js'
+export { Board } from './board-view.js'
 export type { BacklogController, BacklogState } from './backlog-controller.js'
 export { DEFAULT_BACKLOG_QUERY, createBacklogController } from './backlog-controller.js'
 export type { SprintConfirmation, SprintController, SprintState } from './sprint-controller.js'
