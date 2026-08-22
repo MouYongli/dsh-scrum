@@ -3,11 +3,20 @@ import {
   ValidationError,
   type IdentityId,
   type ProjectId,
+  type Sprint,
+  type SprintId,
+  type WorkItem,
+  type WorkItemId,
 } from '@dsh-scrum/scrum-domain'
 import {
   archiveProject,
   bindWorkspace,
   createProject,
+  getSprint,
+  getWorkItem,
+  listSprints,
+  listWorkItems,
+  readSprintProgress,
   resolveSessionAuthorization,
   restoreProject,
   setSessionAccess,
@@ -15,6 +24,8 @@ import {
   type AccessMode,
   type SessionAccess,
   type SessionAuthorization,
+  type SprintProgress,
+  type WorkItemFilter,
   type ActorContext,
   type ApplicationDependencies,
   type CreateProjectCommand,
@@ -88,6 +99,11 @@ export interface ScrumHostApi {
    */
   session(): Promise<SessionAuthorization>
   setSessionAccess(mode: AccessMode): Promise<SessionAccess>
+  backlog(filter?: WorkItemFilter): Promise<readonly WorkItem[]>
+  workItem(id: WorkItemId): Promise<WorkItem>
+  sprints(): Promise<readonly Sprint[]>
+  sprint(id: SprintId): Promise<Sprint>
+  progress(id: SprintId): Promise<SprintProgress>
 }
 
 /**
@@ -220,6 +236,46 @@ export function createHostApi(harness: HarnessContext, runtime: ScrumRuntime): S
       return await setSessionAccess(request.deps, {
         actor: request.actor,
         command: { ...sessionRefOf(request), projectId: await boundProjectId(request), mode },
+      })
+    },
+
+    async backlog(filter: WorkItemFilter = {}): Promise<readonly WorkItem[]> {
+      const request = await resolveRequest(harness, runtime)
+      return await listWorkItems(request.deps, {
+        actor: request.actor,
+        command: { projectId: await boundProjectId(request), filter },
+      })
+    },
+
+    async workItem(id: WorkItemId): Promise<WorkItem> {
+      const request = await resolveRequest(harness, runtime)
+      return await getWorkItem(request.deps, {
+        actor: request.actor,
+        command: { projectId: await boundProjectId(request), workItemId: id },
+      })
+    },
+
+    async sprints(): Promise<readonly Sprint[]> {
+      const request = await resolveRequest(harness, runtime)
+      return await listSprints(request.deps, {
+        actor: request.actor,
+        command: { projectId: await boundProjectId(request) },
+      })
+    },
+
+    async sprint(id: SprintId): Promise<Sprint> {
+      const request = await resolveRequest(harness, runtime)
+      return await getSprint(request.deps, {
+        actor: request.actor,
+        command: { projectId: await boundProjectId(request), sprintId: id },
+      })
+    },
+
+    async progress(id: SprintId): Promise<SprintProgress> {
+      const request = await resolveRequest(harness, runtime)
+      return await readSprintProgress(request.deps, {
+        actor: request.actor,
+        command: { projectId: await boundProjectId(request), sprintId: id },
       })
     },
 

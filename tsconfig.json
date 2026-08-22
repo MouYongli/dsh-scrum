@@ -1,12 +1,29 @@
 {
   "files": [],
   "references": [
-    { "path": "packages/adapters/adapter-storage-workspace-files" },
-    { "path": "packages/core/scrum-domain" },
-    { "path": "packages/core/scrum-application" },
-    { "path": "packages/api/scrum-api-contract" },
-    { "path": "packages/harness/scrum-harness-host" },
-    { "path": "packages/harness/scrum-harness-client" },
-    { "path": "packages/harness/scrum-harness-bundle" }
+    {
+      "path": "packages/adapters/adapter-storage-workspace-files"
+    },
+    {
+      "path": "packages/core/scrum-domain"
+    },
+    {
+      "path": "packages/core/scrum-application"
+    },
+    {
+      "path": "packages/api/scrum-api-contract"
+    },
+    {
+      "path": "packages/harness/scrum-harness-host"
+    },
+    {
+      "path": "packages/harness/scrum-harness-client"
+    },
+    {
+      "path": "packages/harness/scrum-agent-tools"
+    },
+    {
+      "path": "packages/harness/scrum-harness-bundle"
+    }
   ]
 }
