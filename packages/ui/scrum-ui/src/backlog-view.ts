@@ -1,11 +1,19 @@
-import { createElement, type ReactElement, type ReactNode } from 'react'
-import type { WorkItem, WorkItemId } from '@dsh-scrum/scrum-domain'
+import { createElement, useState, type ReactElement, type ReactNode } from 'react'
+import type { AcceptanceCriterion, WorkItem, WorkItemId } from '@dsh-scrum/scrum-domain'
 import type { BacklogGroup, BacklogRow } from './backlog.js'
 import { BACKLOG_GROUPING, type BacklogGrouping } from './backlog.js'
 import type { BacklogState } from './backlog-controller.js'
-import type { BacklogQuery } from './client.js'
+import type { BacklogQuery, EditWorkItem, NewWorkItem, SetCriterion } from './client.js'
 import type { MessageKey, Translate } from './messages.js'
 import { priorityLabel, typeLabel } from './vocabulary.js'
+import {
+  AcceptanceCriteria,
+  EMPTY_FIELDS,
+  WorkItemForm,
+  fieldsOf,
+  toDetailChanges,
+  toNewWorkItem,
+} from './work-item-form.js'
 
 /**
  * What the backlog screen can ask for.
@@ -20,12 +28,21 @@ export interface BacklogActions {
   readonly select: (id: WorkItemId | null) => void
   readonly refresh: () => void
   readonly dismiss: () => void
+  readonly create: (input: NewWorkItem) => void
+  readonly edit: (command: EditWorkItem) => void
+  readonly criterion: (command: SetCriterion) => void
 }
 
 export interface BacklogProps {
   readonly state: BacklogState
   readonly actions: BacklogActions
   readonly t: Translate
+  /**
+   * An archived project. The writing controls are not drawn, which is a
+   * courtesy and not a check: the host refuses the write either way, and this
+   * only spares the user an entry that leads to a refusal.
+   */
+  readonly readOnly: boolean
 }
 
 const GROUPINGS: readonly { readonly value: BacklogGrouping; readonly label: MessageKey }[] = [
@@ -47,7 +64,109 @@ export function BacklogScreen(props: BacklogProps): ReactElement {
     createElement('h2', null, t('backlog.title')),
     toolbar(props),
     failureBanner(props),
+    props.readOnly ? null : createElement(CreatePanel, props),
     body(props),
+    detailPanel(props),
+  )
+}
+
+/**
+ * The creation form, folded away until it is asked for.
+ *
+ * Kept collapsed because the backlog is read far more often than it is added
+ * to, and a form permanently occupying the top of the screen pushes the list
+ * the user came for below the fold.
+ */
+function CreatePanel(props: BacklogProps): ReactElement {
+  const [open, setOpen] = useState(false)
+  if (!open) {
+    return createElement(
+      'button',
+      {
+        type: 'button',
+        'data-scrum-create-open': true,
+        onClick: () => {
+          setOpen(true)
+        },
+      },
+      props.t('backlog.create.open'),
+    )
+  }
+  return createElement(
+    'div',
+    { 'data-scrum-create': true },
+    createElement('h3', null, props.t('backlog.create.title')),
+    createElement(WorkItemForm, {
+      t: props.t,
+      id: 'scrum-create',
+      initial: EMPTY_FIELDS,
+      submitLabel: 'item.create',
+      busy: props.state.busy,
+      onSubmit: (fields) => {
+        setOpen(false)
+        props.actions.create(toNewWorkItem(fields))
+      },
+      onCancel: () => {
+        setOpen(false)
+      },
+    }),
+  )
+}
+
+/**
+ * The detail of the selected item.
+ *
+ * Keyed by identifier and revision, so that a reload after somebody else's
+ * write rebuilds the form from what is now stored. Without the key the fields
+ * would keep showing a version that no longer exists and the next save would
+ * be submitted against a revision the store has already moved past.
+ */
+function detailPanel(props: BacklogProps): ReactNode {
+  const item = props.state.selected
+  if (item === null) {
+    return null
+  }
+  const { t } = props
+  const ref = { workItemId: item.id, expectedRevision: item.revision }
+  return createElement(
+    'aside',
+    { 'data-scrum-detail': item.id, 'aria-label': t('backlog.detail.title') },
+    createElement('h3', null, `${item.id} · ${item.title}`),
+    createElement(
+      'button',
+      {
+        type: 'button',
+        'data-scrum-detail-close': true,
+        onClick: () => {
+          props.actions.select(null)
+        },
+      },
+      t('backlog.detail.close'),
+    ),
+    props.readOnly
+      ? null
+      : createElement(WorkItemForm, {
+          key: `${item.id}:${item.revision}`,
+          t,
+          id: 'scrum-detail',
+          initial: fieldsOf(item),
+          submitLabel: 'item.save',
+          busy: props.state.busy,
+          onSubmit: (fields) => {
+            props.actions.edit({ ...ref, changes: toDetailChanges(fields) })
+          },
+        }),
+    createElement(AcceptanceCriteria, {
+      t,
+      criteria: item.acceptanceCriteria,
+      busy: props.state.busy || props.readOnly,
+      onToggle: (index: number, satisfied: boolean) => {
+        props.actions.criterion({ ...ref, index, satisfied })
+      },
+      onChange: (criteria: readonly AcceptanceCriterion[]) => {
+        props.actions.edit({ ...ref, changes: { acceptanceCriteria: criteria } })
+      },
+    }),
   )
 }
 

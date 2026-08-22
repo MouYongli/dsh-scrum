@@ -18,6 +18,9 @@ const actions: BacklogActions = {
   select: vi.fn(),
   refresh: vi.fn(),
   dismiss: vi.fn(),
+  create: vi.fn(),
+  edit: vi.fn(),
+  criterion: vi.fn(),
 }
 
 function state(overrides: Partial<BacklogState> = {}): BacklogState {
@@ -34,7 +37,9 @@ function state(overrides: Partial<BacklogState> = {}): BacklogState {
 }
 
 function render(overrides: Partial<BacklogState> = {}): string {
-  return renderToStaticMarkup(createElement(BacklogScreen, { state: state(overrides), actions, t }))
+  return renderToStaticMarkup(
+    createElement(BacklogScreen, { state: state(overrides), actions, t, readOnly: false }),
+  )
 }
 
 function loaded(...items: Parameters<typeof backlogPage>[0]): Partial<BacklogState> {
@@ -122,6 +127,7 @@ describe('groups', () => {
   it('heads every group and totals it, including the unestimated count', () => {
     const markup = renderToStaticMarkup(
       createElement(BacklogScreen, {
+        readOnly: false,
         state: state({
           grouping: BACKLOG_GROUPING.priority,
           page: backlogPage(
@@ -175,5 +181,63 @@ describe('the toolbar', () => {
   it('shows the sprint switch as off while the query is narrowed to the backlog', () => {
     expect(render()).toContain('id="scrum-backlog-planned" type="checkbox"')
     expect(render({ query: {} })).toContain('checked=""')
+  })
+})
+
+describe('creating and inspecting a work item', () => {
+  it('keeps the creation form folded away until it is asked for', () => {
+    const markup = render()
+
+    expect(markup).toContain('data-scrum-create-open')
+    expect(markup).not.toContain('data-scrum-item-form="scrum-create"')
+  })
+
+  it('offers no creation entry at all on an archived project', () => {
+    const markup = renderToStaticMarkup(
+      createElement(BacklogScreen, { state: state(), actions, t, readOnly: true }),
+    )
+
+    expect(markup).not.toContain('data-scrum-create-open')
+  })
+
+  it('shows the selected item, its fields and its acceptance criteria', () => {
+    const selected = item(1, {
+      title: '结算对账',
+      estimate: 5,
+      labels: ['结算', '对账'],
+      acceptanceCriteria: [
+        { text: '可以按天对账', satisfied: true },
+        { text: '差异可导出', satisfied: false },
+      ],
+    })
+    const markup = render({ ...loaded(selected), selected })
+
+    expect(markup).toContain('data-scrum-detail="SCR-1"')
+    expect(markup).toContain('value="5"')
+    expect(markup).toContain('value="结算, 对账"')
+    expect(markup).toContain('可以按天对账')
+    expect(markup).toContain(t('item.addCriterion'))
+  })
+
+  it('says so rather than showing an empty list when there are no criteria', () => {
+    const selected = item(1)
+
+    expect(render({ ...loaded(selected), selected })).toContain(t('item.noCriteria'))
+  })
+
+  it('offers no editing form on an archived project, but still shows the detail', () => {
+    const selected = item(1, { acceptanceCriteria: [{ text: '可对账', satisfied: false }] })
+    const markup = renderToStaticMarkup(
+      createElement(BacklogScreen, {
+        state: state({ ...loaded(selected), selected }),
+        actions,
+        t,
+        readOnly: true,
+      }),
+    )
+
+    expect(markup).toContain('data-scrum-detail="SCR-1"')
+    expect(markup).not.toContain('data-scrum-item-form="scrum-detail"')
+    expect(markup).toContain('disabled=""')
   })
 })
