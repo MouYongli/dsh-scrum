@@ -74,3 +74,23 @@ export {
   setWorkItemDependency,
   setWorkItemParent,
 } from './use-cases/work-item-planning.js'
+export type {
+  CloseSprintCommand,
+  CreateSprintCommand,
+  Disposition,
+  RescheduleSprintCommand,
+  SprintCommand,
+  SprintProgressCommand,
+  StartSprintCommand,
+  UpdateSprintCommand,
+} from './use-cases/sprint.js'
+export {
+  closeSprint,
+  createSprint,
+  getSprint,
+  listSprints,
+  readSprintProgress,
+  reschedule,
+  startSprint,
+  updateSprint,
+} from './use-cases/sprint.js'
