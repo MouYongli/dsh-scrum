@@ -1,6 +1,7 @@
 {
   "files": [],
   "references": [
+    { "path": "packages/adapters/adapter-storage-workspace-files" },
     { "path": "packages/core/scrum-domain" },
     { "path": "packages/core/scrum-application" },
     { "path": "packages/api/scrum-api-contract" },
