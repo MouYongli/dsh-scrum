@@ -13,6 +13,8 @@ import {
   type Project,
   type Revision,
   type Timestamp,
+  type Sprint,
+  type SprintId,
   type WorkItem,
   type WorkItemId,
 } from '@dsh-scrum/scrum-domain'
@@ -178,6 +180,23 @@ export class FakeWorkItemRepository {
   }
 }
 
+export class FakeSprintRepository {
+  readonly sprints = new Map<SprintId, Sprint>()
+
+  async find(projectId: ProjectId, id: SprintId): Promise<Sprint | null> {
+    const found = this.sprints.get(id)
+    return found !== undefined && found.projectId === projectId ? found : null
+  }
+
+  async list(projectId: ProjectId): Promise<readonly Sprint[]> {
+    return [...this.sprints.values()].filter((sprint) => sprint.projectId === projectId)
+  }
+
+  add(sprint: Sprint): void {
+    this.sprints.set(sprint.id, sprint)
+  }
+}
+
 export class FakeMemberRepository {
   readonly members = new Map<string, ProjectMember>()
 
@@ -244,6 +263,7 @@ export class FakeIdempotencyStore {
 export interface TestDependencies extends ApplicationDependencies {
   readonly projects: FakeProjectRepository
   readonly workItems: FakeWorkItemRepository
+  readonly sprints: FakeSprintRepository
   readonly members: FakeMemberRepository
   readonly bindings: FakeBindingRepository
   readonly activity: FakeActivityRecorder
@@ -261,6 +281,7 @@ export function dependencies(overrides: Partial<TestDependencies> = {}): TestDep
   return {
     projects,
     workItems: new FakeWorkItemRepository(projects),
+    sprints: new FakeSprintRepository(),
     members: new FakeMemberRepository(),
     bindings: new FakeBindingRepository(),
     activity: new FakeActivityRecorder(),
