@@ -1,0 +1,143 @@
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
+import { describe, expect, it, vi } from 'vitest'
+import { SPRINT_STATUS, WORK_ITEM_STATUS } from '@dsh-scrum/scrum-domain'
+import { SprintScreen, boardView, createTranslate } from '@dsh-scrum/scrum-ui'
+import type { SprintActions, SprintState } from '@dsh-scrum/scrum-ui'
+import { item, sprint } from '../support/items.js'
+
+const t = createTranslate()
+
+const actions: SprintActions = {
+  select: vi.fn(),
+  create: vi.fn(),
+  plan: vi.fn(),
+  detail: vi.fn(),
+  refresh: vi.fn(),
+  dismiss: vi.fn(),
+}
+
+function state(overrides: Partial<SprintState> = {}): SprintState {
+  return {
+    phase: 'ready',
+    sprints: [],
+    selected: null,
+    board: boardView([]),
+    unplanned: [],
+    detail: null,
+    confirmation: null,
+    failure: null,
+    busy: false,
+    ...overrides,
+  }
+}
+
+function render(overrides: Partial<SprintState> = {}, readOnly = false): string {
+  return renderToStaticMarkup(
+    createElement(SprintScreen, { state: state(overrides), actions, t, readOnly }),
+  )
+}
+
+describe('the states a sprint screen can be in', () => {
+  it('says it is reading, and shows no sprint yet', () => {
+    const markup = render({ phase: 'loading' })
+
+    expect(markup).toContain('aria-busy="true"')
+    expect(markup).toContain(t('sprint.loading'))
+    expect(markup).not.toContain('data-scrum-sprint-picker')
+  })
+
+  it('shows only the message when the read itself failed', () => {
+    const markup = render({ phase: 'failed', failure: { kind: 'other', message: '主机不可达' } })
+
+    expect(markup).toContain('主机不可达')
+    expect(markup).not.toContain('data-scrum-planning')
+  })
+
+  it('offers creating the first sprint when there are none', () => {
+    const markup = render()
+
+    expect(markup).toContain('data-scrum-empty="no-sprints"')
+    expect(markup).toContain(t('sprint.empty.title'))
+    expect(markup).toContain('data-scrum-sprint-create-open')
+  })
+
+  it('offers no creation entry at all on an archived project', () => {
+    expect(render({}, true)).not.toContain('data-scrum-sprint-create-open')
+  })
+})
+
+describe('choosing a sprint', () => {
+  it('shows every sprint with its status, not only the chosen one', () => {
+    const sprints = [sprint(1, { status: SPRINT_STATUS.closed }), sprint(2)]
+    const markup = render({ sprints, selected: sprints[1] ?? null })
+
+    expect(markup).toContain(t('sprint.status.closed'))
+    expect(markup).toContain(t('sprint.status.planned'))
+    expect(markup).toContain('data-scrum-sprint="sprint-2"')
+  })
+})
+
+describe('the sprint summary', () => {
+  it('shows the dates the team agreed to, the goal and the progress', () => {
+    const chosen = sprint(1, { goal: '打通结算' })
+    const markup = render({
+      sprints: [chosen],
+      selected: chosen,
+      board: boardView([
+        item(1, { status: WORK_ITEM_STATUS.done, estimate: 5 }),
+        item(2, { status: WORK_ITEM_STATUS.todo }),
+      ]),
+    })
+
+    expect(markup).toContain('2026-03-01 — 2026-03-15')
+    expect(markup).toContain('打通结算')
+    expect(markup).toContain(`${t('sprint.progress.done')} 1/2`)
+    expect(markup).toContain(`${t('backlog.estimate')} 5/5`)
+    expect(markup).toContain(`${t('backlog.unestimated')} 1`)
+  })
+
+  it('leaves the goal line out rather than showing an empty one', () => {
+    const chosen = sprint(1)
+
+    expect(render({ sprints: [chosen], selected: chosen })).not.toContain('data-scrum-sprint-goal')
+  })
+})
+
+describe('the planning panes', () => {
+  it('shows the sprint work beside the product backlog', () => {
+    const chosen = sprint(1)
+    const markup = render({
+      sprints: [chosen],
+      selected: chosen,
+      board: boardView([item(1, { status: WORK_ITEM_STATUS.todo })]),
+      unplanned: [item(2)],
+    })
+
+    expect(markup).toContain('data-scrum-pane="scrum-planned"')
+    expect(markup).toContain('data-scrum-pane="scrum-unplanned"')
+    expect(markup).toContain('data-scrum-plan="sprint-1"')
+    expect(markup).toContain('data-scrum-plan="backlog"')
+  })
+
+  it('says a pane is empty rather than showing an empty list', () => {
+    const chosen = sprint(1)
+
+    expect(render({ sprints: [chosen], selected: chosen })).toContain(t('sprint.pane.empty'))
+  })
+
+  it('takes no new work into a closed sprint, and says why', () => {
+    const chosen = sprint(1, { status: SPRINT_STATUS.closed })
+    const markup = render({ sprints: [chosen], selected: chosen, unplanned: [item(2)] })
+
+    expect(markup).not.toContain('data-scrum-plan=')
+    expect(markup).toContain(t('sprint.closedNotice'))
+  })
+
+  it('offers no planning at all on an archived project', () => {
+    const chosen = sprint(1)
+    const markup = render({ sprints: [chosen], selected: chosen, unplanned: [item(2)] }, true)
+
+    expect(markup).not.toContain('data-scrum-plan=')
+  })
+})
