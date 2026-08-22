@@ -70,6 +70,19 @@ function useMode(store: ScrumModeStore): ShellMode {
 }
 
 /**
+ * The sidebar's own selected row.
+ *
+ * Scrum is a mode the sidebar switches to, so its entry has to look selected
+ * the way a session row does. Taken from the shell's palette rather than
+ * written down: the entry inherits the shell's foreground, and a literal
+ * would pair a light band with whatever text colour the active theme chose.
+ * The fallback is derived from that inherited colour for the same reason —
+ * `Highlight`, the system keyword, is only legible against `HighlightText`.
+ */
+const SIDEBAR_SELECTED =
+  'var(--dsw-specific-sidebar-nav-item-active, color-mix(in srgb, currentColor 10%, transparent))'
+
+/**
  * Sidebar footer entry. The slot owner supplies only the column state: `wide`
  * is the expanded sidebar, otherwise the 56px rail, where the label has no
  * room and the entry has to fall back to its icon.
@@ -84,7 +97,9 @@ function entryComponent(store: ScrumModeStore): (props: { wide: boolean }) => Re
         type: 'button',
         'data-scrum-entry': ENTRY_ID,
         'aria-pressed': showing,
-        'aria-label': t('entry.open'),
+        // What the next click does, which is the opposite of the state the
+        // pressed bit reports.
+        'aria-label': showing ? t('entry.leave') : t('entry.open'),
         title: t('entry.label'),
         onClick: () => {
           store.toggle()
@@ -95,7 +110,8 @@ function entryComponent(store: ScrumModeStore): (props: { wide: boolean }) => Re
           gap: '8px',
           width: '100%',
           padding: '6px 8px',
-          background: 'transparent',
+          borderRadius: '6px',
+          background: showing ? SIDEBAR_SELECTED : 'transparent',
           border: 'none',
           color: 'inherit',
           cursor: 'pointer',
@@ -356,6 +372,43 @@ function useSessionExit(shell: ShellServices, store: ScrumModeStore): void {
 }
 
 /**
+ * Where the focus goes when the mode changes.
+ *
+ * Entering from the sidebar leaves the focus on the entry, behind a surface
+ * that now covers the rest of the shell; leaving without putting it back would
+ * strand it on an element that is no longer where the user is. Both moves are
+ * driven from the mode rather than from a cleanup, because React runs cleanups
+ * on the throwaway mount it performs in development and that one would take
+ * the focus away the instant Scrum was entered.
+ *
+ * The first run never moves anything: a shell that mounts already in Scrum has
+ * not navigated anywhere, and stealing the focus on load would be wrong.
+ */
+function useModeFocus(mode: ShellMode, element: { readonly current: HTMLElement | null }): void {
+  const owner = useRef<Document | null>(null)
+  const previous = useRef<ShellMode | null>(null)
+
+  useEffect(() => {
+    const host = element.current
+    if (host !== null) {
+      // Kept from while the overlay was mounted: on the way out it is gone,
+      // and the entry to hand the focus back to lives in that same document.
+      owner.current = host.ownerDocument
+    }
+    const was = previous.current
+    previous.current = mode
+    if (was === null || was === mode) {
+      return
+    }
+    if (mode === 'scrum') {
+      host?.querySelector<HTMLElement>('[data-scrum-workbench]')?.focus()
+      return
+    }
+    owner.current?.querySelector<HTMLElement>(`[data-scrum-entry="${ENTRY_ID}"]`)?.focus()
+  }, [mode, element])
+}
+
+/**
  * The overlay entry.
  *
  * It renders nothing at all in conversation mode. The overlay slot is
@@ -369,12 +422,14 @@ function overlayComponent(
   shell: ShellServices,
 ): () => ReactElement | null {
   return function ScrumOverlay(): ReactElement | null {
-    const showing = useMode(store) === 'scrum'
+    const mode = useMode(store)
+    const showing = mode === 'scrum'
     const sidebar = useSidebarInset(showing)
     // Above the early return, and so still running in conversation mode: the
     // baseline it tracks has to be current when the user next enters Scrum.
     useSessionExit(shell, store)
     useEscape(showing, sidebar.element, store.leave)
+    useModeFocus(mode, sidebar.element)
     if (!showing) {
       return null
     }

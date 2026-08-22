@@ -17,6 +17,7 @@ export const SCRUM_MESSAGES = {
   zh: {
     'entry.label': 'Scrum',
     'entry.open': '打开 Scrum 工作台',
+    'entry.leave': '离开 Scrum 工作台',
     'workbench.title': 'Scrum',
     'workbench.back': '返回对话',
     'section.backlog': '产品 Backlog',
@@ -172,6 +173,7 @@ export const SCRUM_MESSAGES = {
   en: {
     'entry.label': 'Scrum',
     'entry.open': 'Open the Scrum workbench',
+    'entry.leave': 'Leave the Scrum workbench',
     'workbench.title': 'Scrum',
     'workbench.back': 'Back to the conversation',
     'section.backlog': 'Product backlog',
