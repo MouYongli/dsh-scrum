@@ -74,6 +74,10 @@ export const SCRUM_MESSAGES = {
     'backlog.blocked': '已阻塞',
     'backlog.dependencies': '依赖',
     'backlog.criteria': '验收标准',
+    'backlog.dismiss': '知道了',
+    'backlog.conflict.title': '内容已被其他人修改',
+    'backlog.conflict.body': '你看到的版本已经不是最新的，刷新后再改一次，避免覆盖别人的修改。',
+    'backlog.conflict.refresh': '刷新后重试',
   },
   en: {
     'entry.label': 'Scrum',
@@ -140,6 +144,11 @@ export const SCRUM_MESSAGES = {
     'backlog.blocked': 'Blocked',
     'backlog.dependencies': 'Dependencies',
     'backlog.criteria': 'Acceptance criteria',
+    'backlog.dismiss': 'Dismiss',
+    'backlog.conflict.title': 'Somebody changed this first',
+    'backlog.conflict.body':
+      'What you were looking at is no longer current. Refresh and make the change again, so nobody else\u2019s work is overwritten.',
+    'backlog.conflict.refresh': 'Refresh and try again',
   },
 } as const satisfies Record<Locale, Record<string, string>>
 
