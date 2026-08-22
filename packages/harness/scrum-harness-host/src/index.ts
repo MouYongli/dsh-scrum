@@ -7,6 +7,7 @@ import {
   type ScrumHostApi,
   type ScrumRuntime,
 } from './api.js'
+import { createAgentApi, type ScrumAgentApi } from './agent-api.js'
 import { assertSupportedHarness, type ManifestReader } from './compatibility.js'
 import type { HarnessContext } from './workspace.js'
 
@@ -30,6 +31,19 @@ export class ScrumHostService extends Service {
     super(ctx, SCRUM_HOST_SERVICE)
     this.harness = config.harness
     this.runtime = config.runtime
+  }
+
+  /**
+   * The API as one agent session sees it: the same calls, narrowed by what
+   * that session was given. A tool never reaches `api()` directly, so the
+   * session rule cannot be skipped by forgetting to apply it.
+   */
+  agentApi(sessionId: string, version: number = HOST_API_VERSION): ScrumAgentApi {
+    const api = this.api(version)
+    if (this.harness === undefined || this.runtime === undefined) {
+      throw new ValidationError('the Scrum host was composed without a Harness context', {})
+    }
+    return createAgentApi(this.harness, this.runtime, api, sessionId)
   }
 
   /**
@@ -100,6 +114,8 @@ export type {
   ScrumRuntime,
 } from './api.js'
 export { HOST_API_VERSION, UnsupportedHostApiVersionError, createHostApi } from './api.js'
+export type { ScrumAgentApi } from './agent-api.js'
+export { createAgentApi } from './agent-api.js'
 export type { EntryState } from './entry.js'
 export { describeEntry, hostActor } from './entry.js'
 export type { HarnessContext, HarnessSession, HarnessWorkspace } from './workspace.js'
