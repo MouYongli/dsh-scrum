@@ -60,6 +60,7 @@ import {
   type StoredProject,
   type WorkspaceBinding,
 } from '@dsh-scrum/scrum-application'
+import type { RemoteConnectionOffer, RemoteConnectionProfile } from '@dsh-scrum/scrum-api-contract'
 import { describeEntry, hostActor, type EntryState } from './entry.js'
 import {
   fingerprintWorkspacePath,
@@ -208,6 +209,9 @@ export type InitialiseWorkspaceCommand = Omit<CreateProjectCommand, 'tenantId'>
 export interface ScrumHostApi {
   readonly version: number
   entry(): Promise<EntryState>
+  remoteProfiles(): Promise<readonly RemoteConnectionProfile[]>
+  beginRemote(connectionId: string): Promise<RemoteConnectionOffer>
+  attachRemote(connectionId: string, projectId: string): Promise<void>
   /** Creates a project and attaches this workspace to it, which is one act. */
   initialise(command: InitialiseWorkspaceCommand): Promise<StoredProject>
   attach(projectId: ProjectId): Promise<WorkspaceBinding>
@@ -244,6 +248,12 @@ export interface ScrumHostApi {
   startSprint(command: WorkOf<StartSprintCommand>): Promise<Sprint>
   closeSprint(command: WorkOf<CloseSprintCommand>): Promise<Sprint>
   configureProject(command: WorkOf<ConfigureProjectCommand>): Promise<StoredProject>
+}
+
+export interface RemoteConnectorPort {
+  profiles(): Promise<readonly RemoteConnectionProfile[]>
+  begin(connectionId: string): Promise<RemoteConnectionOffer>
+  attach(workspaceRoot: string, connectionId: string, projectId: string): Promise<unknown>
 }
 
 /**
@@ -311,9 +321,35 @@ export async function requireBoundProject(
   return { binding: entry.binding, project: { project: entry.project, config: entry.config } }
 }
 
-export function createHostApi(harness: HarnessContext, source: ScrumRuntimeSource): ScrumHostApi {
+export function createHostApi(
+  harness: HarnessContext,
+  source: ScrumRuntimeSource,
+  remote?: RemoteConnectorPort,
+): ScrumHostApi {
   async function boundProjectId(request: HostRequestContext): Promise<ProjectId> {
     return (await requireBoundProject(request, harness)).project.project.id
+  }
+
+  function connector(): RemoteConnectorPort {
+    if (remote === undefined) {
+      throw new ValidationError('no remote Scrum connection is configured', {})
+    }
+    return remote
+  }
+
+  async function remoteCall<Result>(run: () => Promise<Result>): Promise<Result> {
+    try {
+      return await run()
+    } catch (error: unknown) {
+      const kind =
+        typeof error === 'object' &&
+        error !== null &&
+        'kind' in error &&
+        ['authentication', 'compatibility', 'network', 'authorization'].includes(String(error.kind))
+          ? String(error.kind)
+          : 'network'
+      throw new ValidationError(`remote Scrum ${kind} failure`, { remoteFailure: kind })
+    }
   }
 
   return {
@@ -334,6 +370,19 @@ export function createHostApi(harness: HarnessContext, source: ScrumRuntimeSourc
         ...(await describeEntry(deps, harness, actor, workspace)),
         runtimeContext: resolved.context,
       }
+    },
+
+    remoteProfiles: async () => await remoteCall(async () => await connector().profiles()),
+
+    beginRemote: async (connectionId) =>
+      await remoteCall(async () => await connector().begin(connectionId)),
+
+    attachRemote: async (connectionId, projectId) => {
+      const workspace = await harness.currentWorkspace()
+      if (workspace === null) throw new ValidationError('no workspace is selected', {})
+      await remoteCall(
+        async () => await connector().attach(workspace.path, connectionId, projectId),
+      )
     },
 
     async initialise(command: InitialiseWorkspaceCommand): Promise<StoredProject> {

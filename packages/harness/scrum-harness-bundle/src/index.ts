@@ -33,6 +33,7 @@ import {
   type HarnessDirectory,
   type ScrumHostConfig,
   type ScrumRuntimeSource,
+  type RemoteConnectorPort,
 } from '@dsh-scrum/scrum-harness-host'
 
 export { name } from '@dsh-scrum/scrum-harness-host'
@@ -61,7 +62,7 @@ export type ScrumBundleConfig = ScrumHostConfig
 export function apply(ctx: Context, config: ScrumBundleConfig = {}): void {
   const runtime = config.runtime ?? fixedRuntimeResolver(createCommunityRuntime())
   applyHost(ctx, { ...config, runtime })
-  serveChannel(ctx, runtime)
+  serveChannel(ctx, runtime, config.remote)
 }
 
 /**
@@ -108,10 +109,14 @@ function harnessDirectory(ctx: Context): HarnessDirectory {
  * not support serving the browser half beyond loopback until there is an
  * authentication layer to serve it behind.
  */
-function serveChannel(ctx: Context, runtime: ScrumRuntimeSource): void {
+function serveChannel(
+  ctx: Context,
+  runtime: ScrumRuntimeSource,
+  remote?: RemoteConnectorPort,
+): void {
   const directory = harnessDirectory(ctx)
   const handle = createChannelHandler((scope) =>
-    createHostApi(scopedHarness(directory, scope), runtime),
+    createHostApi(scopedHarness(directory, scope), runtime, remote),
   )
   // An effect rather than a bare call: the registration belongs to this
   // fiber, so unloading the plugin takes the channel with it instead of

@@ -76,6 +76,18 @@ describe('what goes onto the channel', () => {
 
     expect(wire.sent[0]?.payload.input).toEqual({})
   })
+
+  it('sends the selected profile and project through the remote onboarding endpoints', async () => {
+    const wire = transport(answering(undefined))
+    const client = createTransportClient(wire.call, () => SCOPE)
+
+    await client.attachRemote('connection-1', 'project-1')
+
+    expect(wire.sent[0]).toMatchObject({
+      endpoint: SCRUM_ENDPOINT.remoteAttach,
+      payload: { input: { connectionId: 'connection-1', projectId: 'project-1' } },
+    })
+  })
 })
 
 describe('what comes back', () => {

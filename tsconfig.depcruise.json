@@ -9,6 +9,7 @@
       "@dsh-scrum/adapter-identity-personal": [
         "./packages/adapters/adapter-identity-personal/src/index.ts"
       ],
+      "@dsh-scrum/adapter-remote-api": ["./packages/adapters/adapter-remote-api/src/index.ts"],
       "@dsh-scrum/adapter-storage-workspace-files": [
         "./packages/adapters/adapter-storage-workspace-files/src/index.ts"
       ],

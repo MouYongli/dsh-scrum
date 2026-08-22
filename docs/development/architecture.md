@@ -146,6 +146,15 @@ Provider 管理，不写入 Workspace 的 `.scrum/`。
 
 连接时先完成版本化握手，获取服务版本、支持的 API 版本、当前 Principal 和 Capability。插件不能根据 Endpoint、产品名称或客户端布尔值推断 Teams/Enterprise 权限。
 
+远程连接 Profile 保存在 Harness 的全局配置中，包含服务 Endpoint 与 Credential Provider
+引用；认证材料只在请求时由 Provider 取出。Workspace 的 `.scrum/remote.json` 只保存
+`connectionId` 和已授权的远端 `projectId`。连接流程先握手取得许可证 Edition、Tenant、
+Principal 与 Capability，再读取该 Principal 可访问的 Project 列表；只有列表中的 Project
+可以写入绑定。未知 Capability 可以通过握手，但在当前客户端中保持不授予状态。
+
+认证、协议兼容、网络和授权错误在 Adapter 中分类。跨 Host/Client Contract 时只传安全的
+分类与通用文案，不转发可能包含 Endpoint、路径或认证信息的底层异常。
+
 ## 6. 依赖方向
 
 ```text

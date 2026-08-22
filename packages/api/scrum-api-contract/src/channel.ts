@@ -34,6 +34,9 @@ export const SCRUM_CHANNEL = '/scrum'
 export const SCRUM_ENDPOINT = {
   authorization: 'authorization',
   entry: 'entry',
+  remoteProfiles: 'remote.profile.list',
+  remoteBegin: 'remote.begin',
+  remoteAttach: 'remote.attach',
   createProject: 'project.create',
   backlog: 'backlog',
   createWorkItem: 'workItem.create',
@@ -151,6 +154,12 @@ const empty = z.object({})
 export const SCRUM_INPUT = {
   [SCRUM_ENDPOINT.authorization]: empty,
   [SCRUM_ENDPOINT.entry]: empty,
+  [SCRUM_ENDPOINT.remoteProfiles]: empty,
+  [SCRUM_ENDPOINT.remoteBegin]: z.object({ connectionId: z.string().trim().min(1) }),
+  [SCRUM_ENDPOINT.remoteAttach]: z.object({
+    connectionId: z.string().trim().min(1),
+    projectId: z.string().trim().min(1),
+  }),
   [SCRUM_ENDPOINT.createProject]: z.object({
     key: projectKey,
     name: z.string(),

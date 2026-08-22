@@ -15,6 +15,8 @@ export type {
   PlanSprint,
   ProjectView,
   RuntimeContextView,
+  RemoteOfferView,
+  RemoteProfileView,
   RankWorkItem,
   ScrumClient,
   SetCriterion,

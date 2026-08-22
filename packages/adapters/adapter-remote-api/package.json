@@ -1,0 +1,29 @@
+{
+  "name": "@dsh-scrum/adapter-remote-api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Authenticated remote Scrum service adapter",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "@dsh-scrum/scrum-api-contract": "workspace:*",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3"
+  }
+}

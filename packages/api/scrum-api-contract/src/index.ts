@@ -44,9 +44,12 @@ export {
 } from './envelope.js'
 export type {
   RemoteCapability,
+  RemoteConnectionOffer,
+  RemoteConnectionProfile,
   RemoteHandshakeRequest,
   RemoteHandshakeResponse,
   RemotePrincipal,
+  RemoteProject,
 } from './remote.js'
 export {
   REMOTE_CAPABILITY,
@@ -54,7 +57,11 @@ export {
   createRemoteHandshakeRequest,
   parseRemoteHandshakeResponse,
   remoteCapabilitySchema,
+  remoteConnectionProfileSchema,
   remoteHandshakeRequestSchema,
   remoteHandshakeResponseSchema,
   remotePrincipalSchema,
+  remoteProjectSchema,
+  remoteTenantSchema,
+  recognizedCapabilities,
 } from './remote.js'

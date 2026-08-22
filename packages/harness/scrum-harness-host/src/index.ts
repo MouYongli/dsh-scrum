@@ -6,6 +6,7 @@ import {
   createHostApi,
   type ScrumHostApi,
   type ScrumRuntimeSource,
+  type RemoteConnectorPort,
 } from './api.js'
 import { createAgentApi, type ScrumAgentApi } from './agent-api.js'
 import { assertSupportedHarness, type ManifestReader } from './compatibility.js'
@@ -26,11 +27,13 @@ export const SCRUM_HOST_SERVICE = 'scrumHost'
 export class ScrumHostService extends Service {
   private readonly harness: HarnessContext | undefined
   private readonly runtime: ScrumRuntimeSource | undefined
+  private readonly remote: RemoteConnectorPort | undefined
 
   constructor(ctx: Context, config: ScrumHostConfig = {}) {
     super(ctx, SCRUM_HOST_SERVICE)
     this.harness = config.harness
     this.runtime = config.runtime
+    this.remote = config.remote
   }
 
   /**
@@ -63,7 +66,7 @@ export class ScrumHostService extends Service {
         runtime: this.runtime !== undefined,
       })
     }
-    return createHostApi(this.harness, this.runtime)
+    return createHostApi(this.harness, this.runtime, this.remote)
   }
 }
 
@@ -98,6 +101,7 @@ export interface ScrumHostConfig {
   harness?: HarnessContext
   /** The identity and the stores. Supplied by the edition bundle. */
   runtime?: ScrumRuntimeSource
+  remote?: RemoteConnectorPort
 }
 
 export function apply(ctx: Context, config: ScrumHostConfig = {}): void {
@@ -117,6 +121,7 @@ export type {
   WorkspaceRuntimeTarget,
   WorkspaceRuntimeContext,
   ResolvedWorkspaceRuntime,
+  RemoteConnectorPort,
 } from './api.js'
 export {
   HOST_API_VERSION,
