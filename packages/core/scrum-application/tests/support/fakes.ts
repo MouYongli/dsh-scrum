@@ -176,12 +176,22 @@ export class FakeWorkItemRepository {
   }
 }
 
+/**
+ * Sprint identifiers are only unique inside a project — `sprint-1` says
+ * nothing about which project it belongs to, unlike `SCR-12` — so the store
+ * keys them by both.
+ */
 export class FakeSprintRepository {
-  readonly sprints = new Map<SprintId, Sprint>()
+  readonly sprints = new Map<string, Sprint>()
+  /** How many more times to hand out a number that is already taken. */
+  collisions = 0
+
+  get(projectId: ProjectId, id: SprintId): Sprint | undefined {
+    return this.sprints.get(`${projectId}/${id}`)
+  }
 
   async find(projectId: ProjectId, id: SprintId): Promise<Sprint | null> {
-    const found = this.sprints.get(id)
-    return found !== undefined && found.projectId === projectId ? found : null
+    return this.get(projectId, id) ?? null
   }
 
   async list(projectId: ProjectId): Promise<readonly Sprint[]> {
@@ -189,24 +199,26 @@ export class FakeSprintRepository {
   }
 
   async nextIdentifier(projectId: ProjectId): Promise<SprintId> {
-    const owned = [...this.sprints.values()].filter((sprint) => sprint.projectId === projectId)
-    return formatSprintId(owned.length + 1)
+    const taken = (await this.list(projectId)).length
+    const colliding = this.collisions > 0
+    this.collisions = Math.max(this.collisions - 1, 0)
+    return formatSprintId(Math.max(colliding ? taken : taken + 1, 1))
   }
 
   async create(sprint: Sprint): Promise<void> {
-    if (this.sprints.has(sprint.id)) {
+    if (this.get(sprint.projectId, sprint.id) !== undefined) {
       throw new ConflictError('the sprint already exists', 0, sprint.revision, { id: sprint.id })
     }
-    this.sprints.set(sprint.id, sprint)
+    this.add(sprint)
   }
 
   async save(sprint: Sprint, expected: Revision): Promise<void> {
     this.assertExpected(sprint, expected)
-    this.sprints.set(sprint.id, sprint)
+    this.add(sprint)
   }
 
   assertExpected(sprint: Sprint, expected: Revision): void {
-    const current = this.sprints.get(sprint.id)
+    const current = this.get(sprint.projectId, sprint.id)
     if (current === undefined) {
       throw new ConflictError('the sprint is no longer there', expected, 0, { id: sprint.id })
     }
@@ -218,7 +230,7 @@ export class FakeSprintRepository {
   }
 
   add(sprint: Sprint): void {
-    this.sprints.set(sprint.id, sprint)
+    this.sprints.set(`${sprint.projectId}/${sprint.id}`, sprint)
   }
 }
 
@@ -261,7 +273,7 @@ export class FakeTransactions {
       this.workItems.items.set(write.item.id, write.item)
     }
     for (const write of writes.sprints ?? []) {
-      this.sprints.sprints.set(write.sprint.id, write.sprint)
+      this.sprints.add(write.sprint)
     }
     this.applied.push(operation)
   }
