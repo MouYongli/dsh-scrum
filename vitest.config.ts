@@ -61,9 +61,12 @@ export default defineConfig({
       provider: 'v8',
       include: ['packages/*/*/src/**/*.ts'],
       reporter: ['text', 'lcov'],
-      // A floor, not a target: the baseline sits at ~94/93 with the browser
-      // client entry at zero (it only runs in a real browser), so a drop below
-      // these numbers means a real regression, not noise.
+      // A floor, not a target. The baseline sits at ~96/94: the interface
+      // components are driven in a jsdom document by the tests under
+      // `tests/integration`, so their handlers are executed rather than only
+      // rendered, and what remains uncovered is the browser plugin entry,
+      // which only runs inside a real shell. A drop below these numbers means
+      // a real regression, not noise.
       thresholds: { statements: 90, branches: 85, functions: 85, lines: 90 },
     },
   },
