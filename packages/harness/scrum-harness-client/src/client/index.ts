@@ -27,10 +27,11 @@ import {
   ConnectedWorkbench,
   SCRUM_NAMESPACE,
   createTranslate,
-  createWorkbenchStore,
+  createScrumModeStore,
   disconnectedClient,
   type ScrumClient,
-  type WorkbenchStore,
+  type ScrumModeStore,
+  type ShellMode,
 } from '@dsh-scrum/scrum-ui'
 import { createTransportClient, type RpcCall } from './transport.js'
 
@@ -60,12 +61,12 @@ const ENTRY_ID = 'scrum'
  */
 export interface ScrumClientConfig {
   readonly client?: ScrumClient | undefined
-  readonly store?: WorkbenchStore | undefined
+  readonly store?: ScrumModeStore | undefined
 }
 
-/** Reads the open flag without owning it, so both registrations see one answer. */
-function useIsOpen(store: WorkbenchStore): boolean {
-  return useSyncExternalStore(store.subscribe, store.isOpen, store.isOpen)
+/** Reads the mode without owning it, so both registrations see one answer. */
+function useMode(store: ScrumModeStore): ShellMode {
+  return useSyncExternalStore(store.subscribe, store.mode, store.mode)
 }
 
 /**
@@ -73,16 +74,16 @@ function useIsOpen(store: WorkbenchStore): boolean {
  * is the expanded sidebar, otherwise the 56px rail, where the label has no
  * room and the entry has to fall back to its icon.
  */
-function entryComponent(store: WorkbenchStore): (props: { wide: boolean }) => ReactElement {
+function entryComponent(store: ScrumModeStore): (props: { wide: boolean }) => ReactElement {
   const t = createTranslate()
   return function ScrumEntry(props: { wide: boolean }): ReactElement {
-    const open = useIsOpen(store)
+    const showing = useMode(store) === 'scrum'
     return createElement(
       'button',
       {
         type: 'button',
         'data-scrum-entry': ENTRY_ID,
-        'aria-pressed': open,
+        'aria-pressed': showing,
         'aria-label': t('entry.open'),
         title: t('entry.label'),
         onClick: () => {
@@ -170,7 +171,7 @@ function measureSidebar(overlay: HTMLElement): number {
  * without `ResizeObserver` still gets the mount-time measurement rather than
  * no overlay at all.
  */
-function useSidebarInset(open: boolean): {
+function useSidebarInset(showing: boolean): {
   readonly ref: (element: HTMLElement | null) => void
   readonly inset: number
 } {
@@ -192,7 +193,7 @@ function useSidebarInset(open: boolean): {
 
   useEffect(() => {
     const current = element.current
-    if (!open || current === null) {
+    if (!showing || current === null) {
       return undefined
     }
     // Again here, not only in the ref: the ref runs during the commit, and the
@@ -215,7 +216,7 @@ function useSidebarInset(open: boolean): {
       observer.disconnect()
       current.ownerDocument.defaultView?.removeEventListener('resize', measure)
     }
-  }, [open, measure])
+  }, [showing, measure])
 
   return { ref, inset }
 }
@@ -223,15 +224,16 @@ function useSidebarInset(open: boolean): {
 /**
  * The overlay entry.
  *
- * It renders nothing at all while closed. The overlay slot is click-through
- * until an entry opts into pointer events, so a closed workbench that returned
- * an empty container would still be a layer over the conversation.
+ * It renders nothing at all in conversation mode. The overlay slot is
+ * click-through until an entry opts into pointer events, so a workbench that
+ * was not showing and still returned an empty container would remain a layer
+ * over the conversation.
  */
-function overlayComponent(store: WorkbenchStore, client: ScrumClient): () => ReactElement | null {
+function overlayComponent(store: ScrumModeStore, client: ScrumClient): () => ReactElement | null {
   return function ScrumOverlay(): ReactElement | null {
-    const open = useIsOpen(store)
-    const sidebar = useSidebarInset(open)
-    if (!open) {
+    const showing = useMode(store) === 'scrum'
+    const sidebar = useSidebarInset(showing)
+    if (!showing) {
       return null
     }
     return createElement(
@@ -253,7 +255,7 @@ function overlayComponent(store: WorkbenchStore, client: ScrumClient): () => Rea
           background: SHELL_BACKGROUND,
         },
       },
-      createElement(ConnectedWorkbench, { client, onClose: () => store.close() }),
+      createElement(ConnectedWorkbench, { client, onClose: () => store.leave() }),
     )
   }
 }
@@ -321,7 +323,7 @@ function shellClient(ctx: ClientContext): ScrumClient | null {
 }
 
 export function apply(ctx: ClientContext, config: ScrumClientConfig = {}): void {
-  const store = config.store ?? createWorkbenchStore()
+  const store = config.store ?? createScrumModeStore()
   const client =
     config.client ?? shellClient(ctx) ?? disconnectedClient(createTranslate()('error.notConnected'))
 

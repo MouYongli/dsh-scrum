@@ -12,14 +12,14 @@
 import { act, createElement, type ComponentType } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it } from 'vitest'
-import { createWorkbenchStore, type WorkbenchStore } from '@dsh-scrum/scrum-ui'
+import { createScrumModeStore, type ScrumModeStore } from '@dsh-scrum/scrum-ui'
 import * as clientEntry from '@dsh-scrum/scrum-harness-client/client'
 
 interface Registered {
   readonly component: ComponentType<Record<string, unknown>>
 }
 
-function registrations(store: WorkbenchStore): Map<string, Registered> {
+function registrations(store: ScrumModeStore): Map<string, Registered> {
   const found = new Map<string, Registered>()
   const ctx = {
     slots: {
@@ -79,11 +79,11 @@ function installResizeObserver(): { readonly resize: () => void } {
  * walking up from the entry.
  */
 function mountShell(options: { sidebarRight: number; layerLeft: number; withEntry?: boolean }): {
-  readonly store: WorkbenchStore
+  readonly store: ScrumModeStore
   readonly column: HTMLElement
   readonly overlay: () => HTMLElement | null
 } {
-  const store = createWorkbenchStore()
+  const store = createScrumModeStore()
   const registered = registrations(store)
   const frame = document.createElement('div')
   const column = document.createElement('div')
@@ -95,7 +95,7 @@ function mountShell(options: { sidebarRight: number; layerLeft: number; withEntr
   rect(layer, { left: options.layerLeft, right: 1400 })
 
   act(() => {
-    store.open()
+    store.enter()
     if (options.withEntry !== false) {
       const entry = createRoot(column)
       roots.push(entry)

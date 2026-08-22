@@ -1,7 +1,7 @@
 import { createElement, type ComponentType } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { createTranslate, createWorkbenchStore, type WorkbenchStore } from '@dsh-scrum/scrum-ui'
+import { createTranslate, createScrumModeStore, type ScrumModeStore } from '@dsh-scrum/scrum-ui'
 import * as clientEntry from '@dsh-scrum/scrum-harness-client/client'
 
 interface Registered {
@@ -10,7 +10,7 @@ interface Registered {
 }
 
 /** Applies the plugin against a registry that declares both slots at once. */
-function registrations(store: WorkbenchStore): Map<string, Registered> {
+function registrations(store: ScrumModeStore): Map<string, Registered> {
   const found = new Map<string, Registered>()
   const ctx = {
     slots: {
@@ -33,14 +33,14 @@ const t = createTranslate()
 
 describe('the sidebar entry', () => {
   it('shows its label when the sidebar is wide', () => {
-    const store = createWorkbenchStore()
+    const store = createScrumModeStore()
     const entry = registrations(store).get('sidebar.footer.action')!
 
     expect(render(entry.component, { wide: true })).toContain(t('entry.label'))
   })
 
   it('falls back to the icon on the collapsed rail, keeping its accessible name', () => {
-    const store = createWorkbenchStore()
+    const store = createScrumModeStore()
     const markup = render(registrations(store).get('sidebar.footer.action')!.component, {
       wide: false,
     })
@@ -49,28 +49,28 @@ describe('the sidebar entry', () => {
     expect(markup).toContain(`aria-label="${t('entry.open')}"`)
   })
 
-  it('reports whether the workbench is open', () => {
-    const store = createWorkbenchStore()
+  it('reports which mode the shell is in', () => {
+    const store = createScrumModeStore()
     const entry = registrations(store).get('sidebar.footer.action')!
 
     expect(render(entry.component, { wide: true })).toContain('aria-pressed="false"')
-    store.open()
+    store.enter()
     expect(render(entry.component, { wide: true })).toContain('aria-pressed="true"')
   })
 })
 
 describe('the overlay', () => {
-  it('renders nothing at all while closed, so it is not a layer over the conversation', () => {
-    const store = createWorkbenchStore()
+  it('renders nothing in conversation mode, so it is not a layer over it', () => {
+    const store = createScrumModeStore()
     const overlay = registrations(store).get('shell.overlay')!
 
     expect(render(overlay.component)).toBe('')
   })
 
-  it('renders the workbench once opened', () => {
-    const store = createWorkbenchStore()
+  it('renders the workbench in Scrum mode', () => {
+    const store = createScrumModeStore()
     const overlay = registrations(store).get('shell.overlay')!
-    store.open()
+    store.enter()
 
     const markup = render(overlay.component)
 
@@ -79,9 +79,9 @@ describe('the overlay', () => {
   })
 
   it('paints itself from the shell palette, so the inherited text stays legible', () => {
-    const store = createWorkbenchStore()
+    const store = createScrumModeStore()
     const overlay = registrations(store).get('shell.overlay')!
-    store.open()
+    store.enter()
 
     const markup = render(overlay.component)
 
@@ -93,9 +93,9 @@ describe('the overlay', () => {
   })
 
   it('says it is not connected when nothing composed a client', () => {
-    const store = createWorkbenchStore()
+    const store = createScrumModeStore()
     const overlay = registrations(store).get('shell.overlay')!
-    store.open()
+    store.enter()
 
     // The workbench opens and reports the problem rather than the entry doing
     // nothing when clicked, which is a state nobody can report.
