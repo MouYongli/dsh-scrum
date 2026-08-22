@@ -179,6 +179,115 @@ describe('planning', () => {
   })
 })
 
+describe('the two confirmations', () => {
+  it('asks before starting, and does nothing until the answer comes', async () => {
+    const starts: unknown[] = []
+    const controller = createSprintController(
+      stubClient({
+        sprints: () => Promise.resolve([sprint(1)]),
+        backlog: () => Promise.resolve([]),
+        startSprint: (command) => {
+          starts.push(command)
+          return Promise.resolve(sprint(1, { status: SPRINT_STATUS.active }))
+        },
+      }),
+    )
+    await controller.load()
+
+    controller.ask('start')
+    expect(controller.state().confirmation).toEqual({ kind: 'start', sprint: sprint(1) })
+    expect(starts).toEqual([])
+
+    await controller.start()
+    expect(starts).toEqual([{ sprintId: sprintId(1), expectedRevision: REVISION }])
+  })
+
+  it('carries the unfinished items into the closing question', async () => {
+    const controller = createSprintController(
+      client(
+        [sprint(1, { status: SPRINT_STATUS.active })],
+        [item(1, { status: WORK_ITEM_STATUS.done }), item(2, { status: WORK_ITEM_STATUS.review })],
+      ),
+    )
+    await controller.load()
+
+    controller.ask('close')
+    const confirmation = controller.state().confirmation
+
+    expect(confirmation?.kind).toBe('close')
+    expect(
+      confirmation?.kind === 'close' ? confirmation.unfinished.map((entry) => entry.id) : [],
+    ).toEqual([itemId(2)])
+  })
+
+  it('lets the user back out without writing anything', async () => {
+    const controller = createSprintController(client())
+    await controller.load()
+
+    controller.ask('close')
+    controller.cancel()
+
+    expect(controller.state().confirmation).toBeNull()
+  })
+
+  it('takes the question down when the write starts', async () => {
+    const controller = createSprintController(
+      stubClient({
+        sprints: () => Promise.resolve([sprint(1)]),
+        backlog: () => Promise.resolve([]),
+        startSprint: () => Promise.resolve(sprint(1, { status: SPRINT_STATUS.active })),
+      }),
+    )
+    await controller.load()
+    controller.ask('start')
+
+    await controller.start()
+
+    expect(controller.state().confirmation).toBeNull()
+  })
+
+  it('sends the summary and every disposition when closing', async () => {
+    const closes: unknown[] = []
+    const controller = createSprintController(
+      stubClient({
+        sprints: () => Promise.resolve([sprint(1, { status: SPRINT_STATUS.active })]),
+        backlog: () => Promise.resolve([]),
+        closeSprint: (command) => {
+          closes.push(command)
+          return Promise.resolve(sprint(1, { status: SPRINT_STATUS.closed }))
+        },
+      }),
+    )
+    await controller.load()
+
+    await controller.close('按计划完成', [{ ...REF, moveTo: null }])
+
+    expect(closes).toEqual([
+      {
+        sprintId: sprintId(1),
+        expectedRevision: REVISION,
+        resultSummary: '按计划完成',
+        dispositions: [{ ...REF, moveTo: null }],
+      },
+    ])
+  })
+
+  it('reports a refused close rather than pretending the sprint shut', async () => {
+    const controller = createSprintController(
+      stubClient({
+        sprints: () => Promise.resolve([sprint(1, { status: SPRINT_STATUS.active })]),
+        backlog: () => Promise.resolve([]),
+        closeSprint: () => Promise.reject(new ConflictError('the sprint has moved on', 1, 2)),
+      }),
+    )
+    await controller.load()
+
+    await controller.close('', [])
+
+    expect(controller.state().failure?.kind).toBe('conflict')
+  })
+})
+
 describe('creating a sprint', () => {
   it('selects the sprint it just created', async () => {
     const created = sprint(2)

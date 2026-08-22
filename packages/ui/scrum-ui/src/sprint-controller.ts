@@ -1,5 +1,6 @@
 import {
   SPRINT_STATUS,
+  isWorkItemFinished,
   type Sprint,
   type SprintId,
   type WorkItem,
@@ -10,6 +11,7 @@ import { boardView, type BoardView } from './board.js'
 import type {
   BlockWorkItem,
   DependWorkItem,
+  Disposition,
   EditWorkItem,
   NewSprint,
   ParentWorkItem,
@@ -18,6 +20,18 @@ import type {
   WorkItemRef,
 } from './client.js'
 import { toFailure, type ScrumFailure } from './failure.js'
+
+/**
+ * What the user is being asked to confirm.
+ *
+ * Starting and closing are the two acts that change what everybody else's
+ * board says, and neither is undone by clicking again. Closing carries the
+ * items standing in its way, because the decision the user has to make is
+ * about them and not about the sprint.
+ */
+export type SprintConfirmation =
+  | { readonly kind: 'start'; readonly sprint: Sprint }
+  | { readonly kind: 'close'; readonly sprint: Sprint; readonly unfinished: readonly WorkItem[] }
 
 export interface SprintState {
   readonly phase: 'loading' | 'ready' | 'failed'
@@ -28,6 +42,7 @@ export interface SprintState {
   readonly unplanned: readonly WorkItem[]
   /** The item the drawer is open on, resolved from what the board holds. */
   readonly detail: WorkItem | null
+  readonly confirmation: SprintConfirmation | null
   readonly failure: ScrumFailure | null
   readonly busy: boolean
 }
@@ -47,6 +62,10 @@ export interface SprintController {
   readonly setParent: (command: ParentWorkItem) => Promise<void>
   readonly setDependency: (command: DependWorkItem) => Promise<void>
   readonly block: (command: BlockWorkItem) => Promise<void>
+  readonly ask: (kind: 'start' | 'close') => void
+  readonly cancel: () => void
+  readonly start: () => Promise<void>
+  readonly close: (resultSummary: string, dispositions: readonly Disposition[]) => Promise<void>
 }
 
 const EMPTY_BOARD: BoardView = boardView([])
@@ -79,6 +98,7 @@ export function createSprintController(client: ScrumClient): SprintController {
     board: EMPTY_BOARD,
     unplanned: [],
     detail: null,
+    confirmation: null,
     failure: null,
     busy: false,
   }
@@ -135,7 +155,9 @@ export function createSprintController(client: ScrumClient): SprintController {
    * card that moved.
    */
   async function write(run: () => Promise<unknown>): Promise<void> {
-    set({ ...state, busy: true, failure: null })
+    // The question is answered by the time a write starts, so it comes down
+    // with it rather than staying open over a board that has already changed.
+    set({ ...state, busy: true, failure: null, confirmation: null })
     try {
       await run()
       await load()
@@ -143,6 +165,19 @@ export function createSprintController(client: ScrumClient): SprintController {
     } catch (error: unknown) {
       set({ ...state, busy: false, failure: toFailure(error) })
     }
+  }
+
+  /**
+   * The two transitions need the sprint's revision, and there is no sprint to
+   * take one from unless one is open. Refusing here rather than sending a
+   * command with a made-up revision keeps the failure at the point where it
+   * can be read as a bug.
+   */
+  function requireSelected(): Sprint {
+    if (state.selected === null) {
+      throw new Error('no sprint is selected')
+    }
+    return state.selected
   }
 
   return {
@@ -193,6 +228,53 @@ export function createSprintController(client: ScrumClient): SprintController {
     },
     block: async (command: BlockWorkItem) => {
       await write(async () => await client.blockWorkItem(command))
+    },
+    /**
+     * The unfinished list comes from what the board is showing rather than
+     * from a fresh read: it is the same answer the columns were drawn from, so
+     * the dispositions offered are exactly the cards in front of the user.
+     */
+    ask: (kind: 'start' | 'close') => {
+      const sprint = state.selected
+      if (sprint === null) {
+        return
+      }
+      set({
+        ...state,
+        failure: null,
+        confirmation:
+          kind === 'start'
+            ? { kind, sprint }
+            : { kind, sprint, unfinished: planned.filter((item) => !isWorkItemFinished(item)) },
+      })
+    },
+    cancel: () => {
+      set({ ...state, confirmation: null })
+    },
+    start: async () => {
+      const sprint = requireSelected()
+      await write(
+        async () =>
+          await client.startSprint({ sprintId: sprint.id, expectedRevision: sprint.revision }),
+      )
+    },
+    /**
+     * Every unfinished item is named. The use case refuses a close that leaves
+     * one unaccounted for, because "back to the backlog" and "into the next
+     * sprint" mean different things to the next planning session and nothing
+     * here can know which was meant.
+     */
+    close: async (resultSummary: string, dispositions: readonly Disposition[]) => {
+      const sprint = requireSelected()
+      await write(
+        async () =>
+          await client.closeSprint({
+            sprintId: sprint.id,
+            expectedRevision: sprint.revision,
+            resultSummary,
+            dispositions,
+          }),
+      )
     },
   }
 }
