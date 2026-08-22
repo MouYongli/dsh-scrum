@@ -1,7 +1,11 @@
 import { readFile, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { activityMonth, readActivity, workspaceLayout } from '@dsh-scrum/adapter-storage-workspace-files'
+import {
+  activityMonth,
+  readActivity,
+  workspaceLayout,
+} from '@dsh-scrum/adapter-storage-workspace-files'
 import { ACCESS_MODE } from '@dsh-scrum/scrum-application'
 import { WORK_ITEM_TYPE, toProjectKey, toTimestamp } from '@dsh-scrum/scrum-domain'
 import { installation, type Installation } from '../support/installation.js'
@@ -58,7 +62,8 @@ describe('what a full run leaves on disk', () => {
   it('never writes a field that could hold a secret', async () => {
     await fullRun()
 
-    const suspicious = /"[^"]*(token|password|secret|credential|api[_-]?key|authorization)[^"]*"\s*:/i
+    const suspicious =
+      /"[^"]*(token|password|secret|credential|api[_-]?key|authorization)[^"]*"\s*:/i
 
     for (const file of await storedFiles()) {
       expect(file.text, file.path).not.toMatch(suspicious)
