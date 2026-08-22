@@ -39,6 +39,8 @@ export type { BacklogController, BacklogState } from './backlog-controller.js'
 export { DEFAULT_BACKLOG_QUERY, createBacklogController } from './backlog-controller.js'
 export type { SprintConfirmation, SprintController, SprintState } from './sprint-controller.js'
 export { createSprintController, defaultSprint } from './sprint-controller.js'
+export type { SprintFields, SprintFormProps } from './sprint-form.js'
+export { EMPTY_SPRINT_FIELDS, SprintForm, toDay, toNewSprint, toSprintDate } from './sprint-form.js'
 export {
   BOARD_COLUMNS,
   PRIORITIES,
