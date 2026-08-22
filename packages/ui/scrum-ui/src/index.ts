@@ -68,6 +68,8 @@ export {
   ParentPicker,
   rankTargetFor,
 } from './work-item-links.js'
+export type { WorkItemDetailActions, WorkItemDetailProps } from './work-item-detail.js'
+export { WorkItemDetail } from './work-item-detail.js'
 export type { CriteriaProps, WorkItemFields, WorkItemFormProps } from './work-item-form.js'
 export {
   AcceptanceCriteria,

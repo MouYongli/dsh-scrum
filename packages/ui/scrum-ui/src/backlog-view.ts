@@ -1,5 +1,5 @@
 import { createElement, useState, type ReactElement, type ReactNode } from 'react'
-import type { AcceptanceCriterion, WorkItem, WorkItemId } from '@dsh-scrum/scrum-domain'
+import type { WorkItem, WorkItemId } from '@dsh-scrum/scrum-domain'
 import type { BacklogGroup, BacklogRow } from './backlog.js'
 import { BACKLOG_GROUPING, type BacklogGrouping } from './backlog.js'
 import type { BacklogState } from './backlog-controller.js'
@@ -15,21 +15,9 @@ import type {
 } from './client.js'
 import type { MessageKey, Translate } from './messages.js'
 import { priorityLabel, typeLabel } from './vocabulary.js'
-import {
-  AcceptanceCriteria,
-  EMPTY_FIELDS,
-  WorkItemForm,
-  fieldsOf,
-  toDetailChanges,
-  toNewWorkItem,
-} from './work-item-form.js'
-import {
-  BlockControl,
-  DependencyPicker,
-  OrderControls,
-  ParentPicker,
-  type RankTarget,
-} from './work-item-links.js'
+import { EMPTY_FIELDS, WorkItemForm, toNewWorkItem } from './work-item-form.js'
+import { OrderControls, type RankTarget } from './work-item-links.js'
+import { WorkItemDetail } from './work-item-detail.js'
 
 /**
  * What the backlog screen can ask for.
@@ -134,87 +122,30 @@ function CreatePanel(props: BacklogProps): ReactElement {
 }
 
 /**
- * The detail of the selected item.
- *
- * Keyed by identifier and revision, so that a reload after somebody else's
- * write rebuilds the form from what is now stored. Without the key the fields
- * would keep showing a version that no longer exists and the next save would
- * be submitted against a revision the store has already moved past.
+ * The detail of the selected item, in the panel both screens share.
  */
 function detailPanel(props: BacklogProps): ReactNode {
   const item = props.state.selected
   if (item === null) {
     return null
   }
-  const { t } = props
-  const ref = { workItemId: item.id, expectedRevision: item.revision }
-  return createElement(
-    'aside',
-    { 'data-scrum-detail': item.id, 'aria-label': t('backlog.detail.title') },
-    createElement('h3', null, `${item.id} · ${item.title}`),
-    createElement(
-      'button',
-      {
-        type: 'button',
-        'data-scrum-detail-close': true,
-        onClick: () => {
-          props.actions.select(null)
-        },
+  return createElement(WorkItemDetail, {
+    t: props.t,
+    item,
+    candidates: props.state.ordered,
+    busy: props.state.busy,
+    readOnly: props.readOnly,
+    actions: {
+      close: () => {
+        props.actions.select(null)
       },
-      t('backlog.detail.close'),
-    ),
-    props.readOnly
-      ? null
-      : createElement(WorkItemForm, {
-          key: `${item.id}:${item.revision}`,
-          t,
-          id: 'scrum-detail',
-          initial: fieldsOf(item),
-          submitLabel: 'item.save',
-          busy: props.state.busy,
-          onSubmit: (fields) => {
-            props.actions.edit({ ...ref, changes: toDetailChanges(fields) })
-          },
-        }),
-    createElement(AcceptanceCriteria, {
-      t,
-      criteria: item.acceptanceCriteria,
-      busy: props.state.busy || props.readOnly,
-      onToggle: (index: number, satisfied: boolean) => {
-        props.actions.criterion({ ...ref, index, satisfied })
-      },
-      onChange: (criteria: readonly AcceptanceCriterion[]) => {
-        props.actions.edit({ ...ref, changes: { acceptanceCriteria: criteria } })
-      },
-    }),
-    createElement(ParentPicker, {
-      t,
-      item,
-      candidates: props.state.ordered,
-      busy: props.state.busy || props.readOnly,
-      onChange: (parentId: WorkItemId | null) => {
-        props.actions.parent({ ...ref, parentId })
-      },
-    }),
-    createElement(DependencyPicker, {
-      t,
-      item,
-      candidates: props.state.ordered,
-      busy: props.state.busy || props.readOnly,
-      onChange: (dependsOnId: WorkItemId, linked: boolean) => {
-        props.actions.dependency({ ...ref, dependsOnId, linked })
-      },
-    }),
-    createElement(BlockControl, {
-      key: `${item.id}:${item.revision}`,
-      t,
-      item,
-      busy: props.state.busy || props.readOnly,
-      onChange: (reason: string | null) => {
-        props.actions.block({ ...ref, reason })
-      },
-    }),
-  )
+      edit: props.actions.edit,
+      criterion: props.actions.criterion,
+      parent: props.actions.parent,
+      dependency: props.actions.dependency,
+      block: props.actions.block,
+    },
+  })
 }
 
 /**
