@@ -6,8 +6,7 @@ export const SCRUM_HOST_SERVICE = 'scrumHost'
 
 /**
  * Host-side entry point for everything the Scrum plugin does outside the
- * browser. At this stage it carries no Scrum behaviour: it exists so that
- * loading and unloading the plugin has an observable effect.
+ * browser. The versioned API arrives next; this carries the service itself.
  */
 export class ScrumHostService extends Service {
   constructor(ctx: Context) {
@@ -46,6 +45,10 @@ export function apply(ctx: Context, config: ScrumHostConfig = {}): void {
   ctx.plugin(ScrumHostService)
 }
 
+export type { EntryState } from './entry.js'
+export { describeEntry, hostActor } from './entry.js'
+export type { HarnessContext, HarnessSession, HarnessWorkspace } from './workspace.js'
+export { fingerprintWorkspacePath, sessionBelongsTo, workspaceRefOf } from './workspace.js'
 export type { ManifestReader } from './compatibility.js'
 export {
   HARNESS_VERSION_PACKAGE,

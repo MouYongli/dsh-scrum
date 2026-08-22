@@ -29,7 +29,9 @@
     "@deepseek-ai/dsh-base": "^0.1.0-rc.7"
   },
   "dependencies": {
-    "semver": "^7.8.5"
+    "semver": "^7.8.5",
+    "@dsh-scrum/scrum-application": "workspace:*",
+    "@dsh-scrum/scrum-domain": "workspace:*"
   },
   "peerDependenciesMeta": {
     "@deepseek-ai/dsh-base": {

@@ -117,6 +117,12 @@ importers:
       '@deepseek-ai/dsh-base':
         specifier: ^0.1.0-rc.7
         version: 0.1.0-rc.8(cef995db88774ca95ffd35d083bcd900)
+      '@dsh-scrum/scrum-application':
+        specifier: workspace:*
+        version: link:../../core/scrum-application
+      '@dsh-scrum/scrum-domain':
+        specifier: workspace:*
+        version: link:../../core/scrum-domain
       semver:
         specifier: ^7.8.5
         version: 7.8.5
