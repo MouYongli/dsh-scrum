@@ -8,7 +8,7 @@ import {
   type ReactElement,
   type ReactNode,
 } from 'react'
-import { toProjectKey } from '@dsh-scrum/scrum-domain'
+import { PERMISSION, toProjectKey } from '@dsh-scrum/scrum-domain'
 import { createBacklogController } from './backlog-controller.js'
 import { BacklogScreen } from './backlog-view.js'
 import { createSprintController } from './sprint-controller.js'
@@ -16,6 +16,7 @@ import { SprintScreen } from './sprint-view.js'
 import type {
   CreateProjectInput,
   EntryView,
+  ProjectView,
   RemoteOfferView,
   RemoteProfileView,
   ScrumClient,
@@ -409,7 +410,7 @@ function ProjectWizard(props: WizardProps): ReactElement {
       props.t('wizard.keyHint'),
       rejected ? props.t('wizard.keyInvalid') : undefined,
     ),
-    field('scrum-description', props.t('wizard.description'), description, setDescription, false),
+    area('scrum-description', props.t('wizard.description'), description, setDescription),
     createElement(
       'button',
       { type: 'submit', disabled: props.creating, 'data-scrum-submit': true },
@@ -492,6 +493,24 @@ function field(
     error === undefined
       ? null
       : createElement('span', { id: errorId, role: 'alert', 'data-scrum-field-error': id }, error),
+  )
+}
+
+function area(
+  id: string,
+  label: string,
+  value: string,
+  onChange: (next: string) => void,
+): ReactElement {
+  return createElement(
+    'p',
+    { key: id, 'data-scrum-area': true },
+    createElement('label', { htmlFor: id }, label),
+    createElement('textarea', {
+      id,
+      value,
+      onChange: (event: { target: { value: string } }) => onChange(event.target.value),
+    }),
   )
 }
 
@@ -599,7 +618,8 @@ function ProjectSurface(props: {
   readonly client: ScrumClient
   readonly t: Translate
   readonly readOnly: boolean
-  readonly project: { readonly key: string; readonly name: string; readonly description: string }
+  readonly project: ProjectView
+  readonly onProjectUpdated: () => void
   readonly onOpenAgent?: (() => void) | undefined
 }): ReactElement {
   const [section, setSection] = useState<SectionId>('home')
@@ -637,7 +657,8 @@ function surfaceFor(
     readonly client: ScrumClient
     readonly t: Translate
     readonly readOnly: boolean
-    readonly project: { readonly key: string; readonly name: string; readonly description: string }
+    readonly project: ProjectView
+    readonly onProjectUpdated: () => void
   },
 ): ReactElement {
   switch (section) {
@@ -655,11 +676,20 @@ function surfaceFor(
 function ConnectedHome(props: {
   readonly client: ScrumClient
   readonly t: Translate
-  readonly project: { readonly key: string; readonly name: string; readonly description: string }
+  readonly project: ProjectView
+  readonly readOnly: boolean
+  readonly onProjectUpdated: () => void
 }): ReactElement {
   const [authorization, setAuthorization] = useState<Awaited<
     ReturnType<ScrumClient['authorization']>
   > | null>(null)
+  const [editing, setEditing] = useState(false)
+  const [name, setName] = useState(props.project.name)
+  const [description, setDescription] = useState(props.project.description)
+  const [saving, setSaving] = useState(false)
+  const [failure, setFailure] = useState<string | null>(null)
+  const dirty = name !== props.project.name || description !== props.project.description
+  useDraftGuard(editing && dirty)
 
   useEffect(() => {
     let current = true
@@ -676,12 +706,84 @@ function ConnectedHome(props: {
     }
   }, [props.client])
 
+  async function save(event: FormEvent): Promise<void> {
+    event.preventDefault()
+    if (props.project.revision === undefined) return
+    setSaving(true)
+    setFailure(null)
+    try {
+      await props.client.updateProject({
+        expectedRevision: props.project.revision,
+        changes: { name, description },
+      })
+      setEditing(false)
+      props.onProjectUpdated()
+    } catch (error: unknown) {
+      setFailure(error instanceof Error ? error.message : String(error))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const mayEdit =
+    !props.readOnly &&
+    props.project.revision !== undefined &&
+    authorization?.permissions.includes(PERMISSION.projectConfigure) === true
+
   return createElement(
     'section',
     { 'data-scrum-home': true },
-    createElement('p', { 'data-scrum-project': props.project.key }, props.project.key),
-    createElement('h2', null, props.project.name),
-    props.project.description === '' ? null : createElement('p', null, props.project.description),
+    createElement(
+      'div',
+      { 'data-scrum-project-heading': true },
+      createElement('h2', null, props.project.name),
+      createElement('p', { 'data-scrum-project': props.project.key }, props.project.key),
+      !mayEdit || editing
+        ? null
+        : createElement(
+            'button',
+            { type: 'button', 'data-scrum-project-edit': true, onClick: () => setEditing(true) },
+            props.t('project.edit'),
+          ),
+    ),
+    editing
+      ? createElement(
+          'form',
+          { 'data-scrum-project-form': true, onSubmit: (event: FormEvent) => void save(event) },
+          field('scrum-project-name', props.t('wizard.name'), name, setName, true),
+          area(
+            'scrum-project-description',
+            props.t('wizard.description'),
+            description,
+            setDescription,
+          ),
+          failure === null ? null : createElement('p', { role: 'alert' }, failure),
+          createElement(
+            'div',
+            { 'data-scrum-project-actions': true },
+            createElement(
+              'button',
+              {
+                type: 'button',
+                onClick: () => {
+                  setName(props.project.name)
+                  setDescription(props.project.description)
+                  setFailure(null)
+                  setEditing(false)
+                },
+              },
+              props.t('project.cancel'),
+            ),
+            createElement(
+              'button',
+              { type: 'submit', disabled: saving || !dirty, 'data-scrum-project-save': true },
+              saving ? props.t('project.saving') : props.t('project.save'),
+            ),
+          ),
+        )
+      : props.project.description === ''
+        ? null
+        : createElement('p', { 'data-scrum-project-description': true }, props.project.description),
     createElement('h3', null, props.t('home.title')),
     createElement('p', null, props.t('home.body')),
     authorization?.membership.mode === 'personal'
@@ -767,6 +869,7 @@ export function ConnectedWorkbench(props: ConnectedWorkbenchProps): ReactElement
               t,
               readOnly: state.entry.state === 'archived',
               project: state.entry.project,
+              onProjectUpdated: () => void controller.load(),
               onOpenAgent:
                 agentWorkspaceId === null ? undefined : () => props.onOpenAgent?.(agentWorkspaceId),
             })

@@ -58,6 +58,10 @@ export const SCRUM_MESSAGES = {
     'state.moved.notice': '此工作区的位置与绑定时不同，请确认这是同一个目录。',
     'home.title': '项目概览',
     'home.body': '从上方页签进入产品 Backlog 或 Sprint 看板。',
+    'project.edit': '编辑项目',
+    'project.save': '保存',
+    'project.saving': '正在保存……',
+    'project.cancel': '取消',
     'membership.personal.title': '个人项目 · 本地 Owner',
     'membership.personal.body':
       '你拥有全部核心 Scrum 权限；Community 不提供成员或角色编辑。多人协作可迁移到团队服务。',
@@ -235,6 +239,10 @@ export const SCRUM_MESSAGES = {
       'This workspace is not where it was when it was attached. Check that it is the same directory.',
     'home.title': 'Project overview',
     'home.body': 'Use the tabs above to open the product backlog or sprint board.',
+    'project.edit': 'Edit project',
+    'project.save': 'Save',
+    'project.saving': 'Saving…',
+    'project.cancel': 'Cancel',
     'membership.personal.title': 'Personal project · Local owner',
     'membership.personal.body':
       'You have every core Scrum permission. Community has no member or role editing; migrate to a team service for collaboration.',
