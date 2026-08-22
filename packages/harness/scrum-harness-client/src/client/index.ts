@@ -37,6 +37,7 @@ import {
   type ShellMode,
 } from '@dsh-scrum/scrum-ui'
 import { createTransportClient, type RpcCall } from './transport.js'
+import { SCRUM_STYLES } from './styles.js'
 
 export const name = 'scrum-harness-client'
 
@@ -629,6 +630,7 @@ function overlayComponent(
           background: SHELL_BACKGROUND,
         },
       },
+      createElement('style', { 'data-scrum-styles': true }, SCRUM_STYLES),
       createElement(ConnectedWorkbench, {
         // Identity, not decoration: a new workspace is a new project, and the
         // surface reloads by being mounted again rather than by being told.
