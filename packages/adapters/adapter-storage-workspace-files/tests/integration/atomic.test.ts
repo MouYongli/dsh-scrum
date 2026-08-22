@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -95,12 +95,38 @@ describe('replacing a file atomically', () => {
     await expect(readFile(target, 'utf8')).rejects.toThrow(/ENOENT/)
   })
 
+  // A collision is a specific answer, so a failure that is not one must not be
+  // reported as one: a missing directory would otherwise look like contention.
+  it('passes through a failure that is not a collision', async () => {
+    const error = await caughtFrom(() =>
+      writeFileAtomically(join(directory, 'missing', 'SCR-1.json'), '{}', '1'),
+    )
+
+    expect(isScrumError(error)).toBe(false)
+    expect(String(error)).toMatch(/ENOENT/)
+  })
+
   it('allows a write once the colliding name is free again', async () => {
     await writeFile(temporaryFileFor(target, '3'), 'half written', 'utf8')
     await removeTemporaryFiles(directory)
 
     await writeFileAtomically(target, '{"a":1}', '3')
     expect(await readFile(target, 'utf8')).toBe('{"a":1}')
+  })
+})
+
+describe('a write that fails at the rename', () => {
+  // The rename is the only step that can fail after the temporary file exists,
+  // so it is the only way a leftover can outlive the call that made it.
+  it('removes the temporary file and leaves the target alone', async () => {
+    const blocked = join(directory, 'blocked.json')
+    await mkdir(blocked)
+    await writeFile(join(blocked, 'keep.txt'), 'occupied', 'utf8')
+
+    await expect(writeFileAtomically(blocked, '{"a":1}', '1')).rejects.toThrow()
+
+    expect((await readdir(directory)).sort()).toEqual(['blocked.json'])
+    expect(await readdir(blocked)).toEqual(['keep.txt'])
   })
 })
 
