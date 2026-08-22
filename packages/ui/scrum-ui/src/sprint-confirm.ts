@@ -1,6 +1,7 @@
 import { createElement, useState, type ReactElement } from 'react'
 import { SPRINT_STATUS, type Sprint, type SprintId, type WorkItemId } from '@dsh-scrum/scrum-domain'
 import type { Disposition } from './client.js'
+import { useDraftGuard } from './drafts.js'
 import type { Translate } from './messages.js'
 import type { SprintConfirmation } from './sprint-controller.js'
 
@@ -60,6 +61,7 @@ export interface ConfirmProps {
 export function SprintConfirmDialog(props: ConfirmProps): ReactElement {
   const [summary, setSummary] = useState('')
   const [decisions, setDecisions] = useState<Decisions>({})
+  useDraftGuard(summary !== '' || Object.keys(decisions).length > 0)
   const { confirmation, t } = props
   const start = confirmation.kind === 'start'
   const dispositions = start

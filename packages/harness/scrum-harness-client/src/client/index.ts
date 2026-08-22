@@ -27,10 +27,13 @@ import {
   ConnectedWorkbench,
   SCRUM_NAMESPACE,
   createTranslate,
-  createWorkbenchStore,
+  createDraftRegistry,
+  createScrumModeStore,
   disconnectedClient,
+  type DraftRegistry,
   type ScrumClient,
-  type WorkbenchStore,
+  type ScrumModeStore,
+  type ShellMode,
 } from '@dsh-scrum/scrum-ui'
 import { createTransportClient, type RpcCall } from './transport.js'
 
@@ -60,30 +63,51 @@ const ENTRY_ID = 'scrum'
  */
 export interface ScrumClientConfig {
   readonly client?: ScrumClient | undefined
-  readonly store?: WorkbenchStore | undefined
+  readonly store?: ScrumModeStore | undefined
+  readonly drafts?: DraftRegistry | undefined
 }
 
-/** Reads the open flag without owning it, so both registrations see one answer. */
-function useIsOpen(store: WorkbenchStore): boolean {
-  return useSyncExternalStore(store.subscribe, store.isOpen, store.isOpen)
+/** Reads the mode without owning it, so both registrations see one answer. */
+function useMode(store: ScrumModeStore): ShellMode {
+  return useSyncExternalStore(store.subscribe, store.mode, store.mode)
 }
+
+/** Whether a leave is currently waiting on an answer about unsaved input. */
+function useLeaving(store: ScrumModeStore): boolean {
+  return useSyncExternalStore(store.subscribe, store.leaving, store.leaving)
+}
+
+/**
+ * The sidebar's own selected row.
+ *
+ * Scrum is a mode the sidebar switches to, so its entry has to look selected
+ * the way a session row does. Taken from the shell's palette rather than
+ * written down: the entry inherits the shell's foreground, and a literal
+ * would pair a light band with whatever text colour the active theme chose.
+ * The fallback is derived from that inherited colour for the same reason —
+ * `Highlight`, the system keyword, is only legible against `HighlightText`.
+ */
+const SIDEBAR_SELECTED =
+  'var(--dsw-specific-sidebar-nav-item-active, color-mix(in srgb, currentColor 10%, transparent))'
 
 /**
  * Sidebar footer entry. The slot owner supplies only the column state: `wide`
  * is the expanded sidebar, otherwise the 56px rail, where the label has no
  * room and the entry has to fall back to its icon.
  */
-function entryComponent(store: WorkbenchStore): (props: { wide: boolean }) => ReactElement {
+function entryComponent(store: ScrumModeStore): (props: { wide: boolean }) => ReactElement {
   const t = createTranslate()
   return function ScrumEntry(props: { wide: boolean }): ReactElement {
-    const open = useIsOpen(store)
+    const showing = useMode(store) === 'scrum'
     return createElement(
       'button',
       {
         type: 'button',
         'data-scrum-entry': ENTRY_ID,
-        'aria-pressed': open,
-        'aria-label': t('entry.open'),
+        'aria-pressed': showing,
+        // What the next click does, which is the opposite of the state the
+        // pressed bit reports.
+        'aria-label': showing ? t('entry.leave') : t('entry.open'),
         title: t('entry.label'),
         onClick: () => {
           store.toggle()
@@ -94,7 +118,8 @@ function entryComponent(store: WorkbenchStore): (props: { wide: boolean }) => Re
           gap: '8px',
           width: '100%',
           padding: '6px 8px',
-          background: 'transparent',
+          borderRadius: '6px',
+          background: showing ? SIDEBAR_SELECTED : 'transparent',
           border: 'none',
           color: 'inherit',
           cursor: 'pointer',
@@ -170,9 +195,10 @@ function measureSidebar(overlay: HTMLElement): number {
  * without `ResizeObserver` still gets the mount-time measurement rather than
  * no overlay at all.
  */
-function useSidebarInset(open: boolean): {
+function useSidebarInset(showing: boolean): {
   readonly ref: (element: HTMLElement | null) => void
   readonly inset: number
+  readonly element: { readonly current: HTMLElement | null }
 } {
   const [inset, setInset] = useState(0)
   const element = useRef<HTMLElement | null>(null)
@@ -192,7 +218,7 @@ function useSidebarInset(open: boolean): {
 
   useEffect(() => {
     const current = element.current
-    if (!open || current === null) {
+    if (!showing || current === null) {
       return undefined
     }
     // Again here, not only in the ref: the ref runs during the commit, and the
@@ -215,47 +241,61 @@ function useSidebarInset(open: boolean): {
       observer.disconnect()
       current.ownerDocument.defaultView?.removeEventListener('resize', measure)
     }
-  }, [open, measure])
+  }, [showing, measure])
 
-  return { ref, inset }
+  return { ref, inset, element }
 }
 
 /**
- * The overlay entry.
+ * Escape, as the other way back to the conversation.
  *
- * It renders nothing at all while closed. The overlay slot is click-through
- * until an entry opts into pointer events, so a closed workbench that returned
- * an empty container would still be a layer over the conversation.
+ * Listens on the document that owns the overlay rather than the overlay
+ * itself: entering Scrum from the sidebar leaves the focus on the entry, and a
+ * listener bound to the workbench would answer only after the user had clicked
+ * into it. Reaching that document through this plugin's own element keeps the
+ * hook right in a shell that renders the frame somewhere other than the
+ * ambient document.
+ *
+ * Three events that look like Escape and are not:
+ *
+ * - An input method's candidate window closes on Escape, and the product's
+ *   copy is Chinese with text inputs on every form. Leaving Scrum because
+ *   somebody dismissed a candidate list would be unusable.
+ * - Something nested may already have answered, which is what
+ *   `defaultPrevented` reports.
+ * - The listener is on the bubble phase for the same reason: capturing would
+ *   take Escape away from those inputs before they ever saw it.
  */
-function overlayComponent(store: WorkbenchStore, client: ScrumClient): () => ReactElement | null {
-  return function ScrumOverlay(): ReactElement | null {
-    const open = useIsOpen(store)
-    const sidebar = useSidebarInset(open)
-    if (!open) {
-      return null
+function useEscape(
+  active: boolean,
+  element: { readonly current: HTMLElement | null },
+  onEscape: () => void,
+): void {
+  useEffect(() => {
+    const owner = element.current?.ownerDocument
+    if (!active || owner === undefined) {
+      return undefined
     }
-    return createElement(
-      'div',
-      {
-        ref: sidebar.ref,
-        'data-scrum-overlay': ENTRY_ID,
-        style: {
-          position: 'absolute',
-          // Not `inset`, which would take the sidebar with it. The workbench
-          // replaces the conversation and the details, and the column the user
-          // opened it from stays where it was.
-          top: 0,
-          right: 0,
-          bottom: 0,
-          left: sidebar.inset,
-          overflow: 'auto',
-          pointerEvents: 'auto',
-          background: SHELL_BACKGROUND,
-        },
-      },
-      createElement(ConnectedWorkbench, { client, onClose: () => store.close() }),
-    )
-  }
+    function onKeyDown(event: KeyboardEvent): void {
+      if (event.key !== 'Escape') {
+        return
+      }
+      // `isComposing` is the standard bit; 229 is what a browser that does not
+      // set it reports for a key the input method is still holding.
+      if (event.isComposing || event.keyCode === 229) {
+        return
+      }
+      if (event.defaultPrevented) {
+        return
+      }
+      event.preventDefault()
+      onEscape()
+    }
+    owner.addEventListener('keydown', onKeyDown)
+    return () => {
+      owner.removeEventListener('keydown', onKeyDown)
+    }
+  }, [active, element, onEscape])
 }
 
 /**
@@ -279,10 +319,17 @@ interface ShellServices {
         }[]
         readonly recentWorkspaceId?: string | undefined
       }
+      subscribe(listener: () => void): () => void
     }
   }
   readonly sessions?: {
-    readonly list: { getSnapshot(): { readonly current?: string | undefined } }
+    readonly list: {
+      getSnapshot(): {
+        readonly current?: string | undefined
+        readonly phase?: string | undefined
+      }
+      subscribe(listener: () => void): () => void
+    }
   }
 }
 
@@ -307,9 +354,200 @@ function readScope(shell: ShellServices): ScrumScope {
   }
 }
 
+/**
+ * The workspace the workbench is showing, as something to key it by.
+ *
+ * A Scrum project belongs to a workspace, so a workbench still showing the
+ * previous one's backlog after the shell moved would be showing another
+ * project's work. Remounting is the whole of the reload: the surface loads
+ * once per mount and holds nothing worth carrying across a workspace it no
+ * longer belongs to.
+ *
+ * Both lists are watched because the answer is derived from both — which
+ * workspace accounts for the open session — and either can move without the
+ * other. In a shell where changing workspace always opens a session, the
+ * session exit gets there first and this is the belt: it earns its keep the
+ * moment the shell can change workspace without changing session.
+ */
+function useWorkspaceKey(shell: ShellServices): string {
+  const [key, setKey] = useState(() => readScope(shell).workspaceId ?? '')
+
+  useEffect(() => {
+    function read(): void {
+      setKey(readScope(shell).workspaceId ?? '')
+    }
+    // Again here: the services may have answered differently between the
+    // first render and the commit that subscribed to them.
+    read()
+    const stops = [shell.workspaces?.list.subscribe(read), shell.sessions?.list.subscribe(read)]
+    return () => {
+      for (const stop of stops) {
+        stop?.()
+      }
+    }
+  }, [shell])
+
+  return key
+}
+
+/**
+ * Leaves Scrum when the shell puts another session on screen.
+ *
+ * The shell publishes no event for "the user picked a session": the current
+ * selection riding `sessions.list` is the only observable, and clicking a
+ * session row, starting a new session and connecting a workspace all reach it
+ * the same way — `startSession` connects a workspace and opens the resulting
+ * session, or clears the selection when there is no workspace at all. So one
+ * rule covers all three entry points, and Scrum needs no knowledge of which
+ * button was pressed.
+ *
+ * Two changes are deliberately not navigations. A list that has not finished
+ * arriving is still assembling its baseline, and the shell's own startup
+ * selection — the first session it puts on screen after boot — is the shell
+ * catching up rather than the user going somewhere. Neither may eject someone
+ * who opened Scrum while that was still happening.
+ *
+ * What it cannot see: re-picking the session that is already current moves
+ * nothing, so the workbench stays. The contract offers nothing finer.
+ */
+function useSessionExit(shell: ShellServices, store: ScrumModeStore): void {
+  useEffect(() => {
+    const list = shell.sessions?.list
+    if (list === undefined) {
+      return undefined
+    }
+    const first = list.getSnapshot()
+    let seen = first.current
+    let everSelected = first.current !== undefined
+    return list.subscribe(() => {
+      const now = list.getSnapshot()
+      if (now.phase !== 'ready') {
+        seen = now.current
+        return
+      }
+      const moved = now.current !== seen
+      const startup = !everSelected && now.current !== undefined
+      seen = now.current
+      everSelected = everSelected || now.current !== undefined
+      if (!moved || startup) {
+        return
+      }
+      store.leave()
+    })
+  }, [shell, store])
+}
+
+/**
+ * Where the focus goes when the mode changes.
+ *
+ * Entering from the sidebar leaves the focus on the entry, behind a surface
+ * that now covers the rest of the shell; leaving without putting it back would
+ * strand it on an element that is no longer where the user is. Both moves are
+ * driven from the mode rather than from a cleanup, because React runs cleanups
+ * on the throwaway mount it performs in development and that one would take
+ * the focus away the instant Scrum was entered.
+ *
+ * The first run never moves anything: a shell that mounts already in Scrum has
+ * not navigated anywhere, and stealing the focus on load would be wrong.
+ */
+function useModeFocus(mode: ShellMode, element: { readonly current: HTMLElement | null }): void {
+  const owner = useRef<Document | null>(null)
+  const previous = useRef<ShellMode | null>(null)
+
+  useEffect(() => {
+    const host = element.current
+    if (host !== null) {
+      // Kept from while the overlay was mounted: on the way out it is gone,
+      // and the entry to hand the focus back to lives in that same document.
+      owner.current = host.ownerDocument
+    }
+    const was = previous.current
+    previous.current = mode
+    if (was === null || was === mode) {
+      return
+    }
+    if (mode === 'scrum') {
+      host?.querySelector<HTMLElement>('[data-scrum-workbench]')?.focus()
+      return
+    }
+    owner.current?.querySelector<HTMLElement>(`[data-scrum-entry="${ENTRY_ID}"]`)?.focus()
+  }, [mode, element])
+}
+
+/**
+ * The overlay entry.
+ *
+ * It renders nothing at all in conversation mode. The overlay slot is
+ * click-through until an entry opts into pointer events, so a workbench that
+ * was not showing and still returned an empty container would remain a layer
+ * over the conversation.
+ */
+function overlayComponent(
+  store: ScrumModeStore,
+  client: ScrumClient,
+  shell: ShellServices,
+  drafts: DraftRegistry,
+): () => ReactElement | null {
+  return function ScrumOverlay(): ReactElement | null {
+    const mode = useMode(store)
+    const leaving = useLeaving(store)
+    const showing = mode === 'scrum'
+    const sidebar = useSidebarInset(showing)
+    // Escape answers whatever is on screen: the question when one is up, the
+    // workbench otherwise. A key that did nothing while the question was
+    // showing would read as the workbench having stopped listening.
+    const workspace = useWorkspaceKey(shell)
+    const escape = useCallback(() => {
+      if (store.leaving()) {
+        store.resume()
+        return
+      }
+      store.leave()
+    }, [])
+    // Above the early return, and so still running in conversation mode: the
+    // baseline it tracks has to be current when the user next enters Scrum.
+    useSessionExit(shell, store)
+    useEscape(showing, sidebar.element, escape)
+    useModeFocus(mode, sidebar.element)
+    if (!showing) {
+      return null
+    }
+    return createElement(
+      'div',
+      {
+        ref: sidebar.ref,
+        'data-scrum-overlay': ENTRY_ID,
+        style: {
+          position: 'absolute',
+          // Not `inset`, which would take the sidebar with it. The workbench
+          // replaces the conversation and the details, and the column the user
+          // opened it from stays where it was.
+          top: 0,
+          right: 0,
+          bottom: 0,
+          left: sidebar.inset,
+          overflow: 'auto',
+          pointerEvents: 'auto',
+          background: SHELL_BACKGROUND,
+        },
+      },
+      createElement(ConnectedWorkbench, {
+        // Identity, not decoration: a new workspace is a new project, and the
+        // surface reloads by being mounted again rather than by being told.
+        key: workspace,
+        client,
+        drafts,
+        leaving,
+        onExit: store.leave,
+        onResume: store.resume,
+        onDiscard: store.discard,
+      }),
+    )
+  }
+}
+
 /** The client over the shell's channel, or nothing when it carries none. */
-function shellClient(ctx: ClientContext): ScrumClient | null {
-  const shell = ctx as unknown as ShellServices
+function shellClient(shell: ShellServices): ScrumClient | null {
   const connection = shell.connection
   if (connection === undefined) {
     return null
@@ -321,9 +559,13 @@ function shellClient(ctx: ClientContext): ScrumClient | null {
 }
 
 export function apply(ctx: ClientContext, config: ScrumClientConfig = {}): void {
-  const store = config.store ?? createWorkbenchStore()
+  const shell = ctx as unknown as ShellServices
+  const drafts = config.drafts ?? createDraftRegistry()
+  const store = config.store ?? createScrumModeStore({ drafts })
   const client =
-    config.client ?? shellClient(ctx) ?? disconnectedClient(createTranslate()('error.notConnected'))
+    config.client ??
+    shellClient(shell) ??
+    disconnectedClient(createTranslate()('error.notConnected'))
 
   ctx.slots.inject('sidebar.footer.action', () =>
     ctx.slots.register(
@@ -337,7 +579,7 @@ export function apply(ctx: ClientContext, config: ScrumClientConfig = {}): void 
   ctx.slots.inject('shell.overlay', () =>
     ctx.slots.register(
       { name: 'shell.overlay', id: ENTRY_ID, order: 0 },
-      overlayComponent(store, client),
+      overlayComponent(store, client, shell, drafts),
     ),
   )
 }

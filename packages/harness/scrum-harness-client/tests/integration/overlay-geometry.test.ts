@@ -9,30 +9,11 @@
  * is given the rectangle it would have in a shell — the assertion is about the
  * arithmetic and the walk, not about a browser's box model.
  */
-import { act, createElement, type ComponentType } from 'react'
+import { act, createElement } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it } from 'vitest'
-import { createWorkbenchStore, type WorkbenchStore } from '@dsh-scrum/scrum-ui'
-import * as clientEntry from '@dsh-scrum/scrum-harness-client/client'
-
-interface Registered {
-  readonly component: ComponentType<Record<string, unknown>>
-}
-
-function registrations(store: WorkbenchStore): Map<string, Registered> {
-  const found = new Map<string, Registered>()
-  const ctx = {
-    slots: {
-      inject: (_name: string, callback: () => void) => callback(),
-      register: (spec: { name: string }, component: ComponentType<Record<string, unknown>>) => {
-        found.set(spec.name, { component })
-        return () => undefined
-      },
-    },
-  }
-  clientEntry.apply(ctx as never, { store } as never)
-  return found
-}
+import { createScrumModeStore, type ScrumModeStore } from '@dsh-scrum/scrum-ui'
+import { registrations } from '../support/shell.js'
 
 /** Gives one element the rectangle it would have in a laid-out shell. */
 function rect(element: Element, box: { left: number; right: number }): void {
@@ -79,12 +60,12 @@ function installResizeObserver(): { readonly resize: () => void } {
  * walking up from the entry.
  */
 function mountShell(options: { sidebarRight: number; layerLeft: number; withEntry?: boolean }): {
-  readonly store: WorkbenchStore
+  readonly store: ScrumModeStore
   readonly column: HTMLElement
   readonly overlay: () => HTMLElement | null
 } {
-  const store = createWorkbenchStore()
-  const registered = registrations(store)
+  const store = createScrumModeStore()
+  const registered = registrations({ store })
   const frame = document.createElement('div')
   const column = document.createElement('div')
   const layer = document.createElement('div')
@@ -95,17 +76,15 @@ function mountShell(options: { sidebarRight: number; layerLeft: number; withEntr
   rect(layer, { left: options.layerLeft, right: 1400 })
 
   act(() => {
-    store.open()
+    store.enter()
     if (options.withEntry !== false) {
       const entry = createRoot(column)
       roots.push(entry)
-      entry.render(
-        createElement(registered.get('sidebar.footer.action')!.component, { wide: true }),
-      )
+      entry.render(createElement(registered.get('sidebar.footer.action')!, { wide: true }))
     }
     const overlay = createRoot(layer)
     roots.push(overlay)
-    overlay.render(createElement(registered.get('shell.overlay')!.component))
+    overlay.render(createElement(registered.get('shell.overlay')!))
   })
 
   return {

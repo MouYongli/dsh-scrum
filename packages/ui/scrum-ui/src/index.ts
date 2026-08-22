@@ -66,8 +66,16 @@ export type { Locale, MessageKey, Translate } from './messages.js'
 export { MESSAGE_KEYS, SCRUM_MESSAGES, SCRUM_NAMESPACE, createTranslate } from './messages.js'
 export type { PageView } from './pages.js'
 export { pageFor } from './pages.js'
-export type { WorkbenchStore } from './store.js'
-export { createWorkbenchStore } from './store.js'
+export type { DraftRegistry } from './drafts.js'
+export {
+  DraftsProvider,
+  NO_DRAFTS,
+  createDraftRegistry,
+  sameDraft,
+  useDraftGuard,
+} from './drafts.js'
+export type { ScrumModeStore, ShellMode } from './store.js'
+export { createScrumModeStore } from './store.js'
 export type { WorkbenchController, WorkbenchState } from './controller.js'
 export { createWorkbenchController } from './controller.js'
 export type { BacklogActions, BacklogProps } from './backlog-view.js'

@@ -1,6 +1,6 @@
 import { Context, Service } from '@deepseek-ai/cordis'
 import { describe, expect, it, vi } from 'vitest'
-import { createWorkbenchStore } from '@dsh-scrum/scrum-ui'
+import { createScrumModeStore } from '@dsh-scrum/scrum-ui'
 import * as clientEntry from '@dsh-scrum/scrum-harness-client/client'
 
 interface Registration {
@@ -90,9 +90,9 @@ describe('where the workbench is registered', () => {
   })
 })
 
-describe('opening and closing the workbench', () => {
+describe('which mode the shell is in', () => {
   it('is one shared answer, so the entry and the overlay cannot disagree', async () => {
-    const store = createWorkbenchStore()
+    const store = createScrumModeStore()
     const slots = await loaded({ store })
     slots.declare('sidebar.footer.action')
     slots.declare('shell.overlay')
@@ -101,16 +101,19 @@ describe('opening and closing the workbench', () => {
 
     store.toggle()
 
-    expect(store.isOpen()).toBe(true)
+    expect(store.mode()).toBe('scrum')
     expect(listener).toHaveBeenCalledTimes(1)
   })
 
-  it('survives a workspace or session change, because the store outlives them', () => {
-    const store = createWorkbenchStore()
-    store.open()
+  it('is held outside the overlay, which unmounts every time the mode leaves it', () => {
+    const store = createScrumModeStore()
 
-    // Whatever the shell tears down when the user picks another session, the
-    // overlay is root-level and this store is not part of it.
-    expect(store.isOpen()).toBe(true)
+    // The overlay renders nothing in conversation mode, so its subtree is gone
+    // between visits. The answer to "which mode" cannot live inside it.
+    store.enter()
+    store.leave()
+    store.enter()
+
+    expect(store.mode()).toBe('scrum')
   })
 })
