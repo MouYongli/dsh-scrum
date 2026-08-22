@@ -31,6 +31,7 @@ import type {
   ProjectView,
   RankWorkItem,
   ScrumClient,
+  UpdateProjectInput,
   SetCriterion,
   SprintRef,
   AuthorizationView,
@@ -120,6 +121,8 @@ export function createTransportClient(call: RpcCall, scope: ScopeReader): ScrumC
     },
     createProject: async (input: CreateProjectInput) =>
       toProjectView(await send<ProjectPayload>(SCRUM_ENDPOINT.createProject, input)),
+    updateProject: async (input: UpdateProjectInput) =>
+      toProjectView(await send<ProjectPayload>(SCRUM_ENDPOINT.updateProject, input)),
     backlog: async (query?: BacklogQuery) =>
       await send<readonly WorkItem[]>(SCRUM_ENDPOINT.backlog, query ?? {}),
     createWorkItem: async (input: NewWorkItem) =>

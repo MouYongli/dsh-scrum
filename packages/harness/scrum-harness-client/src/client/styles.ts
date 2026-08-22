@@ -279,10 +279,39 @@ export const SCRUM_STYLES = String.raw`
   max-width: 920px;
 }
 
-[data-scrum-home] > [data-scrum-project] { margin: 0 !important; }
-[data-scrum-home] > h2 { margin-top: 4px; font-size: 20px; letter-spacing: -.02em; }
+[data-scrum-project-heading] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+[data-scrum-project-heading] > h2 {
+  font-size: 20px;
+  line-height: 1.25;
+  letter-spacing: -.02em;
+}
+[data-scrum-project-heading] > [data-scrum-project] { margin: 0 !important; }
+[data-scrum-project-edit] { margin-left: auto; }
 [data-scrum-home] > h3 { margin-top: 24px; font-size: 15px; }
-[data-scrum-home] > p:not([data-scrum-project]) { max-width: 680px; color: var(--scrum-muted); }
+[data-scrum-home] > p { max-width: 680px; color: var(--scrum-muted); white-space: pre-wrap; }
+
+[data-scrum-project-form] {
+  display: grid;
+  gap: 14px;
+  max-width: 760px;
+  padding: 18px;
+  border: 1px solid var(--scrum-border);
+  border-radius: var(--scrum-radius);
+  background: var(--scrum-panel);
+}
+[data-scrum-project-form] > p { display: grid; gap: 6px; }
+[data-scrum-project-actions] { display: flex; justify-content: flex-end; gap: 8px; }
+[data-scrum-project-save] {
+  border-color: transparent !important;
+  background: var(--scrum-accent) !important;
+  color: white !important;
+  font-weight: 700;
+}
 
 [data-scrum-backlog],
 [data-scrum-sprints],
@@ -369,6 +398,9 @@ export const SCRUM_STYLES = String.raw`
 [data-scrum-wizard] > p,
 [data-scrum-item-form] > p,
 [data-scrum-sprint-form] > p { display: grid; align-content: start; gap: 6px; }
+
+[data-scrum-wizard] > [data-scrum-area] { grid-column: 1 / -1; }
+[data-scrum-wizard] > [data-scrum-submit] { grid-column: 2; justify-self: end; }
 
 [data-scrum-wizard] span,
 [data-scrum-item-form] p > span,

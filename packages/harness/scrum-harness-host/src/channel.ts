@@ -125,6 +125,8 @@ async function dispatch(api: ScrumHostApi, call: Dispatchable): Promise<unknown>
       return api.attachRemote(call.input.connectionId, call.input.projectId)
     case SCRUM_ENDPOINT.createProject:
       return toProjectPayload(await api.initialise(call.input))
+    case SCRUM_ENDPOINT.updateProject:
+      return toProjectPayload(await api.updateProject(call.input))
     case SCRUM_ENDPOINT.backlog:
       return api.backlog(call.input)
     case SCRUM_ENDPOINT.createWorkItem:
@@ -175,6 +177,7 @@ function toProjectPayload(stored: StoredProject | Project): ProjectPayload {
   const project = 'project' in stored ? stored.project : stored
   return {
     id: project.id,
+    revision: project.revision,
     key: project.key,
     name: project.name,
     description: project.description,

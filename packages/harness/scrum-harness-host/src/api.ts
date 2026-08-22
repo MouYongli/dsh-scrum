@@ -31,6 +31,7 @@ import {
   readSprintProgress,
   startSprint,
   updateWorkItem,
+  updateProjectDetails,
   resolveProjectAuthorization,
   restoreProject,
   setAcceptanceCriterion,
@@ -52,6 +53,7 @@ import {
   type SprintProgress,
   type StartSprintCommand,
   type UpdateWorkItemCommand,
+  type UpdateProjectDetailsCommand,
   type WorkItemDependencyCommand,
   type WorkItemFilter,
   type ActorContext,
@@ -215,6 +217,7 @@ export interface ScrumHostApi {
   attachRemote(connectionId: string, projectId: string): Promise<void>
   /** Creates a project and attaches this workspace to it, which is one act. */
   initialise(command: InitialiseWorkspaceCommand): Promise<StoredProject>
+  updateProject(command: WorkOf<UpdateProjectDetailsCommand>): Promise<StoredProject>
   attach(projectId: ProjectId): Promise<WorkspaceBinding>
   detach(): Promise<WorkspaceBinding | null>
   archive(): Promise<StoredProject>
@@ -404,6 +407,14 @@ export function createHostApi(
         },
       })
       return stored
+    },
+
+    async updateProject(command: WorkOf<UpdateProjectDetailsCommand>): Promise<StoredProject> {
+      const request = await resolveRequest(harness, source, activitySource)
+      return await updateProjectDetails(request.deps, {
+        actor: request.actor,
+        command: { ...command, projectId: await boundProjectId(request) },
+      })
     },
 
     async attach(projectId: ProjectId): Promise<WorkspaceBinding> {

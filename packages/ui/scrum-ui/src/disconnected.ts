@@ -18,6 +18,7 @@ export function disconnectedClient(message: string): ScrumClient {
     beginRemote: refuse,
     attachRemote: refuse,
     createProject: refuse,
+    updateProject: refuse,
     backlog: refuse,
     createWorkItem: refuse,
     updateWorkItem: refuse,

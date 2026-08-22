@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { createElement } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { PROJECT_ROLES, SPRINT_STATUS } from '@dsh-scrum/scrum-domain'
+import { PERMISSION, PROJECT_ROLES, SPRINT_STATUS, toRevision } from '@dsh-scrum/scrum-domain'
 import { ConnectedWorkbench, createTranslate } from '@dsh-scrum/scrum-ui'
 import type { EntryView, ScrumClient } from '@dsh-scrum/scrum-ui'
 import { stubClient } from '../support/client.js'
@@ -22,7 +22,13 @@ afterEach(() => {
 const BOUND: EntryView = {
   state: 'bound',
   workspace: { id: 'ws_1', name: 'shop-service' },
-  project: { id: 'prj_1', key: 'SCR', name: 'shop-service', description: '' },
+  project: {
+    id: 'prj_1',
+    revision: toRevision(1),
+    key: 'SCR',
+    name: 'shop-service',
+    description: '',
+  },
   moved: false,
 }
 
@@ -104,6 +110,45 @@ describe('a workbench over a bound project', () => {
     expect(mounted.container.textContent).toContain('个人项目 · 本地 Owner')
     expect(mounted.find('[data-scrum-owner-roles]').textContent).toContain('administrator')
     expect(mounted.container.querySelector('[data-scrum-member-editor]')).toBeNull()
+  })
+
+  it('places the key beside the title and edits the title and multiline description', async () => {
+    const updateProject = vi.fn(() =>
+      Promise.resolve({
+        id: 'prj_1',
+        revision: toRevision(2),
+        key: 'SCR',
+        name: 'Storefront',
+        description: 'First line\nSecond line',
+      }),
+    )
+    const mounted = workbench(
+      stubClient({
+        entry: () => Promise.resolve(BOUND),
+        updateProject,
+        authorization: () =>
+          Promise.resolve({
+            permissions: [PERMISSION.projectConfigure],
+            projectArchived: false,
+            membership: { mode: 'personal', roles: PROJECT_ROLES },
+          }),
+      }),
+    )
+    await settle()
+
+    const heading = mounted.find('[data-scrum-project-heading]')
+    expect(heading.firstElementChild?.tagName).toBe('H2')
+    expect(heading.children[1]?.getAttribute('data-scrum-project')).toBe('SCR')
+    mounted.click('[data-scrum-project-edit]')
+    mounted.type('#scrum-project-name', 'Storefront')
+    mounted.type('#scrum-project-description', 'First line\nSecond line')
+    mounted.submit('[data-scrum-project-form]')
+    await settle()
+
+    expect(updateProject).toHaveBeenCalledWith({
+      expectedRevision: 1,
+      changes: { name: 'Storefront', description: 'First line\nSecond line' },
+    })
   })
 
   it('switches to the board without exposing a session access control', async () => {

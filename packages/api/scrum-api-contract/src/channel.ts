@@ -38,6 +38,7 @@ export const SCRUM_ENDPOINT = {
   remoteBegin: 'remote.begin',
   remoteAttach: 'remote.attach',
   createProject: 'project.create',
+  updateProject: 'project.update',
   backlog: 'backlog',
   createWorkItem: 'workItem.create',
   updateWorkItem: 'workItem.update',
@@ -164,6 +165,10 @@ export const SCRUM_INPUT = {
     key: projectKey,
     name: z.string(),
     description: z.string().optional(),
+  }),
+  [SCRUM_ENDPOINT.updateProject]: z.object({
+    expectedRevision: revision,
+    changes: z.object({ name: z.string().optional(), description: z.string().optional() }),
   }),
   [SCRUM_ENDPOINT.backlog]: z.object({
     text: z.string().optional(),

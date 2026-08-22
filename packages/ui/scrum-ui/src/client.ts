@@ -40,6 +40,8 @@ export interface AuthorizationView {
  */
 export interface ProjectView {
   readonly id: string
+  /** Present for projects that support optimistic-concurrency edits. */
+  readonly revision?: Revision | undefined
   readonly key: string
   readonly name: string
   readonly description: string
@@ -90,6 +92,14 @@ export interface CreateProjectInput {
   readonly key: string
   readonly name: string
   readonly description?: string | undefined
+}
+
+export interface UpdateProjectInput {
+  readonly expectedRevision: Revision
+  readonly changes: {
+    readonly name?: string | undefined
+    readonly description?: string | undefined
+  }
 }
 
 /**
@@ -208,6 +218,7 @@ export interface ScrumClient {
   beginRemote(connectionId: string): Promise<RemoteOfferView>
   attachRemote(connectionId: string, projectId: string): Promise<void>
   createProject(input: CreateProjectInput): Promise<ProjectView>
+  updateProject(input: UpdateProjectInput): Promise<ProjectView>
   backlog(query?: BacklogQuery): Promise<readonly WorkItem[]>
   createWorkItem(input: NewWorkItem): Promise<WorkItem>
   updateWorkItem(command: EditWorkItem): Promise<WorkItem>

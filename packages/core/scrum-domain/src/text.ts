@@ -17,6 +17,16 @@ function hasControlCharacter(value: string): boolean {
   return false
 }
 
+function hasNonLineBreakControlCharacter(value: string): boolean {
+  for (const character of value) {
+    const code = character.codePointAt(0) ?? 0
+    if ((code < 0x20 && code !== 0x0a) || code === 0x7f) {
+      return true
+    }
+  }
+  return false
+}
+
 /**
  * Shared guard for the short human-authored strings entities carry: names,
  * titles and summaries. Internal — each caller exposes its own field rule
@@ -50,4 +60,24 @@ export function requireText(value: string, label: string, maxLength: number): st
 export function requireOptionalText(value: string, label: string, maxLength: number): string {
   const trimmed = value.trim()
   return trimmed.length === 0 ? '' : requireText(trimmed, label, maxLength)
+}
+
+/** Optional prose that may contain paragraphs but no other control bytes. */
+export function requireOptionalMultilineText(
+  value: string,
+  label: string,
+  maxLength: number,
+): string {
+  const trimmed = value.replaceAll('\r\n', '\n').replaceAll('\r', '\n').trim()
+  if (trimmed.length === 0) return ''
+  if (trimmed.length > maxLength) {
+    throw new ValidationError(`${label} must be at most ${maxLength} characters`, {
+      value,
+      maxLength,
+    })
+  }
+  if (hasNonLineBreakControlCharacter(trimmed)) {
+    throw new ValidationError(`${label} must not contain control characters`, { value })
+  }
+  return trimmed
 }

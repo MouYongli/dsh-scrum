@@ -1,4 +1,11 @@
-import type { Edition, Permission, ProjectRole, Sprint, WorkItem } from '@dsh-scrum/scrum-domain'
+import type {
+  Edition,
+  Permission,
+  ProjectRole,
+  Revision,
+  Sprint,
+  WorkItem,
+} from '@dsh-scrum/scrum-domain'
 import { z } from 'zod'
 
 /**
@@ -29,6 +36,7 @@ export interface WorkspacePayload {
 
 export interface ProjectPayload {
   readonly id: string
+  readonly revision: Revision
   readonly key: string
   readonly name: string
   readonly description: string

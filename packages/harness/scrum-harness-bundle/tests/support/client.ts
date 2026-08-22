@@ -31,6 +31,7 @@ export function clientOver(host: ScrumHostApi): ScrumClient {
             workspace: { id: entry.workspace.id, name: entry.workspace.name },
             project: {
               id: entry.project.id,
+              revision: entry.project.revision,
               key: entry.project.key,
               name: entry.project.name,
               description: entry.project.description,
@@ -50,6 +51,17 @@ export function clientOver(host: ScrumHostApi): ScrumClient {
       const stored = await host.initialise({ ...input, key: toProjectKey(input.key) })
       return {
         id: stored.project.id,
+        revision: stored.project.revision,
+        key: stored.project.key,
+        name: stored.project.name,
+        description: stored.project.description,
+      }
+    },
+    updateProject: async (input) => {
+      const stored = await host.updateProject(input)
+      return {
+        id: stored.project.id,
+        revision: stored.project.revision,
         key: stored.project.key,
         name: stored.project.name,
         description: stored.project.description,

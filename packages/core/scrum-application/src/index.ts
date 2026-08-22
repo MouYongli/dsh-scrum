@@ -42,6 +42,7 @@ export type {
   ConfigureProjectCommand,
   CreateProjectCommand,
   ProjectCommand,
+  UpdateProjectDetailsCommand,
 } from './use-cases/project.js'
 export {
   archiveProject,
@@ -49,6 +50,7 @@ export {
   createProject,
   getProject,
   restoreProject,
+  updateProjectDetails,
 } from './use-cases/project.js'
 export type { BindWorkspaceCommand, ResolvedBinding } from './use-cases/workspace.js'
 export { bindWorkspace, resolveWorkspaceBinding, unbindWorkspace } from './use-cases/workspace.js'

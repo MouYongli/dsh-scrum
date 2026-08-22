@@ -16,6 +16,7 @@ import {
   createProject,
   getProject,
   restoreProject,
+  updateProjectDetails,
   type CreateProjectCommand,
   type StoredProject,
 } from '@dsh-scrum/scrum-application'
@@ -143,6 +144,49 @@ describe('getProject', () => {
     await getProject(deps, { actor: actor(), command: { projectId: project.id } })
 
     expect(deps.activity.events).toEqual([])
+  })
+})
+
+describe('updateProjectDetails', () => {
+  it('updates the editable details without changing the key', async () => {
+    const deps = dependencies()
+    const { project } = await seed(deps)
+    deps.members.add(deps.projects.owners.get(project.id)!)
+
+    const updated = await updateProjectDetails(deps, {
+      actor: actor(),
+      command: {
+        projectId: project.id,
+        expectedRevision: project.revision,
+        changes: { name: 'Storefront', description: 'Line one\nLine two' },
+      },
+    })
+
+    expect(updated.project).toMatchObject({
+      key: 'SCR',
+      name: 'Storefront',
+      description: 'Line one\nLine two',
+      revision: project.revision + 1,
+    })
+  })
+
+  it('refuses a stale edit instead of overwriting it', async () => {
+    const deps = dependencies()
+    const { project } = await seed(deps)
+    deps.members.add(deps.projects.owners.get(project.id)!)
+
+    const error = await caught(
+      updateProjectDetails(deps, {
+        actor: actor(),
+        command: {
+          projectId: project.id,
+          expectedRevision: toRevision(project.revision + 1),
+          changes: { name: 'Stale' },
+        },
+      }),
+    )
+
+    expect(error.code).toBe('CONFLICT')
   })
 })
 

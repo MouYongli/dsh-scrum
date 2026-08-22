@@ -167,6 +167,27 @@ describe('the payload', () => {
     expect(response).toMatchObject({ data: { key: 'SCR', name: 'shop-service' } })
   })
 
+  it('updates project details through the browser channel without changing the key', async () => {
+    const store = new MemoryStore()
+    await project(store)
+    const entry = await call(store, SCRUM_ENDPOINT.entry, {})
+    const revision = (entry as { data: { project: { revision: number } } }).data.project.revision
+
+    const response = await call(store, SCRUM_ENDPOINT.updateProject, {
+      expectedRevision: revision,
+      changes: { name: 'Storefront', description: 'First line\nSecond line' },
+    })
+
+    expect(response).toMatchObject({
+      data: {
+        key: 'SCR',
+        name: 'Storefront',
+        description: 'First line\nSecond line',
+        revision: revision + 1,
+      },
+    })
+  })
+
   it('spells effective permissions as an array, which sets do not survive JSON as', async () => {
     const store = new MemoryStore()
     await project(store)
