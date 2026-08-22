@@ -3,6 +3,7 @@ import { SCRUM_ENDPOINT, createRequest, isErrorResponse } from '@dsh-scrum/scrum
 import type { ApiResponse, ScrumScope } from '@dsh-scrum/scrum-api-contract'
 import { createChannelHandler, createHostApi, scopedHarness } from '@dsh-scrum/scrum-harness-host'
 import type { HarnessDirectory } from '@dsh-scrum/scrum-harness-host'
+import type { RemoteConnectorPort } from '@dsh-scrum/scrum-harness-host'
 import { MemoryStore, WORKSPACE, ownerOf, runtime } from '../support/runtime.js'
 
 /**
@@ -83,6 +84,70 @@ describe('the scope', () => {
 })
 
 describe('the payload', () => {
+  it('carries remote profiles, handshake context and authorized attachment through the host', async () => {
+    const attached: unknown[] = []
+    const remote: RemoteConnectorPort = {
+      profiles: async () => [{ id: 'connection-1', displayName: 'Acme Scrum' }],
+      begin: async () => ({
+        connectionId: 'connection-1',
+        edition: 'teams',
+        serviceName: 'Acme Scrum',
+        tenant: { id: 'tenant-1', displayName: 'Acme' },
+        principal: { id: 'user-1', displayName: 'Ada' },
+        capabilities: ['scrum.core'],
+        projects: [{ id: 'project-1', key: 'SCR', name: 'Platform' }],
+      }),
+      attach: async (...input) => {
+        attached.push(input)
+      },
+    }
+    const channel = createChannelHandler((scope) =>
+      createHostApi(scopedHarness(directory(), scope), runtime(new MemoryStore()), remote),
+    )
+    const send = async (endpoint: string, input: unknown) =>
+      (await channel(endpoint, createRequest({ scope: HERE, input }).data))
+        .value as ApiResponse<unknown>
+
+    expect(await send(SCRUM_ENDPOINT.remoteProfiles, {})).toMatchObject({
+      data: [{ id: 'connection-1' }],
+    })
+    expect(await send(SCRUM_ENDPOINT.remoteBegin, { connectionId: 'connection-1' })).toMatchObject({
+      data: { edition: 'teams', projects: [{ id: 'project-1' }] },
+    })
+    await send(SCRUM_ENDPOINT.remoteAttach, {
+      connectionId: 'connection-1',
+      projectId: 'project-1',
+    })
+    expect(attached).toEqual([[WORKSPACE.path, 'connection-1', 'project-1']])
+  })
+
+  it('preserves the remote failure category without forwarding service details', async () => {
+    const remote: RemoteConnectorPort = {
+      profiles: async () => {
+        throw Object.assign(new Error('token for /private/customer expired'), {
+          kind: 'authentication',
+        })
+      },
+      begin: async () => Promise.reject(new Error('unused')),
+      attach: async () => Promise.reject(new Error('unused')),
+    }
+    const channel = createChannelHandler((scope) =>
+      createHostApi(scopedHarness(directory(), scope), runtime(new MemoryStore()), remote),
+    )
+    const response = (
+      await channel(SCRUM_ENDPOINT.remoteProfiles, createRequest({ scope: HERE, input: {} }).data)
+    ).value as ApiResponse<unknown>
+
+    expect(response).toMatchObject({
+      error: {
+        message: 'remote Scrum authentication failure',
+        details: { remoteFailure: 'authentication' },
+      },
+    })
+    expect(JSON.stringify(response)).not.toContain('token for')
+    expect(JSON.stringify(response)).not.toContain('/private/customer')
+  })
+
   it('carries the workspace name and not its path', async () => {
     const response = await call(new MemoryStore(), SCRUM_ENDPOINT.entry, {})
     const data = (response as { data: { workspace: Record<string, unknown> } }).data

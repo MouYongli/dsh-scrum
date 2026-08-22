@@ -117,6 +117,12 @@ async function dispatch(api: ScrumHostApi, call: Dispatchable): Promise<unknown>
       return toAuthorizationPayload(await api.authorization())
     case SCRUM_ENDPOINT.entry:
       return toEntryPayload(await api.entry())
+    case SCRUM_ENDPOINT.remoteProfiles:
+      return api.remoteProfiles()
+    case SCRUM_ENDPOINT.remoteBegin:
+      return api.beginRemote(call.input.connectionId)
+    case SCRUM_ENDPOINT.remoteAttach:
+      return api.attachRemote(call.input.connectionId, call.input.projectId)
     case SCRUM_ENDPOINT.createProject:
       return toProjectPayload(await api.initialise(call.input))
     case SCRUM_ENDPOINT.backlog:

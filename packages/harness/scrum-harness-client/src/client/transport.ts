@@ -7,6 +7,8 @@ import {
   payloadSchema,
   type ApiResponse,
   type EntryPayload,
+  type RemoteConnectionOffer,
+  type RemoteConnectionProfile,
   type ProjectPayload,
   type ScrumEndpoint,
   type ScrumScope,
@@ -109,6 +111,13 @@ export function createTransportClient(call: RpcCall, scope: ScopeReader): ScrumC
     authorization: async () =>
       toAuthorizationView(await send<AuthorizationPayload>(SCRUM_ENDPOINT.authorization, {})),
     entry: async () => toEntryView(await send<EntryPayload>(SCRUM_ENDPOINT.entry, {})),
+    remoteProfiles: async () =>
+      await send<readonly RemoteConnectionProfile[]>(SCRUM_ENDPOINT.remoteProfiles, {}),
+    beginRemote: async (connectionId) =>
+      await send<RemoteConnectionOffer>(SCRUM_ENDPOINT.remoteBegin, { connectionId }),
+    attachRemote: async (connectionId, projectId) => {
+      await send<void>(SCRUM_ENDPOINT.remoteAttach, { connectionId, projectId })
+    },
     createProject: async (input: CreateProjectInput) =>
       toProjectView(await send<ProjectPayload>(SCRUM_ENDPOINT.createProject, input)),
     backlog: async (query?: BacklogQuery) =>

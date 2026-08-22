@@ -56,6 +56,20 @@ export interface RuntimeContextView {
   readonly tenantName: string
 }
 
+export interface RemoteProfileView {
+  readonly id: string
+  readonly displayName: string
+}
+
+export interface RemoteOfferView {
+  readonly connectionId: string
+  readonly edition: 'teams' | 'enterprise'
+  readonly serviceName: string
+  readonly tenant: { readonly id: string; readonly displayName: string }
+  readonly principal: { readonly id: string; readonly displayName: string }
+  readonly projects: readonly { readonly id: string; readonly key: string; readonly name: string }[]
+}
+
 /** What the workbench found when it opened. Mirrors the host's entry states. */
 type EntryWithoutRuntime =
   | { readonly state: 'no-workspace' }
@@ -190,6 +204,9 @@ export interface ScrumClient {
   /** What the current user may do in the bound project, resolved on every call. */
   authorization(): Promise<AuthorizationView>
   entry(): Promise<EntryView>
+  remoteProfiles(): Promise<readonly RemoteProfileView[]>
+  beginRemote(connectionId: string): Promise<RemoteOfferView>
+  attachRemote(connectionId: string, projectId: string): Promise<void>
   createProject(input: CreateProjectInput): Promise<ProjectView>
   backlog(query?: BacklogQuery): Promise<readonly WorkItem[]>
   createWorkItem(input: NewWorkItem): Promise<WorkItem>

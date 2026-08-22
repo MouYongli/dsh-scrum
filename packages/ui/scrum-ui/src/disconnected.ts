@@ -14,6 +14,9 @@ export function disconnectedClient(message: string): ScrumClient {
   const refuse = (): Promise<never> => Promise.reject(new Error(message))
   return {
     entry: refuse,
+    remoteProfiles: refuse,
+    beginRemote: refuse,
+    attachRemote: refuse,
     createProject: refuse,
     backlog: refuse,
     createWorkItem: refuse,

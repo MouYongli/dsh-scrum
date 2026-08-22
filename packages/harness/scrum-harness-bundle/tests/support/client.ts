@@ -39,6 +39,11 @@ export function clientOver(host: ScrumHostApi): ScrumClient {
           }
       }
     },
+    remoteProfiles: async () => await host.remoteProfiles(),
+    beginRemote: async (connectionId) => await host.beginRemote(connectionId),
+    attachRemote: async (connectionId, projectId) => {
+      await host.attachRemote(connectionId, projectId)
+    },
     createProject: async (input) => {
       // The screen collects a string; the identifier grammar is the domain's,
       // and this is the boundary where one becomes the other.

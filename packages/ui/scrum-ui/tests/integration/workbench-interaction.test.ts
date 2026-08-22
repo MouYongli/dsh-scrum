@@ -104,10 +104,22 @@ describe('a workbench over a bound project', () => {
 describe('a workspace with no project yet', () => {
   it('starts the team connection boundary without losing a local project draft', async () => {
     const connect = vi.fn()
+    const attach = vi.fn(() => Promise.resolve())
     const mounted = workbench(
       stubClient({
         entry: () =>
           Promise.resolve({ state: 'unbound', workspace: { id: 'ws_1', name: 'shop-service' } }),
+        remoteProfiles: () => Promise.resolve([{ id: 'connection-1', displayName: 'Acme Scrum' }]),
+        beginRemote: () =>
+          Promise.resolve({
+            connectionId: 'connection-1',
+            edition: 'enterprise',
+            serviceName: 'Acme Scrum',
+            tenant: { id: 'tenant-1', displayName: 'Acme' },
+            principal: { id: 'user-1', displayName: 'Ada' },
+            projects: [{ id: 'project-1', key: 'SCR', name: 'Platform' }],
+          }),
+        attachRemote: attach,
       }),
       connect,
     )
@@ -115,10 +127,18 @@ describe('a workspace with no project yet', () => {
 
     mounted.type('#scrum-name', 'draft project')
     mounted.click('[data-scrum-connect]')
+    await settle()
+    mounted.click('[data-scrum-remote-profile="connection-1"]')
+    await settle()
 
     expect(connect).toHaveBeenCalledWith('ws_1')
     expect(mounted.container.textContent).toContain(t('connect.body'))
     expect((mounted.find('#scrum-name') as HTMLInputElement).value).toBe('draft project')
+    expect(mounted.container.textContent).toContain('Acme Scrum · Acme')
+    expect(mounted.container.textContent).toContain('SCR · Platform')
+    mounted.click('[data-scrum-remote-project="project-1"]')
+    await settle()
+    expect(attach).toHaveBeenCalledWith('connection-1', 'project-1')
     expect(mounted.container.textContent).not.toContain('选择 Teams')
     expect(mounted.container.textContent).not.toContain('选择 Enterprise')
   })

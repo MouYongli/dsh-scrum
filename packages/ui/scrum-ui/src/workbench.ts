@@ -13,7 +13,12 @@ import { createBacklogController } from './backlog-controller.js'
 import { BacklogScreen } from './backlog-view.js'
 import { createSprintController } from './sprint-controller.js'
 import { SprintScreen } from './sprint-view.js'
-import type { CreateProjectInput, ScrumClient } from './client.js'
+import type {
+  CreateProjectInput,
+  RemoteOfferView,
+  RemoteProfileView,
+  ScrumClient,
+} from './client.js'
 import { createWorkbenchController, type WorkbenchState } from './controller.js'
 import type { ScrumFailure } from './failure.js'
 import { DraftsProvider, NO_DRAFTS, useDraftGuard, type DraftRegistry } from './drafts.js'
@@ -35,6 +40,7 @@ export interface WorkbenchProps {
   readonly header?: ReactNode | undefined
   readonly onCreate?: ((input: CreateProjectInput) => void) | undefined
   readonly onConnectTeam?: (() => void) | undefined
+  readonly connectionSurface?: ReactNode | undefined
   /** Back to the conversation. Absent leaves the surface with no way out. */
   readonly onExit?: (() => void) | undefined
   /** True while a leave is waiting on an answer about unsaved input. */
@@ -182,7 +188,8 @@ function body(props: WorkbenchProps, t: Translate): ReactElement | null {
         }),
     page.connectAction === null
       ? null
-      : createElement(TeamConnectionEntry, { t, onConnect: props.onConnectTeam }),
+      : (props.connectionSurface ??
+          createElement(TeamConnectionEntry, { t, onConnect: props.onConnectTeam })),
     page.project === null ? null : props.surface,
   )
 }
@@ -213,6 +220,98 @@ function TeamConnectionEntry(props: {
           { role: 'region', 'aria-label': props.t('connect.title') },
           createElement('h3', null, props.t('connect.title')),
           createElement('p', null, props.t('connect.body')),
+        )
+      : null,
+  )
+}
+
+function RemoteConnectionFlow(props: {
+  readonly client: ScrumClient
+  readonly t: Translate
+  readonly onOpen?: (() => void) | undefined
+  readonly onAttached: () => void
+}): ReactElement {
+  const [opened, setOpened] = useState(false)
+  const [profiles, setProfiles] = useState<readonly RemoteProfileView[]>([])
+  const [offer, setOffer] = useState<RemoteOfferView | null>(null)
+  const [failure, setFailure] = useState<string | null>(null)
+
+  async function open(): Promise<void> {
+    setOpened(true)
+    setFailure(null)
+    props.onOpen?.()
+    try {
+      setProfiles(await props.client.remoteProfiles())
+    } catch (error: unknown) {
+      setFailure(error instanceof Error ? error.message : String(error))
+    }
+  }
+
+  async function begin(connectionId: string): Promise<void> {
+    setFailure(null)
+    try {
+      setOffer(await props.client.beginRemote(connectionId))
+    } catch (error: unknown) {
+      setFailure(error instanceof Error ? error.message : String(error))
+    }
+  }
+
+  async function attach(projectId: string): Promise<void> {
+    if (offer === null) return
+    setFailure(null)
+    try {
+      await props.client.attachRemote(offer.connectionId, projectId)
+      props.onAttached()
+    } catch (error: unknown) {
+      setFailure(error instanceof Error ? error.message : String(error))
+    }
+  }
+
+  return createElement(
+    'section',
+    { 'data-scrum-connect-entry': true },
+    createElement(
+      'button',
+      { type: 'button', 'data-scrum-connect': true, onClick: () => void open() },
+      props.t('state.unbound.connect'),
+    ),
+    opened
+      ? createElement(
+          'div',
+          { role: 'region', 'aria-label': props.t('connect.title') },
+          createElement('h3', null, props.t('connect.title')),
+          createElement('p', null, props.t('connect.body')),
+          failure === null ? null : createElement('p', { role: 'alert' }, failure),
+          offer === null
+            ? profiles.map((profile) =>
+                createElement(
+                  'button',
+                  {
+                    key: profile.id,
+                    type: 'button',
+                    'data-scrum-remote-profile': profile.id,
+                    onClick: () => void begin(profile.id),
+                  },
+                  profile.displayName,
+                ),
+              )
+            : createElement(
+                'div',
+                { 'data-scrum-remote-offer': offer.edition },
+                createElement('p', null, `${offer.serviceName} · ${offer.tenant.displayName}`),
+                offer.projects.map((project) =>
+                  createElement(
+                    'button',
+                    {
+                      key: project.id,
+                      type: 'button',
+                      'data-scrum-remote-project': project.id,
+                      onClick: () => void attach(project.id),
+                    },
+                    `${project.key} · ${project.name}`,
+                  ),
+                ),
+              ),
         )
       : null,
   )
@@ -618,6 +717,15 @@ export function ConnectedWorkbench(props: ConnectedWorkbenchProps): ReactElement
       onCreate: (input) => void controller.create(input),
       onConnectTeam:
         connectWorkspaceId === null ? undefined : () => props.onConnectTeam?.(connectWorkspaceId),
+      connectionSurface:
+        connectWorkspaceId === null
+          ? undefined
+          : createElement(RemoteConnectionFlow, {
+              client: props.client,
+              t,
+              onOpen: () => props.onConnectTeam?.(connectWorkspaceId),
+              onAttached: () => void controller.load(),
+            }),
       surface:
         state.kind === 'ready' &&
         (state.entry.state === 'bound' || state.entry.state === 'archived')
