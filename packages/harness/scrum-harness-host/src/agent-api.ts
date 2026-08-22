@@ -51,7 +51,7 @@ export function createAgentApi(
    * a tool that checked for itself would be a second place the session rule
    * lives, and the two would eventually disagree.
    */
-  async function assertSessionAllows(permission: Permission): Promise<void> {
+  async function assertSessionAllows(permission: Permission): Promise<StoredProject> {
     const request = await resolveRequest(harness, runtime)
     const { project } = await requireBoundProject(request, harness)
     const authorization = await resolveSessionAuthorization(request.deps, {
@@ -69,26 +69,21 @@ export function createAgentApi(
         accessMode: authorization.mode,
       })
     }
+    return project
   }
 
   async function reading<Result>(
     permission: Permission,
-    run: () => Promise<Result>,
+    run: (project: StoredProject) => Result | Promise<Result>,
   ): Promise<Result> {
-    await assertSessionAllows(permission)
-    return await run()
+    return await run(await assertSessionAllows(permission))
   }
 
   return {
     version: api.version,
-    project: async () =>
-      await reading(PERMISSION.projectView, async () => {
-        const entry = await api.entry()
-        if (entry.state !== 'bound' && entry.state !== 'archived') {
-          throw new ForbiddenError('this workspace has no project to read', { sessionId })
-        }
-        return { project: entry.project, config: entry.config }
-      }),
+    // The gate already resolved the bound project, so reading it again would
+    // be a second read that can disagree with the one the check ran against.
+    project: async () => await reading(PERMISSION.projectView, (project) => project),
     backlog: async (filter?: WorkItemFilter) =>
       await reading(PERMISSION.backlogView, async () => await api.backlog(filter)),
     workItem: async (id: WorkItemId) =>
