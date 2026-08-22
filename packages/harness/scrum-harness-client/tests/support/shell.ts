@@ -18,6 +18,8 @@ export interface WorkspaceListSnapshot {
   readonly items: readonly {
     readonly workspaceId: string
     readonly sessionIds: readonly string[]
+    readonly title?: string | undefined
+    readonly path?: string | undefined
   }[]
   readonly recentWorkspaceId?: string | undefined
 }
@@ -63,11 +65,14 @@ export interface WorkspacesStub {
     subscribe: (listener: () => void) => () => void
   }
   readonly publish: (next: WorkspaceListSnapshot) => void
+  readonly startSession: (workspaceId?: string) => void
+  readonly started: () => readonly (string | undefined)[]
 }
 
 export function workspacesStub(initial: WorkspaceListSnapshot = { items: [] }): WorkspacesStub {
   let snapshot = initial
   const listeners = new Set<() => void>()
+  const starts: (string | undefined)[] = []
   return {
     list: {
       getSnapshot: () => snapshot,
@@ -84,6 +89,10 @@ export function workspacesStub(initial: WorkspaceListSnapshot = { items: [] }): 
         listener()
       }
     },
+    startSession: (workspaceId) => {
+      starts.push(workspaceId)
+    },
+    started: () => starts,
   }
 }
 
