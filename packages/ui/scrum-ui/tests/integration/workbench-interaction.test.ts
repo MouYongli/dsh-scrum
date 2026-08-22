@@ -32,8 +32,8 @@ async function settle(): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 0))
 }
 
-function workbench(client: ScrumClient): Mounted {
-  const mounted = mount(createElement(ConnectedWorkbench, { client, t }))
+function workbench(client: ScrumClient, onConnectTeam?: (workspaceId: string) => void): Mounted {
+  const mounted = mount(createElement(ConnectedWorkbench, { client, t, onConnectTeam }))
   open = mounted
   return mounted
 }
@@ -102,6 +102,27 @@ describe('a workbench over a bound project', () => {
 })
 
 describe('a workspace with no project yet', () => {
+  it('starts the team connection boundary without losing a local project draft', async () => {
+    const connect = vi.fn()
+    const mounted = workbench(
+      stubClient({
+        entry: () =>
+          Promise.resolve({ state: 'unbound', workspace: { id: 'ws_1', name: 'shop-service' } }),
+      }),
+      connect,
+    )
+    await settle()
+
+    mounted.type('#scrum-name', 'draft project')
+    mounted.click('[data-scrum-connect]')
+
+    expect(connect).toHaveBeenCalledWith('ws_1')
+    expect(mounted.container.textContent).toContain(t('connect.body'))
+    expect((mounted.find('#scrum-name') as HTMLInputElement).value).toBe('draft project')
+    expect(mounted.container.textContent).not.toContain('选择 Teams')
+    expect(mounted.container.textContent).not.toContain('选择 Enterprise')
+  })
+
   it('creates one from the wizard and asks the host again', async () => {
     const created: unknown[] = []
     const entries: EntryView[] = [

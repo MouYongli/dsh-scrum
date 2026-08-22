@@ -18,6 +18,7 @@ describe('the first-run pages', () => {
     const page = pageFor({ state: 'unbound', workspace: WORKSPACE })
 
     expect(page.action).toEqual({ kind: 'create', label: 'state.unbound.create' })
+    expect(page.connectAction).toEqual({ kind: 'connect', label: 'state.unbound.connect' })
     expect(page.workspaceName).toBe('shop-service')
   })
 
@@ -66,7 +67,13 @@ describe('the first-run pages', () => {
 
     for (const entry of entries) {
       const page = pageFor(entry)
-      for (const key of [page.title, page.body, page.notice, page.action?.label]) {
+      for (const key of [
+        page.title,
+        page.body,
+        page.notice,
+        page.action?.label,
+        page.connectAction?.label,
+      ]) {
         if (key !== null && key !== undefined) {
           expect(MESSAGE_KEYS).toContain(key)
         }
@@ -89,8 +96,8 @@ describe('the copy', () => {
   })
 
   it('is Chinese by default, because that is the product language', () => {
-    expect(createTranslate()('state.unbound.create')).toBe('创建新的 Scrum 项目')
-    expect(createTranslate('en')('state.unbound.create')).toBe('Create a Scrum project')
+    expect(createTranslate()('state.unbound.create')).toBe('创建本地项目')
+    expect(createTranslate('en')('state.unbound.create')).toBe('Create local project')
   })
 
   it('holds no interpolation, so no sentence is built from fragments', () => {

@@ -13,6 +13,7 @@ import type {
   WorkItemId,
   WorkItemStatus,
   WorkItemType,
+  Edition,
 } from '@dsh-scrum/scrum-domain'
 
 export interface AuthorizationView {
@@ -49,8 +50,14 @@ export interface WorkspaceView {
   readonly name: string
 }
 
+export interface RuntimeContextView {
+  readonly edition: Edition
+  readonly serviceName: string
+  readonly tenantName: string
+}
+
 /** What the workbench found when it opened. Mirrors the host's entry states. */
-export type EntryView =
+type EntryWithoutRuntime =
   | { readonly state: 'no-workspace' }
   | { readonly state: 'unbound'; readonly workspace: WorkspaceView }
   | { readonly state: 'stale'; readonly workspace: WorkspaceView }
@@ -60,6 +67,10 @@ export type EntryView =
       readonly project: ProjectView
       readonly moved: boolean
     }
+
+export type EntryView = EntryWithoutRuntime & {
+  readonly runtimeContext?: RuntimeContextView
+}
 
 export interface CreateProjectInput {
   readonly key: string

@@ -256,14 +256,17 @@ Scrum 工作台是注册在 `shell.overlay` 的根级浮层，从 Sidebar 右缘
 │                                                       │
 │ 此工作区尚未启用 Scrum 项目管理                        │
 │                                                       │
-│ [创建新的 Scrum 项目]                                 │
-│ [连接远程 Scrum 项目]       Remote                    │
+│ [创建本地项目]                                        │
+│ [连接团队 Scrum]                                      │
 │                                                       │
-│ 项目名称：shop-service                                │
-│ Sprint 周期：2 周                                     │
-│ 工作流：待处理 → 进行中 → 测试中 → 已完成              │
+│ 当前 Edition：Community · Local · Personal Tenant     │
 └───────────────────────────────────────────────────────┘
 ```
+
+用户不选择 Teams 或 Enterprise。「连接团队 Scrum」只启动登录与远程项目选择；最终 Edition
+由服务握手和许可证返回。工作台头部显示解析后的 Edition、服务和 Tenant，但页面功能始终按
+Capability 与当前用户 Permission 控制，不能按 Edition 名称分支。连接入口不得卸载本地项目
+表单，用户已经输入的草稿仍由统一离开保护管理。
 
 ### 7.3 Workspace 已绑定项目
 

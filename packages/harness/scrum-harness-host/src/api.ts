@@ -9,6 +9,7 @@ import {
   type WorkItem,
   type WorkItemId,
   type WorkItemReferences,
+  type Edition,
 } from '@dsh-scrum/scrum-domain'
 import {
   archiveProject,
@@ -130,6 +131,14 @@ export type WorkspaceRuntimeTarget =
 export interface ResolvedWorkspaceRuntime {
   readonly target: WorkspaceRuntimeTarget
   readonly runtime: ScrumRuntime
+  readonly context: WorkspaceRuntimeContext
+}
+
+/** Display-only service context; capabilities remain the source of behaviour. */
+export interface WorkspaceRuntimeContext {
+  readonly edition: Edition
+  readonly serviceName: string
+  readonly tenantName: string
 }
 
 /** Selects a runtime from the workspace that Harness says is current. */
@@ -161,8 +170,13 @@ export function remoteRuntimeTarget(
 export function fixedRuntimeResolver(
   runtime: ScrumRuntime,
   target: WorkspaceRuntimeTarget = localRuntimeTarget(),
+  context: WorkspaceRuntimeContext = {
+    edition: 'community',
+    serviceName: 'Local',
+    tenantName: 'Personal',
+  },
 ): WorkspaceRuntimeResolver {
-  return { resolve: () => Promise.resolve({ target, runtime }) }
+  return { resolve: () => Promise.resolve({ target, runtime, context }) }
 }
 
 async function runtimeFor(
@@ -316,7 +330,10 @@ export function createHostApi(harness: HarnessContext, source: ScrumRuntimeSourc
         await resolved.runtime.identity(workspace),
         await currentSessionOf(harness, workspace),
       )
-      return await describeEntry(deps, harness, actor, workspace)
+      return {
+        ...(await describeEntry(deps, harness, actor, workspace)),
+        runtimeContext: resolved.context,
+      }
     },
 
     async initialise(command: InitialiseWorkspaceCommand): Promise<StoredProject> {

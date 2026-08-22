@@ -1,4 +1,4 @@
-import type { Permission, ProjectRole, Sprint, WorkItem } from '@dsh-scrum/scrum-domain'
+import type { Edition, Permission, ProjectRole, Sprint, WorkItem } from '@dsh-scrum/scrum-domain'
 import { z } from 'zod'
 
 /**
@@ -34,6 +34,12 @@ export interface ProjectPayload {
   readonly description: string
 }
 
+export interface RuntimeContextPayload {
+  readonly edition: Edition
+  readonly serviceName: string
+  readonly tenantName: string
+}
+
 /**
  * What the plugin found when it opened.
  *
@@ -42,7 +48,7 @@ export interface ProjectPayload {
  * answer, and the identifier it pointed at is of no use to a screen that can
  * only offer to detach it.
  */
-export type EntryPayload =
+type EntryWithoutRuntime =
   | { readonly state: 'no-workspace' }
   | { readonly state: 'unbound'; readonly workspace: WorkspacePayload }
   | { readonly state: 'stale'; readonly workspace: WorkspacePayload }
@@ -53,6 +59,10 @@ export type EntryPayload =
       /** The workspace is not where it was when it was attached. */
       readonly moved: boolean
     }
+
+export type EntryPayload = EntryWithoutRuntime & {
+  readonly runtimeContext?: RuntimeContextPayload
+}
 
 /**
  * What the host answered about the current user in the bound project.

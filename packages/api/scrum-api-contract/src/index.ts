@@ -18,6 +18,7 @@ export {
 export type {
   AuthorizationPayload,
   EntryPayload,
+  RuntimeContextPayload,
   ProjectPayload,
   WorkspacePayload,
 } from './results.js'

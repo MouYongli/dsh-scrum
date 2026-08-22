@@ -18,6 +18,7 @@ export interface PageView {
   /** Shown when the workspace has moved since it was attached. */
   readonly notice: MessageKey | null
   readonly action: { readonly kind: 'create'; readonly label: MessageKey } | null
+  readonly connectAction: { readonly kind: 'connect'; readonly label: MessageKey } | null
   readonly project: { readonly key: string; readonly name: string } | null
 }
 
@@ -25,6 +26,7 @@ const BASE = {
   workspaceName: null,
   notice: null,
   action: null,
+  connectAction: null,
   project: null,
 } as const
 
@@ -51,6 +53,7 @@ export function pageFor(entry: EntryView): PageView {
         body: 'state.unbound.body',
         workspaceName: entry.workspace.name,
         action: { kind: 'create', label: 'state.unbound.create' },
+        connectAction: { kind: 'connect', label: 'state.unbound.connect' },
       }
     case 'stale':
       return {

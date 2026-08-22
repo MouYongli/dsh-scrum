@@ -75,6 +75,9 @@ describe('the four first-run states', () => {
     expect(markup).toContain('data-scrum-page="unbound"')
     expect(markup).toContain(t('state.unbound.title'))
     expect(markup).toContain('data-scrum-wizard')
+    expect(markup).toContain('data-scrum-connect')
+    expect(markup).toContain(t('state.unbound.create'))
+    expect(markup).toContain(t('state.unbound.connect'))
     expect(markup).toContain(t('wizard.key'))
   })
 
@@ -165,8 +168,30 @@ describe('the creation wizard', () => {
       createElement(Workbench, { state: unbound, t: createTranslate('en') }),
     )
 
-    expect(markup).toContain('Create a Scrum project')
-    expect(markup).not.toContain('创建新的 Scrum 项目')
+    expect(markup).toContain('Create local project')
+    expect(markup).toContain('Connect team Scrum')
+    expect(markup).not.toContain('创建本地项目')
+  })
+})
+
+describe('the resolved runtime context', () => {
+  it('shows edition, service and tenant without turning edition into an action', () => {
+    const markup = render(
+      ready({
+        state: 'unbound',
+        workspace: WORKSPACE,
+        runtimeContext: {
+          edition: 'enterprise',
+          serviceName: 'Acme Scrum',
+          tenantName: 'Acme Engineering',
+        },
+      }),
+    )
+
+    expect(markup).toContain('data-scrum-runtime="enterprise"')
+    expect(markup).toContain('Acme Scrum')
+    expect(markup).toContain('Acme Engineering')
+    expect(markup).not.toContain('<select')
   })
 })
 
