@@ -29,3 +29,5 @@ export type {
 export { sameWorkspace, toWorkspaceRef } from './ports/workspace.js'
 export type { CreateProjectCommand, ProjectCommand } from './use-cases/project.js'
 export { archiveProject, createProject, getProject, restoreProject } from './use-cases/project.js'
+export type { BindWorkspaceCommand, ResolvedBinding } from './use-cases/workspace.js'
+export { bindWorkspace, resolveWorkspaceBinding, unbindWorkspace } from './use-cases/workspace.js'
