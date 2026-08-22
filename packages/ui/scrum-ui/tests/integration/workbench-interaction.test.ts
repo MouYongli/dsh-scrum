@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { createElement } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { PERMISSION, SPRINT_STATUS } from '@dsh-scrum/scrum-domain'
-import { ConnectedWorkbench, SCRUM_ACCESS_MODE, createTranslate } from '@dsh-scrum/scrum-ui'
+import { SPRINT_STATUS } from '@dsh-scrum/scrum-domain'
+import { ConnectedWorkbench, createTranslate } from '@dsh-scrum/scrum-ui'
 import type { EntryView, ScrumClient } from '@dsh-scrum/scrum-ui'
 import { stubClient } from '../support/client.js'
 import { mount, type Mounted } from '../support/dom.js'
@@ -55,22 +55,13 @@ describe('a workbench over a bound project', () => {
     expect(mounted.container.textContent).toContain('SCR-1 · 结算对账')
   })
 
-  it('switches to the board and to the session control', async () => {
+  it('switches to the board without exposing a session access control', async () => {
     const sprints = vi.fn(() => Promise.resolve([sprint(1, { status: SPRINT_STATUS.active })]))
-    const session = vi.fn(() =>
-      Promise.resolve({
-        mode: SCRUM_ACCESS_MODE.read,
-        granted: [PERMISSION.projectView],
-        permissions: [PERMISSION.projectView],
-        projectArchived: false,
-      }),
-    )
     const mounted = workbench(
       stubClient({
         entry: () => Promise.resolve(BOUND),
         backlog: () => Promise.resolve([]),
         sprints,
-        session,
       }),
     )
     await settle()
@@ -80,10 +71,7 @@ describe('a workbench over a bound project', () => {
     expect(sprints).toHaveBeenCalled()
     expect(mounted.container.querySelector('[data-scrum-sprints]')).not.toBeNull()
 
-    mounted.click('[data-scrum-section="access"]')
-    await settle()
-    expect(session).toHaveBeenCalled()
-    expect(mounted.find('[data-scrum-access-chosen]').dataset['scrumAccessChosen']).toBe('read')
+    expect(mounted.container.querySelector('[data-scrum-section="access"]')).toBeNull()
   })
 
   it('shows the workbench as busy while the client has not answered', () => {
