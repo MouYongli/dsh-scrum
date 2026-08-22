@@ -636,12 +636,16 @@ JSON/JSONL 允许用户选择将 Scrum 数据纳入 Git，初始化向导应明�
 建议 `.scrum/.gitignore`：
 
 ```gitignore
-.tmp-*
+*.tmp
 *.lock
 operations/pending/
 backups/
 sessions/
 ```
+
+临时文件用 `*.tmp` 后缀而不是 `.tmp-*` 前缀：前缀形式写出来的名字仍以 `.json` 结尾（`.tmp-SCR-1.json`），会被目录扫描当成一个工作项读进去。后缀形式保证它永远不以 `.json` 结尾，扫描无需知道写入机制就会跳过它。
+
+`workspace.lock` 是一个目录 —— 创建它这件事本身就是加锁，因为 `mkdir` 要么成功要么失败，中间没有窗口。
 
 若进入 Git，合并后必须运行完整性校验，检查重复 ID、无效引用、Revision 回退和同时存在多个活动 Sprint。
 

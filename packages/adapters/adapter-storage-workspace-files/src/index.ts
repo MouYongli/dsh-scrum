@@ -47,3 +47,19 @@ export {
 } from './atomic.js'
 export type { WriteExpectation } from './writes.js'
 export { NEW_ENTITY, saveProject, saveProjectConfig, saveSprint, saveWorkItem } from './writes.js'
+export type { DirectoryLockOptions, FileLockPort, LockHolder, WorkspaceLock } from './locking.js'
+export { createDirectoryLockPort } from './locking.js'
+export type { WriteCoordinator } from './coordinator.js'
+export { createWriteCoordinator } from './coordinator.js'
+export type { OperationSpec, OperationWrite, RecoveredOperation } from './journal.js'
+export { recoverOperations, runOperation } from './journal.js'
+export type { ActivityReadResult, ActivityRecord, ActivitySource } from './activity.js'
+export {
+  ACTIVITY_SOURCE,
+  activityFile,
+  activityMonth,
+  appendActivity,
+  listActivityMonths,
+  readActivity,
+  toActivitySource,
+} from './activity.js'

@@ -25,6 +25,8 @@ export interface WorkspaceLayout {
   readonly pendingOperations: string
   readonly attachments: string
   readonly backups: string
+  /** Held while a write is in progress. A directory, so creating it is the lock. */
+  readonly lock: string
 }
 
 export function workspaceLayout(workspaceRoot: string): WorkspaceLayout {
@@ -43,6 +45,7 @@ export function workspaceLayout(workspaceRoot: string): WorkspaceLayout {
     pendingOperations: join(scrum, 'operations', 'pending'),
     attachments: join(scrum, 'attachments'),
     backups: join(scrum, 'backups'),
+    lock: join(scrum, 'workspace.lock'),
   }
 }
 
