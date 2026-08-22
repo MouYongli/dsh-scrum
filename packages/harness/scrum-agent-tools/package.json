@@ -1,0 +1,36 @@
+{
+  "name": "@dsh-scrum/scrum-agent-tools",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "DeepSeek Harness agent tools for Scrum",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "@dsh-scrum/scrum-application": "workspace:*",
+    "@dsh-scrum/scrum-domain": "workspace:*",
+    "@dsh-scrum/scrum-harness-host": "workspace:*"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/dsh-tools": "^0.1.0-rc.7"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/dsh-tools": "0.1.0-rc.8",
+    "@types/node": "^24.13.3"
+  }
+}
