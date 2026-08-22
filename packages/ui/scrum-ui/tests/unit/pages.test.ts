@@ -19,7 +19,7 @@ describe('the first-run pages', () => {
 
     expect(page.action).toEqual({ kind: 'create', label: 'state.unbound.create' })
     expect(page.connectAction).toEqual({ kind: 'connect', label: 'state.unbound.connect' })
-    expect(page.workspaceName).toBe('shop-service')
+    expect(page.workspaceName).toBeNull()
   })
 
   it('offers nothing to create when the binding is stale', () => {
