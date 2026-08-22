@@ -3,6 +3,8 @@ import type { ActivityRecorder } from './ports/activity.js'
 import type { IdempotencyStore } from './ports/idempotency.js'
 import type { MemberRepository } from './ports/members.js'
 import type { ProjectRepository } from './ports/projects.js'
+import type { SprintRepository } from './ports/sprints.js'
+import type { WorkItemRepository } from './ports/work-items.js'
 import type { WorkspaceBindingRepository } from './ports/workspace.js'
 
 /**
@@ -19,6 +21,8 @@ import type { WorkspaceBindingRepository } from './ports/workspace.js'
  */
 export interface ApplicationDependencies {
   readonly projects: ProjectRepository
+  readonly workItems: WorkItemRepository
+  readonly sprints: SprintRepository
   readonly members: MemberRepository
   readonly bindings: WorkspaceBindingRepository
   readonly activity: ActivityRecorder

@@ -20,6 +20,9 @@ export { ACTIVITY_SOURCE, ACTIVITY_SOURCES, toActivitySource } from './ports/act
 export type { IdempotencyKey, IdempotencyRecord, IdempotencyStore } from './ports/idempotency.js'
 export { toIdempotencyKey } from './ports/idempotency.js'
 export type { MemberRepository } from './ports/members.js'
+export type { SprintRepository } from './ports/sprints.js'
+export type { WorkItemFilter, WorkItemRepository, WorkItemWrite } from './ports/work-items.js'
+export { filterWorkItems, matchesWorkItemFilter } from './ports/work-items.js'
 export type { NewProject, ProjectRepository, StoredProject } from './ports/projects.js'
 export type {
   WorkspaceBinding,
@@ -31,3 +34,35 @@ export type { CreateProjectCommand, ProjectCommand } from './use-cases/project.j
 export { archiveProject, createProject, getProject, restoreProject } from './use-cases/project.js'
 export type { BindWorkspaceCommand, ResolvedBinding } from './use-cases/workspace.js'
 export { bindWorkspace, resolveWorkspaceBinding, unbindWorkspace } from './use-cases/workspace.js'
+export type {
+  CreateWorkItemCommand,
+  ListWorkItemsCommand,
+  SetAcceptanceCriterionCommand,
+  UpdateWorkItemCommand,
+  WorkItemCommand,
+} from './use-cases/work-item.js'
+export {
+  createWorkItem,
+  getWorkItem,
+  listWorkItems,
+  setAcceptanceCriterion,
+  updateWorkItem,
+} from './use-cases/work-item.js'
+export type {
+  BlockWorkItemCommand,
+  DeleteWorkItemCommand,
+  MoveWorkItemRankCommand,
+  MoveWorkItemStatusCommand,
+  PlanSprintCommand,
+  SetWorkItemParentCommand,
+  WorkItemDependencyCommand,
+} from './use-cases/work-item-planning.js'
+export {
+  blockWorkItem,
+  deleteWorkItem,
+  moveWorkItemStatus,
+  moveWorkItemToRank,
+  planSprint,
+  setWorkItemDependency,
+  setWorkItemParent,
+} from './use-cases/work-item-planning.js'
