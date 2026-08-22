@@ -104,8 +104,8 @@ export class FakeProjectRepository {
 export class FakeWorkItemRepository {
   readonly projects: FakeProjectRepository
   readonly items = new Map<WorkItemId, WorkItem>()
-  /** Hands out the same number twice, to exercise the allocation race. */
-  collideOnce = false
+  /** How many more times to hand out a number that is already taken. */
+  collisions = 0
   /**
    * Runs once, immediately before the next write reaches storage. It is how a
    * test puts a concurrent writer exactly where a batch would tear.
@@ -132,9 +132,9 @@ export class FakeWorkItemRepository {
       throw new ConflictError('the project is not there', 0, 0, {})
     }
     const taken = [...this.items.values()].filter((item) => item.projectId === projectId).length
-    const next = this.collideOnce ? taken : taken + 1
-    this.collideOnce = false
-    return formatWorkItemId(project.project.key, Math.max(next, 1))
+    const colliding = this.collisions > 0
+    this.collisions = Math.max(this.collisions - 1, 0)
+    return formatWorkItemId(project.project.key, Math.max(colliding ? taken : taken + 1, 1))
   }
 
   async create(item: WorkItem): Promise<void> {

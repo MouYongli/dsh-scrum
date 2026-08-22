@@ -63,12 +63,35 @@ describe('createWorkItem', () => {
     const deps = dependencies()
     const stored = await project(deps)
     await item(deps, stored, { title: 'first' })
-    deps.workItems.collideOnce = true
+    deps.workItems.collisions = 1
 
     const created = await item(deps, stored, { title: 'second' })
 
     expect(created.id).toBe('SCR-2')
     expect(deps.workItems.items.size).toBe(2)
+  })
+
+  it('gives up rather than asking forever when every identifier is taken', async () => {
+    const deps = dependencies()
+    const stored = await project(deps)
+    await item(deps, stored, { title: 'first' })
+    deps.workItems.collisions = 10
+
+    const error = await caught(item(deps, stored, { title: 'second' }))
+
+    expect(error.code).toBe('CONFLICT')
+    expect(deps.workItems.items.size).toBe(1)
+  })
+
+  it('refuses to insert after a rank that is not in this project', async () => {
+    const deps = dependencies()
+    const stored = await project(deps)
+    const elsewhere = await project(deps)
+    const other = await item(deps, elsewhere, { title: 'elsewhere' })
+
+    const error = await caught(item(deps, stored, { title: 'here', after: other.rank }))
+
+    expect(error.code).toBe('VALIDATION')
   })
 
   it('refuses a role that may not write work items', async () => {
@@ -123,6 +146,30 @@ describe('listWorkItems', () => {
     })
 
     expect(backlog).toHaveLength(1)
+  })
+
+  it('narrows by type, label, parent and blocking', async () => {
+    const deps = dependencies()
+    const stored = await project(deps)
+    const bug = await item(deps, stored, { title: 'bug', type: WORK_ITEM_TYPE.bug, labels: ['ui'] })
+    await item(deps, stored, { title: 'story', labels: ['api'] })
+
+    const byType = await listWorkItems(deps, {
+      actor: actor(),
+      command: { projectId: stored.project.id, filter: { types: [WORK_ITEM_TYPE.bug] } },
+    })
+    const byLabel = await listWorkItems(deps, {
+      actor: actor(),
+      command: { projectId: stored.project.id, filter: { labels: ['api', 'other'] } },
+    })
+    const roots = await listWorkItems(deps, {
+      actor: actor(),
+      command: { projectId: stored.project.id, filter: { parentId: null, blocked: false } },
+    })
+
+    expect(byType.map((found) => found.id)).toEqual([bug.id])
+    expect(byLabel.map((found) => found.title)).toEqual(['story'])
+    expect(roots).toHaveLength(2)
   })
 
   it('matches a search against the title and the description', async () => {
@@ -266,6 +313,52 @@ describe('updateWorkItem', () => {
     expect(error.details).toMatchObject({ permission: PERMISSION.workItemEstimate })
     // The title must not have gone through either: the call is one decision.
     expect(deps.workItems.items.get(created.id)?.title).toBe('use a coupon')
+  })
+})
+
+describe('updateWorkItem acceptance criteria', () => {
+  // No role currently holds `workItem.write` without also holding this one, so
+  // the check cannot be refused through a role today. It is still checked:
+  // the matrix gives them separate rows, and a project policy or a later role
+  // can separate them without this call quietly stopping to ask.
+  it('rewrites the criteria for a role that holds the permission', async () => {
+    const deps = dependencies()
+    const stored = await project(deps)
+    const created = await item(deps, stored)
+    memberWithRoles(deps, stored, OTHER_ID, [PROJECT_ROLE.developer])
+
+    const updated = await updateWorkItem(deps, {
+      actor: actor({ identityId: OTHER_ID }),
+      command: {
+        projectId: stored.project.id,
+        workItemId: created.id,
+        expectedRevision: created.revision,
+        changes: { acceptanceCriteria: [{ text: 'it works', satisfied: false }] },
+      },
+    })
+
+    expect(updated.acceptanceCriteria).toEqual([{ text: 'it works', satisfied: false }])
+  })
+
+  it('refuses a role that may not write work items at all', async () => {
+    const deps = dependencies()
+    const stored = await project(deps)
+    const created = await item(deps, stored)
+    memberWithRoles(deps, stored, OTHER_ID, [PROJECT_ROLE.stakeholder])
+
+    const error = await caught(
+      updateWorkItem(deps, {
+        actor: actor({ identityId: OTHER_ID }),
+        command: {
+          projectId: stored.project.id,
+          workItemId: created.id,
+          expectedRevision: created.revision,
+          changes: { acceptanceCriteria: [{ text: 'it works', satisfied: false }] },
+        },
+      }),
+    )
+
+    expect(error.code).toBe('FORBIDDEN')
   })
 })
 
