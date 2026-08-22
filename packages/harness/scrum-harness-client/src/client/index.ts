@@ -222,6 +222,87 @@ function useSidebarInset(showing: boolean): {
 }
 
 /**
+ * The shell services this entry reads, as it reads them.
+ *
+ * Written structurally because the browser half of the connection publishes no
+ * Cordis augmentation — the shipped one describes the node half's handle — so
+ * the concrete types are not reachable from a browser plugin. Narrow on
+ * purpose: what is written down here is the whole of what this plugin assumes
+ * about the shell, and a shell that stops providing any of it is answered by
+ * the disconnected client rather than by a crash.
+ */
+interface ShellServices {
+  readonly connection?: { readonly rpc: { call: RpcCall } }
+  readonly workspaces?: {
+    readonly list: {
+      getSnapshot(): {
+        readonly items: readonly {
+          readonly workspaceId: string
+          readonly sessionIds: readonly string[]
+        }[]
+        readonly recentWorkspaceId?: string | undefined
+      }
+    }
+  }
+  readonly sessions?: {
+    readonly list: {
+      getSnapshot(): {
+        readonly current?: string | undefined
+        readonly phase?: string | undefined
+      }
+      subscribe(listener: () => void): () => void
+    }
+  }
+}
+
+/**
+ * Leaves Scrum when the shell puts another session on screen.
+ *
+ * The shell publishes no event for "the user picked a session": the current
+ * selection riding `sessions.list` is the only observable, and clicking a
+ * session row, starting a new session and connecting a workspace all reach it
+ * the same way — `startSession` connects a workspace and opens the resulting
+ * session, or clears the selection when there is no workspace at all. So one
+ * rule covers all three entry points, and Scrum needs no knowledge of which
+ * button was pressed.
+ *
+ * Two changes are deliberately not navigations. A list that has not finished
+ * arriving is still assembling its baseline, and the shell's own startup
+ * selection — the first session it puts on screen after boot — is the shell
+ * catching up rather than the user going somewhere. Neither may eject someone
+ * who opened Scrum while that was still happening.
+ *
+ * What it cannot see: re-picking the session that is already current moves
+ * nothing, so the workbench stays. The contract offers nothing finer.
+ */
+function useSessionExit(shell: ShellServices, store: ScrumModeStore): void {
+  useEffect(() => {
+    const list = shell.sessions?.list
+    if (list === undefined) {
+      return undefined
+    }
+    const first = list.getSnapshot()
+    let seen = first.current
+    let everSelected = first.current !== undefined
+    return list.subscribe(() => {
+      const now = list.getSnapshot()
+      if (now.phase !== 'ready') {
+        seen = now.current
+        return
+      }
+      const moved = now.current !== seen
+      const startup = !everSelected && now.current !== undefined
+      seen = now.current
+      everSelected = everSelected || now.current !== undefined
+      if (!moved || startup) {
+        return
+      }
+      store.leave()
+    })
+  }, [shell, store])
+}
+
+/**
  * The overlay entry.
  *
  * It renders nothing at all in conversation mode. The overlay slot is
@@ -229,10 +310,17 @@ function useSidebarInset(showing: boolean): {
  * was not showing and still returned an empty container would remain a layer
  * over the conversation.
  */
-function overlayComponent(store: ScrumModeStore, client: ScrumClient): () => ReactElement | null {
+function overlayComponent(
+  store: ScrumModeStore,
+  client: ScrumClient,
+  shell: ShellServices,
+): () => ReactElement | null {
   return function ScrumOverlay(): ReactElement | null {
     const showing = useMode(store) === 'scrum'
     const sidebar = useSidebarInset(showing)
+    // Above the early return, and so still running in conversation mode: the
+    // baseline it tracks has to be current when the user next enters Scrum.
+    useSessionExit(shell, store)
     if (!showing) {
       return null
     }
@@ -261,34 +349,6 @@ function overlayComponent(store: ScrumModeStore, client: ScrumClient): () => Rea
 }
 
 /**
- * The shell services this entry reads, as it reads them.
- *
- * Written structurally because the browser half of the connection publishes no
- * Cordis augmentation — the shipped one describes the node half's handle — so
- * the concrete types are not reachable from a browser plugin. Narrow on
- * purpose: what is written down here is the whole of what this plugin assumes
- * about the shell, and a shell that stops providing any of it is answered by
- * the disconnected client rather than by a crash.
- */
-interface ShellServices {
-  readonly connection?: { readonly rpc: { call: RpcCall } }
-  readonly workspaces?: {
-    readonly list: {
-      getSnapshot(): {
-        readonly items: readonly {
-          readonly workspaceId: string
-          readonly sessionIds: readonly string[]
-        }[]
-        readonly recentWorkspaceId?: string | undefined
-      }
-    }
-  }
-  readonly sessions?: {
-    readonly list: { getSnapshot(): { readonly current?: string | undefined } }
-  }
-}
-
-/**
  * Which workspace and session the window is showing, read on every call.
  *
  * The workspace is the one accounting for the open session rather than a
@@ -310,8 +370,7 @@ function readScope(shell: ShellServices): ScrumScope {
 }
 
 /** The client over the shell's channel, or nothing when it carries none. */
-function shellClient(ctx: ClientContext): ScrumClient | null {
-  const shell = ctx as unknown as ShellServices
+function shellClient(shell: ShellServices): ScrumClient | null {
   const connection = shell.connection
   if (connection === undefined) {
     return null
@@ -323,9 +382,10 @@ function shellClient(ctx: ClientContext): ScrumClient | null {
 }
 
 export function apply(ctx: ClientContext, config: ScrumClientConfig = {}): void {
+  const shell = ctx as unknown as ShellServices
   const store = config.store ?? createScrumModeStore()
   const client =
-    config.client ?? shellClient(ctx) ?? disconnectedClient(createTranslate()('error.notConnected'))
+    config.client ?? shellClient(shell) ?? disconnectedClient(createTranslate()('error.notConnected'))
 
   ctx.slots.inject('sidebar.footer.action', () =>
     ctx.slots.register(
@@ -339,7 +399,7 @@ export function apply(ctx: ClientContext, config: ScrumClientConfig = {}): void 
   ctx.slots.inject('shell.overlay', () =>
     ctx.slots.register(
       { name: 'shell.overlay', id: ENTRY_ID, order: 0 },
-      overlayComponent(store, client),
+      overlayComponent(store, client, shell),
     ),
   )
 }
