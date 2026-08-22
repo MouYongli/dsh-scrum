@@ -176,13 +176,22 @@ tool.call.toolview        Scrum 工具调用卡片（按工具名注册）
 
 要点：
 
-- 工作台是根级浮层，关闭时不渲染任何内容，因此切换 Workspace 或 Session 不会销毁它的状态。
-- 入口位于 Sidebar 底部而非顶部：宿主未开放顶部操作 Slot，底部 `sidebar.footer.action` 是唯一的附加操作位。
+- **Scrum 是与「对话」并列的工作模式，不是需要手动关闭的浮层。** Shell 只有 conversation 和 scrum 两种模式；点会话进对话，点 Scrum 进 Scrum。
+- 工作台是根级浮层，处于对话模式时不渲染任何内容，因此**每次进入 Scrum 都是重新挂载并重新加载**，页内状态（页签、筛选、选中项）不跨模式保留。
+- 入口位于 Sidebar 底部而非顶部：宿主未开放顶部操作 Slot，底部 `sidebar.footer.action` 是唯一的附加操作位。入口在 Scrum 模式下需要显示选中态，且**两种模式下都必须渲染**——浮层的左缘偏移是从它出发测量的。
 - Sidebar 折叠时 owner props 的 `wide` 变为 `false`，入口需要自行退化为图标。
 - 没有 Session 时 Scrum 界面仍应可用：浮层不依赖会话存在。
 - 浮层自行测量几何尺寸，不修改宿主布局的列结构。
 
-Client Context 需要注入的服务按用途声明，例如 `['slots', 'locale', 'sessions', 'workspaces']`；未声明的服务不会出现在 `ctx` 上。
+模式切换的实测契约：
+
+- **宿主不发布「用户选中了某个 Session」事件。** 唯一可观察的是 `sessions.list` 快照里的 `current`。点会话行、点 `＋ New Session`、连接 Workspace 三件事都经由它：`workspaces.startSession()` 连接工作区并打开会话，完全没有工作区时改为 `sessions.clear()`。所以一条规则覆盖三个入口。
+- 两类变化不算导航：`phase` 仍为 `pending` 的列表还在装配基线；宿主自己的启动选择（Boot 后放上屏幕的第一个会话）是它在追赶而不是用户在移动。都不得把刚进入 Scrum 的用户弹出去。
+- **重复点击已经选中的那个会话观察不到**，快照没有变化，工作台不会退出。契约层面无解，见[已知限制](../product/known-limitations.md)。
+- Esc 也返回对话，但必须放过输入法正在持有的那一次（`isComposing` 或 `keyCode === 229`）与内层已经 `preventDefault` 的那一次，并且挂在冒泡阶段——捕获会把 Esc 从工作台内的输入框手里抢走，而本项目文案是中文、表单全是文本框。
+- 只有存在未保存的编辑内容时才提问；普通浏览直接返回。提问期间**不能切换模式**：持有草稿的表单在浮层子树里，先切模式会把被问的东西一起卸载掉。
+
+Client Context 需要注入的服务按用途声明，例如 `['slots', 'connection', 'workspaces', 'sessions']`；未声明的服务不会出现在 `ctx` 上。
 
 ## 6. 改造后界面
 
@@ -222,7 +231,7 @@ Client Context 需要注入的服务按用途声明，例如 `['slots', 'locale'
 └──────────────────┴─────────────────────────────────────────────────────┘
 ```
 
-Scrum 工作台是注册在 `shell.overlay` 的根级浮层，从 Sidebar 右缘起覆盖原 Conversation 和 Details 空间，关闭后两栏原样恢复。该左缘偏移不在 Slot 契约里，由浮层自行测量，做法见 4.2。入口位于 Sidebar 底部的 `sidebar.footer.action`，与 Settings 并列——宿主没有开放顶部操作 Slot。工作项详情由工作台自己的抽屉承载，不复用对话的工具详情面板。
+Scrum 工作台是注册在 `shell.overlay` 的根级浮层，从 Sidebar 右缘起覆盖原 Conversation 和 Details 空间，回到对话模式后两栏原样恢复。Sidebar 底部入口在 Scrum 模式下带选中态（图中 `[▦ Scrum]` 后的 `●`），工作台头部提供「返回对话」，Esc 同样返回。该左缘偏移不在 Slot 契约里，由浮层自行测量，做法见 4.2。入口位于 Sidebar 底部的 `sidebar.footer.action`，与 Settings 并列——宿主没有开放顶部操作 Slot。工作项详情由工作台自己的抽屉承载，不复用对话的工具详情面板。
 
 ## 7. 首次进入状态
 
@@ -259,6 +268,8 @@ Scrum 工作台是注册在 `shell.overlay` 的根级浮层，从 Sidebar 右缘
 ### 7.3 Workspace 已绑定项目
 
 直接打开该项目上次访问的页面，例如概览、Backlog、当前 Sprint 或报表。由于一个 Workspace 最多绑定一个 Scrum Project，不应反复要求用户选择项目。
+
+**尚未实现**：当前每次进入 Scrum 都从 Backlog 开始。这与第 5 节的「离开即卸载」直接冲突——要记住上次访问的页面，就得让浮层在对话模式下保持挂载，届时才需要显式的工作区身份来决定何时丢弃这份记忆（现在由重新挂载顺带完成）。
 
 ## 8. Workspace 与项目集成
 
