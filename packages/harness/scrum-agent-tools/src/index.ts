@@ -1,4 +1,5 @@
 import { Service, type Context } from '@deepseek-ai/cordis'
+import { registerScrumConfirmation } from './confirmation.js'
 import { ACCESS_MODE, type AccessMode } from '@dsh-scrum/scrum-application'
 import type { ScrumAgentApi } from '@dsh-scrum/scrum-harness-host'
 import { READ_TOOL_NAMES, createReadTools, type ReadToolName } from './tools.js'
@@ -126,6 +127,7 @@ export const inject: string[] = ['tools']
 
 export function apply(ctx: Context): void {
   ctx.plugin(ScrumToolsService)
+  registerScrumConfirmation(ctx)
 }
 
 export type { ReadToolName } from './tools.js'
@@ -138,6 +140,8 @@ export {
   createWriteTools,
   isHighImpactTool,
 } from './write-tools.js'
+export type { ToolDecision } from './confirmation.js'
+export { confirmationFor, registerScrumConfirmation } from './confirmation.js'
 export type { WriteOutcome } from './conflict.js'
 export { attemptWrite, conflictOutcome } from './conflict.js'
 export type { Page } from './payload.js'
