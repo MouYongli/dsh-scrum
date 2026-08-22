@@ -51,7 +51,7 @@ export function pageFor(entry: EntryView): PageView {
         state: entry.state,
         title: 'state.unbound.title',
         body: 'state.unbound.body',
-        workspaceName: entry.workspace.name,
+        workspaceName: null,
         action: { kind: 'create', label: 'state.unbound.create' },
         connectAction: { kind: 'connect', label: 'state.unbound.connect' },
       }

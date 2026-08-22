@@ -108,9 +108,11 @@ describe('the four first-run states', () => {
     expect(markup).toContain(t('state.moved.notice'))
   })
 
-  it('names the workspace on every page that has one', () => {
+  it('omits the redundant workspace label from onboarding', () => {
+    expect(render(ready({ state: 'unbound', workspace: WORKSPACE }))).not.toContain(
+      'data-scrum-workspace',
+    )
     for (const state of [
-      ready({ state: 'unbound', workspace: WORKSPACE }),
       ready({ state: 'stale', workspace: WORKSPACE }),
       ready({ state: 'bound', workspace: WORKSPACE, project: PROJECT, moved: false }),
     ]) {

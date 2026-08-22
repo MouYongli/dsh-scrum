@@ -544,9 +544,9 @@ function WorkspaceHeader(props: {
   )
 }
 
-export function topbarMessage(entry: EntryView | null, workspaceId: string | null): MessageKey {
+export function topbarMessage(_entry: EntryView | null, workspaceId: string | null): MessageKey {
   if (workspaceId === null) return 'topbar.unbound'
-  return entry?.state === 'unbound' ? 'topbar.projectUnbound' : 'topbar.bound'
+  return 'topbar.bound'
 }
 
 /**
