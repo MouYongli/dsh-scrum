@@ -20,6 +20,8 @@ export { ACTIVITY_SOURCE, ACTIVITY_SOURCES, toActivitySource } from './ports/act
 export type { IdempotencyKey, IdempotencyRecord, IdempotencyStore } from './ports/idempotency.js'
 export { toIdempotencyKey } from './ports/idempotency.js'
 export type { MemberRepository } from './ports/members.js'
+export type { WorkItemFilter, WorkItemRepository, WorkItemWrite } from './ports/work-items.js'
+export { filterWorkItems, matchesWorkItemFilter } from './ports/work-items.js'
 export type { NewProject, ProjectRepository, StoredProject } from './ports/projects.js'
 export type {
   WorkspaceBinding,

@@ -1,6 +1,7 @@
 import {
   CAPABILITY,
   ConflictError,
+  formatWorkItemId,
   toIdentityId,
   toTimestamp,
   type Capability,
@@ -12,6 +13,8 @@ import {
   type Project,
   type Revision,
   type Timestamp,
+  type WorkItem,
+  type WorkItemId,
 } from '@dsh-scrum/scrum-domain'
 import {
   ACTIVITY_SOURCE,
@@ -22,8 +25,11 @@ import {
   type IdempotencyRecord,
   type NewProject,
   type StoredProject,
+  type WorkItemFilter,
+  type WorkItemWrite,
   type WorkspaceBinding,
   type WorkspaceRef,
+  filterWorkItems,
 } from '@dsh-scrum/scrum-application'
 
 // In-memory stand-ins for every port. They are deliberately not mocks: a use
@@ -93,6 +99,85 @@ export class FakeProjectRepository {
   }
 }
 
+export class FakeWorkItemRepository {
+  readonly projects: FakeProjectRepository
+  readonly items = new Map<WorkItemId, WorkItem>()
+  /** Hands out the same number twice, to exercise the allocation race. */
+  collideOnce = false
+
+  constructor(projects: FakeProjectRepository) {
+    this.projects = projects
+  }
+
+  async find(projectId: ProjectId, id: WorkItemId): Promise<WorkItem | null> {
+    const found = this.items.get(id)
+    return found !== undefined && found.projectId === projectId ? found : null
+  }
+
+  async list(projectId: ProjectId, filter: WorkItemFilter): Promise<readonly WorkItem[]> {
+    const owned = [...this.items.values()].filter((item) => item.projectId === projectId)
+    return filterWorkItems(owned, filter)
+  }
+
+  async nextIdentifier(projectId: ProjectId): Promise<WorkItemId> {
+    const project = this.projects.stored.get(projectId)
+    if (project === undefined) {
+      throw new ConflictError('the project is not there', 0, 0, {})
+    }
+    const taken = [...this.items.values()].filter((item) => item.projectId === projectId).length
+    const next = this.collideOnce ? taken : taken + 1
+    this.collideOnce = false
+    return formatWorkItemId(project.project.key, Math.max(next, 1))
+  }
+
+  async create(item: WorkItem): Promise<void> {
+    if (this.items.has(item.id)) {
+      throw new ConflictError('the work item already exists', 0, item.revision, { id: item.id })
+    }
+    this.items.set(item.id, item)
+  }
+
+  async save(item: WorkItem, expected: Revision): Promise<void> {
+    this.assertExpected(item, expected)
+    this.items.set(item.id, item)
+  }
+
+  async saveAll(writes: readonly WorkItemWrite[]): Promise<void> {
+    for (const write of writes) {
+      this.assertExpected(write.item, write.expected)
+    }
+    for (const write of writes) {
+      this.items.set(write.item.id, write.item)
+    }
+  }
+
+  async remove(projectId: ProjectId, id: WorkItemId, expected: Revision): Promise<void> {
+    const current = this.items.get(id)
+    if (current === undefined || current.projectId !== projectId) {
+      throw new ConflictError('the work item is no longer there', expected, 0, { id })
+    }
+    this.assertExpected(current, expected)
+    this.items.delete(id)
+  }
+
+  private assertExpected(item: WorkItem, expected: Revision): void {
+    const current = this.items.get(item.id)
+    if (current === undefined) {
+      throw new ConflictError('the work item is no longer there', expected, 0, { id: item.id })
+    }
+    if (current.revision !== expected) {
+      throw new ConflictError(
+        'the work item changed since it was read',
+        expected,
+        current.revision,
+        {
+          id: item.id,
+        },
+      )
+    }
+  }
+}
+
 export class FakeMemberRepository {
   readonly members = new Map<string, ProjectMember>()
 
@@ -158,6 +243,7 @@ export class FakeIdempotencyStore {
 
 export interface TestDependencies extends ApplicationDependencies {
   readonly projects: FakeProjectRepository
+  readonly workItems: FakeWorkItemRepository
   readonly members: FakeMemberRepository
   readonly bindings: FakeBindingRepository
   readonly activity: FakeActivityRecorder
@@ -171,8 +257,10 @@ export function capabilities(...granted: Capability[]): ReadonlySet<Capability> 
 }
 
 export function dependencies(overrides: Partial<TestDependencies> = {}): TestDependencies {
+  const projects = overrides.projects ?? new FakeProjectRepository()
   return {
-    projects: new FakeProjectRepository(),
+    projects,
+    workItems: new FakeWorkItemRepository(projects),
     members: new FakeMemberRepository(),
     bindings: new FakeBindingRepository(),
     activity: new FakeActivityRecorder(),
