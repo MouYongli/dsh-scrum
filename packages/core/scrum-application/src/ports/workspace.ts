@@ -42,15 +42,20 @@ export function toWorkspaceRef(instanceId: string, workspaceId: string): Workspa
  * Deliberately narrower than the link table in the architecture document: it
  * carries no id of its own, because `(instanceId, workspaceId)` already
  * identifies it uniquely, and no tenant, because the project it points at
- * carries one and a second copy could disagree. The path fingerprint and
- * last-verified stamp that table lists are left out until something reads
- * them; a field nobody reads is a field nobody keeps correct.
+ * carries one and a second copy could disagree.
+ *
+ * `pathFingerprint` records where the workspace was when it was attached. It
+ * is never the key: the workspace id is, so a rename or a move keeps the
+ * binding. It exists only so a workspace that now sits somewhere else can be
+ * reported rather than silently used, which is the case where a synced folder
+ * or a restored backup has quietly become a different directory.
  */
 export interface WorkspaceBinding {
   readonly workspace: WorkspaceRef
   readonly projectId: ProjectId
   readonly linkedBy: IdentityId
   readonly linkedAt: Timestamp
+  readonly pathFingerprint: string
 }
 
 /**

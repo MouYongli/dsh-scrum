@@ -16,6 +16,8 @@ import { actor, dependencies } from '../support/fakes.js'
 // project has recorded some is a line in the log that no longer means what it
 // says, and nothing rewrites it. These may be added to and never renamed.
 
+const FINGERPRINT = 'sha256:where-it-was'
+
 describe('activity source', () => {
   it('publishes exactly these sources', () => {
     expect([...ACTIVITY_SOURCES]).toEqual(['ui', 'agent', 'api', 'automation', 'system'])
@@ -41,7 +43,10 @@ describe('activity actions', () => {
     deps.members.add(deps.projects.owners.get(project.id)!)
     const command = { projectId: project.id }
 
-    await bindWorkspace(deps, { actor: actor(), command: { workspace, projectId: project.id } })
+    await bindWorkspace(deps, {
+      actor: actor(),
+      command: { workspace, projectId: project.id, pathFingerprint: FINGERPRINT },
+    })
     await archiveProject(deps, { actor: actor(), command })
     await restoreProject(deps, { actor: actor(), command })
     await unbindWorkspace(deps, { actor: actor(), command: { workspace } })

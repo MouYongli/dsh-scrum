@@ -33,6 +33,8 @@ async function caught(run: Promise<unknown>): Promise<{ code?: string }> {
   return (await run.catch((error: unknown) => error)) as { code?: string }
 }
 
+const FINGERPRINT = 'sha256:where-it-was'
+
 describe('toWorkspaceRef', () => {
   it('keeps the instance in the identity, so one path on two machines is two workspaces', () => {
     expect(WORKSPACE).not.toEqual(OTHER_WORKSPACE)
@@ -50,7 +52,7 @@ describe('bindWorkspace', () => {
 
     const binding = await bindWorkspace(deps, {
       actor: actor(),
-      command: { workspace: WORKSPACE, projectId: project.id },
+      command: { workspace: WORKSPACE, projectId: project.id, pathFingerprint: FINGERPRINT },
     })
 
     expect(binding.projectId).toBe(project.id)
@@ -63,7 +65,7 @@ describe('bindWorkspace', () => {
   it('answers a repeated bind from what is stored rather than binding again', async () => {
     const deps = dependencies()
     const { project } = await seed(deps)
-    const command = { workspace: WORKSPACE, projectId: project.id }
+    const command = { workspace: WORKSPACE, projectId: project.id, pathFingerprint: FINGERPRINT }
 
     const first = await bindWorkspace(deps, { actor: actor(), command })
     const second = await bindWorkspace(deps, { actor: actor(), command })
@@ -78,13 +80,17 @@ describe('bindWorkspace', () => {
     const second = await seed(deps)
     await bindWorkspace(deps, {
       actor: actor(),
-      command: { workspace: WORKSPACE, projectId: first.project.id },
+      command: { workspace: WORKSPACE, projectId: first.project.id, pathFingerprint: FINGERPRINT },
     })
 
     const error = await caught(
       bindWorkspace(deps, {
         actor: actor(),
-        command: { workspace: WORKSPACE, projectId: second.project.id },
+        command: {
+          workspace: WORKSPACE,
+          projectId: second.project.id,
+          pathFingerprint: FINGERPRINT,
+        },
       }),
     )
 
@@ -99,7 +105,7 @@ describe('bindWorkspace', () => {
     const error = await caught(
       bindWorkspace(deps, {
         actor: actor({ identityId: OTHER_ID }),
-        command: { workspace: WORKSPACE, projectId: project.id },
+        command: { workspace: WORKSPACE, projectId: project.id, pathFingerprint: FINGERPRINT },
       }),
     )
 
@@ -125,7 +131,7 @@ describe('resolveWorkspaceBinding', () => {
     const { project } = await seed(deps)
     await bindWorkspace(deps, {
       actor: actor(),
-      command: { workspace: WORKSPACE, projectId: project.id },
+      command: { workspace: WORKSPACE, projectId: project.id, pathFingerprint: FINGERPRINT },
     })
 
     const resolved = await resolveWorkspaceBinding(deps, {
@@ -146,7 +152,7 @@ describe('resolveWorkspaceBinding', () => {
     const { project } = await seed(deps)
     await bindWorkspace(deps, {
       actor: actor(),
-      command: { workspace: WORKSPACE, projectId: project.id },
+      command: { workspace: WORKSPACE, projectId: project.id, pathFingerprint: FINGERPRINT },
     })
 
     const resolved = await resolveWorkspaceBinding(deps, {
@@ -161,12 +167,43 @@ describe('resolveWorkspaceBinding', () => {
     expect([...resolved.permissions]).toEqual([])
   })
 
+  it('reports a workspace that is no longer where it was attached', async () => {
+    const deps = dependencies()
+    const stored = await seed(deps)
+    await bindWorkspace(deps, {
+      actor: actor(),
+      command: {
+        workspace: WORKSPACE,
+        projectId: stored.project.id,
+        pathFingerprint: FINGERPRINT,
+      },
+    })
+
+    const here = await resolveWorkspaceBinding(deps, {
+      actor: actor(),
+      command: { workspace: WORKSPACE, pathFingerprint: FINGERPRINT },
+    })
+    const elsewhere = await resolveWorkspaceBinding(deps, {
+      actor: actor(),
+      command: { workspace: WORKSPACE, pathFingerprint: 'sha256:somewhere-else' },
+    })
+    const unstated = await resolveWorkspaceBinding(deps, {
+      actor: actor(),
+      command: { workspace: WORKSPACE },
+    })
+
+    expect(here.state === 'bound' && here.moved).toBe(false)
+    expect(elsewhere.state === 'bound' && elsewhere.moved).toBe(true)
+    // A caller that cannot say where it is must not be told it has moved.
+    expect(unstated.state === 'bound' && unstated.moved).toBe(false)
+  })
+
   it('reports a binding whose project is gone as stale rather than unbound', async () => {
     const deps = dependencies()
     const { project } = await seed(deps)
     await bindWorkspace(deps, {
       actor: actor(),
-      command: { workspace: WORKSPACE, projectId: project.id },
+      command: { workspace: WORKSPACE, projectId: project.id, pathFingerprint: FINGERPRINT },
     })
     deps.projects.stored.clear()
 
@@ -183,7 +220,7 @@ describe('resolveWorkspaceBinding', () => {
     const { project } = await seed(deps)
     await bindWorkspace(deps, {
       actor: actor(),
-      command: { workspace: WORKSPACE, projectId: project.id },
+      command: { workspace: WORKSPACE, projectId: project.id, pathFingerprint: FINGERPRINT },
     })
     const before = { ...deps.bindings.bindings.get('dsh_local_1//home/me/shop-service')! }
     deps.activity.events.length = 0
@@ -201,7 +238,7 @@ describe('unbindWorkspace', () => {
     const { project } = await seed(deps)
     await bindWorkspace(deps, {
       actor: actor(),
-      command: { workspace: WORKSPACE, projectId: project.id },
+      command: { workspace: WORKSPACE, projectId: project.id, pathFingerprint: FINGERPRINT },
     })
 
     const removed = await unbindWorkspace(deps, {
@@ -218,7 +255,7 @@ describe('unbindWorkspace', () => {
     const { project } = await seed(deps)
     await bindWorkspace(deps, {
       actor: actor(),
-      command: { workspace: WORKSPACE, projectId: project.id },
+      command: { workspace: WORKSPACE, projectId: project.id, pathFingerprint: FINGERPRINT },
     })
     deps.projects.stored.clear()
     deps.members.members.clear()
@@ -248,7 +285,7 @@ describe('unbindWorkspace', () => {
     const { project } = await seed(deps)
     await bindWorkspace(deps, {
       actor: actor(),
-      command: { workspace: WORKSPACE, projectId: project.id },
+      command: { workspace: WORKSPACE, projectId: project.id, pathFingerprint: FINGERPRINT },
     })
     deps.bindings.removable = false
 
