@@ -34,6 +34,13 @@ export interface BacklogState {
   readonly query: BacklogQuery
   readonly grouping: BacklogGrouping
   readonly page: BacklogPage
+  /**
+   * Everything that was read, in rank order and ungrouped. Reordering derives
+   * its target from this rather than from the group a row is drawn in: rank is
+   * one order over the project, and a move computed inside a group would land
+   * the item somewhere the user did not aim.
+   */
+  readonly ordered: readonly WorkItem[]
   /** The item the detail panel is open on, resolved from the loaded list. */
   readonly selected: WorkItem | null
   readonly failure: ScrumFailure | null
@@ -88,6 +95,7 @@ export function createBacklogController(
     query,
     grouping: BACKLOG_GROUPING.none,
     page: EMPTY_PAGE,
+    ordered: [],
     selected: null,
     failure: null,
     busy: false,
@@ -113,6 +121,7 @@ export function createBacklogController(
       ...state,
       ...patch,
       page: backlogPage(items, patch.grouping ?? state.grouping, isNarrowed(state.query)),
+      ordered: items,
       selected: items.find((item) => item.id === selectedId) ?? null,
     })
   }

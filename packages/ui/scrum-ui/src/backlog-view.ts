@@ -3,7 +3,16 @@ import type { AcceptanceCriterion, WorkItem, WorkItemId } from '@dsh-scrum/scrum
 import type { BacklogGroup, BacklogRow } from './backlog.js'
 import { BACKLOG_GROUPING, type BacklogGrouping } from './backlog.js'
 import type { BacklogState } from './backlog-controller.js'
-import type { BacklogQuery, EditWorkItem, NewWorkItem, SetCriterion } from './client.js'
+import type {
+  BacklogQuery,
+  BlockWorkItem,
+  DependWorkItem,
+  EditWorkItem,
+  NewWorkItem,
+  ParentWorkItem,
+  RankWorkItem,
+  SetCriterion,
+} from './client.js'
 import type { MessageKey, Translate } from './messages.js'
 import { priorityLabel, typeLabel } from './vocabulary.js'
 import {
@@ -14,6 +23,13 @@ import {
   toDetailChanges,
   toNewWorkItem,
 } from './work-item-form.js'
+import {
+  BlockControl,
+  DependencyPicker,
+  OrderControls,
+  ParentPicker,
+  type RankTarget,
+} from './work-item-links.js'
 
 /**
  * What the backlog screen can ask for.
@@ -31,6 +47,10 @@ export interface BacklogActions {
   readonly create: (input: NewWorkItem) => void
   readonly edit: (command: EditWorkItem) => void
   readonly criterion: (command: SetCriterion) => void
+  readonly rank: (command: RankWorkItem) => void
+  readonly parent: (command: ParentWorkItem) => void
+  readonly dependency: (command: DependWorkItem) => void
+  readonly block: (command: BlockWorkItem) => void
 }
 
 export interface BacklogProps {
@@ -165,6 +185,33 @@ function detailPanel(props: BacklogProps): ReactNode {
       },
       onChange: (criteria: readonly AcceptanceCriterion[]) => {
         props.actions.edit({ ...ref, changes: { acceptanceCriteria: criteria } })
+      },
+    }),
+    createElement(ParentPicker, {
+      t,
+      item,
+      candidates: props.state.ordered,
+      busy: props.state.busy || props.readOnly,
+      onChange: (parentId: WorkItemId | null) => {
+        props.actions.parent({ ...ref, parentId })
+      },
+    }),
+    createElement(DependencyPicker, {
+      t,
+      item,
+      candidates: props.state.ordered,
+      busy: props.state.busy || props.readOnly,
+      onChange: (dependsOnId: WorkItemId, linked: boolean) => {
+        props.actions.dependency({ ...ref, dependsOnId, linked })
+      },
+    }),
+    createElement(BlockControl, {
+      key: `${item.id}:${item.revision}`,
+      t,
+      item,
+      busy: props.state.busy || props.readOnly,
+      onChange: (reason: string | null) => {
+        props.actions.block({ ...ref, reason })
       },
     }),
   )
@@ -408,5 +455,20 @@ function rowItem(row: BacklogRow, props: BacklogProps): ReactElement {
     row.blocked
       ? createElement('span', { 'data-scrum-blocked': true }, t('backlog.blocked'))
       : null,
+    props.readOnly
+      ? null
+      : createElement(OrderControls, {
+          t,
+          ordered: props.state.ordered,
+          id: item.id,
+          busy: props.state.busy,
+          onMove: (target: RankTarget) => {
+            props.actions.rank({
+              workItemId: item.id,
+              expectedRevision: item.revision,
+              ...target,
+            })
+          },
+        }),
   )
 }

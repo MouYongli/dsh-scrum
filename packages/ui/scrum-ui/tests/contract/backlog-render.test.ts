@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { PRIORITY, WORK_ITEM_TYPE } from '@dsh-scrum/scrum-domain'
 import { BACKLOG_GROUPING, BacklogScreen, backlogPage, createTranslate } from '@dsh-scrum/scrum-ui'
 import type { BacklogActions, BacklogState } from '@dsh-scrum/scrum-ui'
-import { item } from '../support/items.js'
+import { item, itemId } from '../support/items.js'
 
 // Rendered to markup rather than asserted as an element tree: a tree assertion
 // passes while the page shows nothing, because a component that returned the
@@ -21,6 +21,10 @@ const actions: BacklogActions = {
   create: vi.fn(),
   edit: vi.fn(),
   criterion: vi.fn(),
+  rank: vi.fn(),
+  parent: vi.fn(),
+  dependency: vi.fn(),
+  block: vi.fn(),
 }
 
 function state(overrides: Partial<BacklogState> = {}): BacklogState {
@@ -29,6 +33,7 @@ function state(overrides: Partial<BacklogState> = {}): BacklogState {
     query: { planned: false },
     grouping: BACKLOG_GROUPING.none,
     page: backlogPage([], BACKLOG_GROUPING.none, false),
+    ordered: [],
     selected: null,
     failure: null,
     busy: false,
@@ -43,7 +48,7 @@ function render(overrides: Partial<BacklogState> = {}): string {
 }
 
 function loaded(...items: Parameters<typeof backlogPage>[0]): Partial<BacklogState> {
-  return { page: backlogPage(items, BACKLOG_GROUPING.none, false) }
+  return { page: backlogPage(items, BACKLOG_GROUPING.none, false), ordered: items }
 }
 
 describe('the three states a backlog can be in', () => {
@@ -239,5 +244,72 @@ describe('creating and inspecting a work item', () => {
     expect(markup).toContain('data-scrum-detail="SCR-1"')
     expect(markup).not.toContain('data-scrum-item-form="scrum-detail"')
     expect(markup).toContain('disabled=""')
+  })
+})
+
+describe('ordering, hierarchy, dependency and blocking', () => {
+  it('offers keyboard reachable move controls on every row', () => {
+    const markup = render(loaded(item(1), item(2)))
+
+    expect(markup).toContain('data-scrum-move="up"')
+    expect(markup).toContain('data-scrum-move="down"')
+    expect(markup).toContain(`aria-label="${t('item.moveUp')}"`)
+  })
+
+  it('rests the control at the end of the list rather than hiding it', () => {
+    const markup = render(loaded(item(1), item(2)))
+    const first = markup.slice(markup.indexOf('data-scrum-order="SCR-1"'))
+
+    expect(first.slice(0, first.indexOf('data-scrum-order="SCR-2"'))).toContain('disabled=""')
+  })
+
+  it('draws no move controls at all on an archived project', () => {
+    const markup = renderToStaticMarkup(
+      createElement(BacklogScreen, {
+        state: state(loaded(item(1))),
+        actions,
+        t,
+        readOnly: true,
+      }),
+    )
+
+    expect(markup).not.toContain('data-scrum-order')
+  })
+
+  it('offers every loaded item as a parent except the item itself', () => {
+    const selected = item(1)
+    const markup = render({ ...loaded(selected, item(2)), selected })
+    const picker = markup.slice(markup.indexOf('data-scrum-parent'))
+    const options = picker.slice(0, picker.indexOf('</select>'))
+
+    expect(options).toContain(t('item.noParent'))
+    expect(options).toContain('SCR-2')
+    expect(options).not.toContain('value="SCR-1"')
+  })
+
+  it('lists a dependency the current filter cannot see, by identifier', () => {
+    const selected = item(1, { dependsOn: [itemId(9)] })
+    const markup = render({ ...loaded(selected), selected })
+
+    expect(markup).toContain(`SCR-9 · ${t('item.unknownItem')}`)
+    expect(markup).toContain('data-scrum-dependency-remove="SCR-9"')
+  })
+
+  it('says there are none rather than showing an empty dependency list', () => {
+    const selected = item(1)
+
+    expect(render({ ...loaded(selected), selected })).toContain(t('item.noDependencies'))
+  })
+
+  it('offers one reason box, and a clear only once something is blocked', () => {
+    const open = item(1)
+    expect(render({ ...loaded(open), selected: open })).not.toContain('data-scrum-block-clear')
+
+    const blocked = item(1, { blockedReason: '等待接口' })
+    const markup = render({ ...loaded(blocked), selected: blocked })
+
+    expect(markup).toContain('data-scrum-block="true"')
+    expect(markup).toContain('value="等待接口"')
+    expect(markup).toContain(t('item.unblock'))
   })
 })
