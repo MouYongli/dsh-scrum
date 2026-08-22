@@ -51,3 +51,5 @@ export type { DirectoryLockOptions, FileLockPort, LockHolder, WorkspaceLock } fr
 export { createDirectoryLockPort } from './locking.js'
 export type { WriteCoordinator } from './coordinator.js'
 export { createWriteCoordinator } from './coordinator.js'
+export type { OperationSpec, OperationWrite, RecoveredOperation } from './journal.js'
+export { recoverOperations, runOperation } from './journal.js'

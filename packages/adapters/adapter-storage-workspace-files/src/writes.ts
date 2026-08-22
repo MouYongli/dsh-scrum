@@ -149,7 +149,7 @@ async function write(
  * file from a newer build is still refused, because overwriting one would
  * destroy data this build cannot even read.
  */
-async function readStoredRevision(file: string): Promise<Revision | null> {
+export async function readStoredRevision(file: string): Promise<Revision | null> {
   let text: string
   try {
     text = await readFile(file, 'utf8')
