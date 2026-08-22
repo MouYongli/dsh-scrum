@@ -1,8 +1,9 @@
 import type { ApplicationDependencies } from '@dsh-scrum/scrum-application'
 import type { WriteCoordinator } from './coordinator.js'
 import { workspaceLayout } from './paths.js'
-import { sprintRepository, transactionPort, workItemRepository } from './repository-entities.js'
 import { memberRepository, projectRepository, type StoredEdition } from './repository-project.js'
+import { sprintRepository, transactionPort, workItemRepository } from './repository-entities.js'
+import { bindingRepository, idempotencyStore, sessionRepository } from './repository-local.js'
 
 /**
  * The application's storage ports over one workspace directory.
@@ -20,7 +21,14 @@ export interface WorkspaceRepositoriesInput {
 
 export type WorkspaceRepositories = Pick<
   ApplicationDependencies,
-  'projects' | 'members' | 'workItems' | 'sprints' | 'transactions'
+  | 'projects'
+  | 'workItems'
+  | 'sprints'
+  | 'transactions'
+  | 'members'
+  | 'bindings'
+  | 'sessions'
+  | 'idempotency'
 >
 
 export function createWorkspaceRepositories(
@@ -32,9 +40,12 @@ export function createWorkspaceRepositories(
 
   return {
     projects: projectRepository(root, input.edition, run),
-    members: memberRepository(root),
     workItems: workItemRepository(root, layout, run),
     sprints: sprintRepository(root, layout, run),
     transactions: transactionPort(layout, run),
+    members: memberRepository(root),
+    bindings: bindingRepository(layout, run),
+    sessions: sessionRepository(layout, run),
+    idempotency: idempotencyStore(layout, run),
   }
 }
