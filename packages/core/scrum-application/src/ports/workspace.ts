@@ -36,11 +36,6 @@ export function toWorkspaceRef(instanceId: string, workspaceId: string): Workspa
   }
 }
 
-/** Whether two references name the same workspace. */
-export function sameWorkspace(left: WorkspaceRef, right: WorkspaceRef): boolean {
-  return left.instanceId === right.instanceId && left.workspaceId === right.workspaceId
-}
-
 /**
  * One workspace attached to one project.
  *

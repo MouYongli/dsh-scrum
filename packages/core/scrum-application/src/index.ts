@@ -26,7 +26,7 @@ export type {
   WorkspaceBindingRepository,
   WorkspaceRef,
 } from './ports/workspace.js'
-export { sameWorkspace, toWorkspaceRef } from './ports/workspace.js'
+export { toWorkspaceRef } from './ports/workspace.js'
 export type { CreateProjectCommand, ProjectCommand } from './use-cases/project.js'
 export { archiveProject, createProject, getProject, restoreProject } from './use-cases/project.js'
 export type { BindWorkspaceCommand, ResolvedBinding } from './use-cases/workspace.js'
