@@ -93,6 +93,7 @@ export function dependencies(store: MemoryStore): ApplicationDependencies {
         store.bindings.delete(key(workspace))
       },
     },
+    sessions: notComposed('session access'),
     workItems: notComposed('work items'),
     sprints: notComposed('sprints'),
     transactions: notComposed('transactions'),

@@ -107,6 +107,8 @@ export type {
 export {
   DEFAULT_PERMISSION_POLICY,
   PERMISSION,
+  READ_PERMISSIONS,
+  isReadPermission,
   PERMISSIONS,
   PERMISSION_GRANT,
   assertPermission,
