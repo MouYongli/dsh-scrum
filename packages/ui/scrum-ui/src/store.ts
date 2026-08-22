@@ -7,12 +7,17 @@
  * root-level surface, and closing it because the user picked another session
  * would throw away what they were reading.
  */
+/**
+ * Declared as function-valued properties rather than methods: they are handed
+ * to `useSyncExternalStore` on their own, and a method signature would let a
+ * later implementation depend on `this` in a place that has already lost it.
+ */
 export interface WorkbenchStore {
-  isOpen(): boolean
-  open(): void
-  close(): void
-  toggle(): void
-  subscribe(listener: () => void): () => void
+  readonly isOpen: () => boolean
+  readonly open: () => void
+  readonly close: () => void
+  readonly toggle: () => void
+  readonly subscribe: (listener: () => void) => () => void
 }
 
 export function createWorkbenchStore(initiallyOpen = false): WorkbenchStore {
