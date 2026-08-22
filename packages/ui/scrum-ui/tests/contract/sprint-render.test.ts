@@ -21,6 +21,10 @@ const actions: SprintActions = {
   parent: vi.fn(),
   dependency: vi.fn(),
   block: vi.fn(),
+  ask: vi.fn(),
+  cancel: vi.fn(),
+  start: vi.fn(),
+  close: vi.fn(),
 }
 
 function state(overrides: Partial<SprintState> = {}): SprintState {
@@ -202,5 +206,72 @@ describe('the board', () => {
 
     expect(markup).toContain('data-scrum-detail="SCR-1"')
     expect(markup).toContain('data-scrum-criteria-list')
+  })
+})
+
+describe('starting and closing', () => {
+  const active = sprint(1, { status: SPRINT_STATUS.active })
+
+  it('offers only the transition the sprint status allows', () => {
+    const planned = sprint(1)
+
+    expect(render({ sprints: [planned], selected: planned })).toContain(
+      'data-scrum-transition="start"',
+    )
+    expect(render({ sprints: [active], selected: active })).toContain(
+      'data-scrum-transition="close"',
+    )
+    const closed = sprint(1, { status: SPRINT_STATUS.closed })
+    expect(render({ sprints: [closed], selected: closed })).not.toContain('data-scrum-transition')
+  })
+
+  it('offers no transition at all on an archived project', () => {
+    expect(render({ sprints: [active], selected: active }, true)).not.toContain(
+      'data-scrum-transition',
+    )
+  })
+
+  it('asks before starting, in a dialog that names the sprint', () => {
+    const planned = sprint(1)
+    const markup = render({
+      sprints: [planned],
+      selected: planned,
+      confirmation: { kind: 'start', sprint: planned },
+    })
+
+    expect(markup).toContain('data-scrum-confirm="start"')
+    expect(markup).toContain('aria-modal="true"')
+    expect(markup).toContain(planned.name)
+    expect(markup).toContain(t('sprint.start.submit'))
+  })
+
+  it('asks where every unfinished item goes, with nothing preselected', () => {
+    const markup = render({
+      sprints: [active, sprint(2)],
+      selected: active,
+      confirmation: {
+        kind: 'close',
+        sprint: active,
+        unfinished: [item(1, { title: '结算对账' })],
+      },
+    })
+
+    expect(markup).toContain('data-scrum-unfinished="1"')
+    expect(markup).toContain('data-scrum-disposition="SCR-1"')
+    expect(markup).toContain(t('sprint.close.choose'))
+    expect(markup).toContain(t('sprint.close.toBacklog'))
+    // Nothing is decided yet, so closing is out of reach.
+    expect(markup).toContain('disabled=""')
+  })
+
+  it('says so when there is nothing standing in the way', () => {
+    const markup = render({
+      sprints: [active],
+      selected: active,
+      confirmation: { kind: 'close', sprint: active, unfinished: [] },
+    })
+
+    expect(markup).toContain(t('sprint.close.allDone'))
+    expect(markup).toContain(t('sprint.close.summary'))
   })
 })

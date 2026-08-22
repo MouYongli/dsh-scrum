@@ -43,6 +43,8 @@ export type { SprintConfirmation, SprintController, SprintState } from './sprint
 export { createSprintController, defaultSprint } from './sprint-controller.js'
 export type { SprintFields, SprintFormProps } from './sprint-form.js'
 export { EMPTY_SPRINT_FIELDS, SprintForm, toDay, toNewSprint, toSprintDate } from './sprint-form.js'
+export type { ConfirmProps, Decisions } from './sprint-confirm.js'
+export { SprintConfirmDialog, carryTargets, toDispositions } from './sprint-confirm.js'
 export type { SprintActions, SprintProps } from './sprint-view.js'
 export { SprintScreen } from './sprint-view.js'
 export {

@@ -2,10 +2,11 @@ import { createElement, useState, type ReactElement, type ReactNode } from 'reac
 import type { Sprint, SprintId, WorkItem } from '@dsh-scrum/scrum-domain'
 import { SPRINT_STATUS } from '@dsh-scrum/scrum-domain'
 import { Board, type BoardActions } from './board-view.js'
-import type { NewSprint, WorkItemRef } from './client.js'
+import type { Disposition, NewSprint, WorkItemRef } from './client.js'
 import { WorkItemDetail, type WorkItemDetailActions } from './work-item-detail.js'
 import type { SprintState } from './sprint-controller.js'
 import type { MessageKey, Translate } from './messages.js'
+import { SprintConfirmDialog } from './sprint-confirm.js'
 import { SprintForm, toDay } from './sprint-form.js'
 import { priorityLabel, sprintStatusLabel, typeLabel } from './vocabulary.js'
 
@@ -16,6 +17,10 @@ export interface SprintActions extends BoardActions, Omit<WorkItemDetailActions,
   readonly plan: (items: readonly WorkItemRef[], into: SprintId | null) => void
   readonly refresh: () => void
   readonly dismiss: () => void
+  readonly ask: (kind: 'start' | 'close') => void
+  readonly cancel: () => void
+  readonly start: () => void
+  readonly close: (resultSummary: string, dispositions: readonly Disposition[]) => void
 }
 
 export interface SprintProps {
@@ -46,10 +51,53 @@ export function SprintScreen(props: SprintProps): ReactElement {
             sprintPicker(props),
             props.readOnly ? null : createElement(CreatePanel, props),
             state.selected === null ? emptyState(props) : summary(state.selected, props),
+            state.confirmation === null ? null : confirmation(props),
+            state.selected === null ? null : transitions(state.selected, props),
             state.selected === null ? null : board(props),
             state.selected === null ? null : planning(state.selected, props),
             drawer(props),
           ),
+  )
+}
+
+function confirmation(props: SprintProps): ReactNode {
+  if (props.state.confirmation === null) {
+    return null
+  }
+  return createElement(SprintConfirmDialog, {
+    confirmation: props.state.confirmation,
+    sprints: props.state.sprints,
+    t: props.t,
+    busy: props.state.busy,
+    onCancel: props.actions.cancel,
+    onStart: props.actions.start,
+    onClose: props.actions.close,
+  })
+}
+
+/**
+ * The one transition this sprint has left.
+ *
+ * Only the transition its status allows is offered. A start control on an
+ * active sprint would be a control whose only outcome is a refusal, and the
+ * user would have to click it to find that out.
+ */
+function transitions(sprint: Sprint, props: SprintProps): ReactNode {
+  if (props.readOnly || sprint.status === SPRINT_STATUS.closed) {
+    return null
+  }
+  const kind = sprint.status === SPRINT_STATUS.planned ? 'start' : 'close'
+  return createElement(
+    'button',
+    {
+      type: 'button',
+      disabled: props.state.busy,
+      'data-scrum-transition': kind,
+      onClick: () => {
+        props.actions.ask(kind)
+      },
+    },
+    props.t(kind === 'start' ? 'sprint.start' : 'sprint.close'),
   )
 }
 
