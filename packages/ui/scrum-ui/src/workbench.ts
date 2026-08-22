@@ -15,6 +15,7 @@ import { createSprintController } from './sprint-controller.js'
 import { SprintScreen } from './sprint-view.js'
 import type {
   CreateProjectInput,
+  EntryView,
   RemoteOfferView,
   RemoteProfileView,
   ScrumClient,
@@ -37,7 +38,7 @@ export interface WorkbenchProps {
   readonly state: WorkbenchState
   readonly t?: Translate | undefined
   /** Shell-owned title bar, such as the current Workspace switcher. */
-  readonly header?: ReactNode | undefined
+  readonly header?: ReactNode | ((entry: EntryView | null) => ReactNode) | undefined
   readonly onCreate?: ((input: CreateProjectInput) => void) | undefined
   readonly onConnectTeam?: (() => void) | undefined
   readonly connectionSurface?: ReactNode | undefined
@@ -70,7 +71,9 @@ export function Workbench(props: WorkbenchProps): ReactElement {
       'aria-label': t('workbench.title'),
       'aria-busy': props.state.kind === 'loading',
     },
-    props.header ??
+    (typeof props.header === 'function'
+      ? props.header(props.state.kind === 'ready' ? props.state.entry : null)
+      : props.header) ??
       createElement(
         'header',
         null,
@@ -160,7 +163,7 @@ function body(props: WorkbenchProps, t: Translate): ReactElement | null {
       props.surface,
     )
   }
-  return createElement(
+  const content = createElement(
     'div',
     { 'data-scrum-page': page.state },
     page.workspaceName === null
@@ -191,6 +194,25 @@ function body(props: WorkbenchProps, t: Translate): ReactElement | null {
       : (props.connectionSurface ??
           createElement(TeamConnectionEntry, { t, onConnect: props.onConnectTeam })),
     page.project === null ? null : props.surface,
+  )
+  if (page.state !== 'unbound') return content
+  return createElement(
+    'div',
+    { 'data-scrum-surface': 'home', 'data-scrum-onboarding': true },
+    createElement(
+      'nav',
+      { 'aria-label': t('workbench.title') },
+      createElement(
+        'button',
+        {
+          type: 'button',
+          'aria-pressed': true,
+          'data-scrum-section': 'home',
+        },
+        t('section.home'),
+      ),
+    ),
+    content,
   )
 }
 
@@ -560,6 +582,7 @@ const SECTIONS = [
   { id: 'home', label: 'section.home' },
   { id: 'backlog', label: 'section.backlog' },
   { id: 'sprint', label: 'section.sprint' },
+  { id: 'agent', label: 'agent.open' },
 ] as const
 
 type SectionId = (typeof SECTIONS)[number]['id']
@@ -580,7 +603,6 @@ function ProjectSurface(props: {
   readonly onOpenAgent?: (() => void) | undefined
 }): ReactElement {
   const [section, setSection] = useState<SectionId>('home')
-  const [agentOpen, setAgentOpen] = useState(false)
   return createElement(
     'div',
     { 'data-scrum-surface': section },
@@ -595,29 +617,16 @@ function ProjectSurface(props: {
             type: 'button',
             'aria-pressed': section === entry.id,
             'data-scrum-section': entry.id,
+            'data-scrum-agent': entry.id === 'agent' ? true : undefined,
             onClick: () => {
               setSection(entry.id)
+              if (entry.id === 'agent') props.onOpenAgent?.()
             },
           },
           props.t(entry.label),
         ),
       ),
-      createElement(
-        'button',
-        {
-          type: 'button',
-          'data-scrum-agent': true,
-          onClick: () => {
-            setAgentOpen(true)
-            props.onOpenAgent?.()
-          },
-        },
-        props.t('agent.open'),
-      ),
     ),
-    agentOpen
-      ? createElement('aside', { 'data-scrum-agent-panel': true }, props.t('agent.body'))
-      : null,
     surfaceFor(section, props),
   )
 }
@@ -638,6 +647,8 @@ function surfaceFor(
       return createElement(ConnectedBacklog, props)
     case 'sprint':
       return createElement(ConnectedSprints, props)
+    case 'agent':
+      return createElement('section', { 'data-scrum-agent-panel': true }, props.t('agent.body'))
   }
 }
 
@@ -692,7 +703,7 @@ function ConnectedHome(props: {
 export interface ConnectedWorkbenchProps {
   readonly client: ScrumClient
   readonly t?: Translate | undefined
-  readonly header?: ReactNode | undefined
+  readonly header?: WorkbenchProps['header']
   readonly onExit?: (() => void) | undefined
   readonly leaving?: boolean | undefined
   readonly onResume?: (() => void) | undefined

@@ -17,8 +17,9 @@ export const SCRUM_STYLES = String.raw`
   --scrum-warning: var(--dsw-alias-fg-warning, #a56a12);
   --scrum-shadow: 0 16px 50px color-mix(in srgb, #111827 16%, transparent);
   --scrum-radius: 14px;
+  --scrum-content-padding: clamp(24px, 3vw, 40px);
   color: var(--dsw-alias-fg-base, CanvasText);
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: inherit;
   font-size: 14px;
   line-height: 1.45;
 }
@@ -169,7 +170,7 @@ export const SCRUM_STYLES = String.raw`
 [data-scrum-page] {
   display: grid;
   gap: 8px;
-  padding: clamp(24px, 4vw, 48px);
+  padding: var(--scrum-content-padding);
 }
 
 [data-scrum-page="bound"],
@@ -261,7 +262,7 @@ export const SCRUM_STYLES = String.raw`
 
 [data-scrum-surface] > section {
   margin: 0;
-  padding: clamp(24px, 3vw, 40px);
+  padding: var(--scrum-content-padding);
 }
 
 [data-scrum-home] {

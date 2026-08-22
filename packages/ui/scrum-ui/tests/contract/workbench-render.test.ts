@@ -238,11 +238,12 @@ describe('the project surface', () => {
     ).toContain('data-scrum-surface')
   })
 
-  it('shows on none of the states that have no project to show one for', () => {
+  it('uses a home-only surface for onboarding and no surface for other projectless states', () => {
     expect(withSurface({ state: 'no-workspace' })).not.toContain('data-scrum-surface')
-    expect(withSurface({ state: 'unbound', workspace: WORKSPACE })).not.toContain(
-      'data-scrum-surface',
-    )
+    const onboarding = withSurface({ state: 'unbound', workspace: WORKSPACE })
+    expect(onboarding).toContain('data-scrum-onboarding')
+    expect(onboarding.match(/data-scrum-section=/g)).toHaveLength(1)
+    expect(onboarding).toContain('data-scrum-section="home"')
     expect(withSurface({ state: 'stale', workspace: WORKSPACE })).not.toContain(
       'data-scrum-surface',
     )
