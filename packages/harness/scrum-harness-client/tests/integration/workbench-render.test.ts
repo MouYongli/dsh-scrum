@@ -94,7 +94,7 @@ describe('the overlay', () => {
 
     expect(markup).toContain('[data-scrum-workbench] &gt; [data-scrum-topbar]')
     expect(markup).toContain('justify-content: flex-start')
-    expect(markup).toContain('padding: 12px 28px 0 20px')
+    expect(markup).toContain('padding: 12px 28px 0;')
     expect(markup).toContain('position: absolute')
     expect(markup).toContain('top: 12px')
     expect(markup).toContain('right: 28px')

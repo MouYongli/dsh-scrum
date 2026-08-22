@@ -119,7 +119,7 @@ export const SCRUM_STYLES = String.raw`
   gap: 0;
   min-height: 44px;
   margin: 0 !important;
-  padding: 12px 28px 0 20px;
+  padding: 12px 28px 0;
   border-bottom: 0;
 }
 
