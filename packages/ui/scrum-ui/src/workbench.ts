@@ -6,7 +6,10 @@ import {
   useSyncExternalStore,
   type FormEvent,
   type ReactElement,
+  type ReactNode,
 } from 'react'
+import { createBacklogController } from './backlog-controller.js'
+import { BacklogScreen } from './backlog-view.js'
 import type { CreateProjectInput, ScrumClient } from './client.js'
 import { createWorkbenchController, type WorkbenchState } from './controller.js'
 import { createTranslate, type Translate } from './messages.js'
@@ -25,6 +28,12 @@ export interface WorkbenchProps {
   readonly t?: Translate | undefined
   readonly onCreate?: ((input: CreateProjectInput) => void) | undefined
   readonly onClose?: (() => void) | undefined
+  /**
+   * What a project surface shows once a workspace is attached to one. Handed
+   * in rather than built here, so this component stays renderable against any
+   * state without a client behind it.
+   */
+  readonly surface?: ReactNode | undefined
 }
 
 export function Workbench(props: WorkbenchProps): ReactElement {
@@ -92,6 +101,7 @@ function body(props: WorkbenchProps, t: Translate): ReactElement | null {
           creating: state.creating,
           onCreate: props.onCreate,
         }),
+    page.project === null ? null : props.surface,
   )
 }
 
@@ -174,6 +184,47 @@ function field(
   )
 }
 
+/**
+ * The backlog, wired to a client.
+ *
+ * A surface of its own rather than a branch inside the workbench: it has its
+ * own reads, its own failures and its own place, and folding it into the
+ * workbench controller would make one state machine responsible for two
+ * screens that fail independently.
+ */
+function ConnectedBacklog(props: {
+  readonly client: ScrumClient
+  readonly t: Translate
+  readonly readOnly: boolean
+}): ReactElement {
+  const controller = useMemo(() => createBacklogController(props.client), [props.client])
+  const state = useSyncExternalStore(controller.subscribe, controller.state, controller.state)
+
+  useEffect(() => {
+    void controller.load()
+  }, [controller])
+
+  return createElement(BacklogScreen, {
+    state,
+    t: props.t,
+    readOnly: props.readOnly,
+    actions: {
+      query: (query) => void controller.setQuery(query),
+      group: controller.setGrouping,
+      select: controller.select,
+      refresh: () => void controller.load(),
+      dismiss: controller.dismiss,
+      create: (input) => void controller.create(input),
+      edit: (command) => void controller.edit(command),
+      criterion: (command) => void controller.setCriterion(command),
+      rank: (command) => void controller.rank(command),
+      parent: (command) => void controller.setParent(command),
+      dependency: (command) => void controller.setDependency(command),
+      block: (command) => void controller.block(command),
+    },
+  })
+}
+
 export interface ConnectedWorkbenchProps {
   readonly client: ScrumClient
   readonly t?: Translate | undefined
@@ -192,10 +243,19 @@ export function ConnectedWorkbench(props: ConnectedWorkbenchProps): ReactElement
     void controller.load()
   }, [controller])
 
+  const t = props.t ?? createTranslate()
   return createElement(Workbench, {
     state,
     t: props.t,
     onClose: props.onClose,
     onCreate: (input) => void controller.create(input),
+    surface:
+      state.kind === 'ready' && (state.entry.state === 'bound' || state.entry.state === 'archived')
+        ? createElement(ConnectedBacklog, {
+            client: props.client,
+            t,
+            readOnly: state.entry.state === 'archived',
+          })
+        : null,
   })
 }

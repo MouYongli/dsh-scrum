@@ -25,9 +25,9 @@ export const SCRUM_MESSAGES = {
     'state.unbound.body': '创建一个新的 Scrum 项目，数据会保存在该工作区的 .scrum 目录中。',
     'state.unbound.create': '创建新的 Scrum 项目',
     'state.bound.title': '项目已就绪',
-    'state.bound.body': '概览、Backlog 与 Sprint 看板将在后续版本接入此工作台。',
+    'state.bound.body': '下面是产品 Backlog，Sprint 看板将在后续版本接入此工作台。',
     'state.archived.title': '项目已归档',
-    'state.archived.body': '归档项目只能查看，恢复后才能继续编辑。',
+    'state.archived.body': '归档项目只能查看，恢复后才能继续编辑；下面的 Backlog 是只读的。',
     'state.stale.title': '绑定已失效',
     'state.stale.body': '此工作区绑定的 Scrum 项目已不存在，可以解除绑定后重新创建。',
     'state.moved.notice': '此工作区的位置与绑定时不同，请确认这是同一个目录。',
@@ -122,10 +122,10 @@ export const SCRUM_MESSAGES = {
     'state.unbound.body': 'Create one, and its data is stored in the .scrum directory here.',
     'state.unbound.create': 'Create a Scrum project',
     'state.bound.title': 'The project is ready',
-    'state.bound.body':
-      'The overview, the backlog and the sprint board arrive in this workbench next.',
+    'state.bound.body': 'The product backlog is below. The sprint board arrives next.',
     'state.archived.title': 'This project is archived',
-    'state.archived.body': 'An archived project is read-only until it is restored.',
+    'state.archived.body':
+      'An archived project is read-only until it is restored, and so is the backlog below.',
     'state.stale.title': 'This binding no longer resolves',
     'state.stale.body':
       'The project this workspace was attached to is gone. Detach and create a new one.',

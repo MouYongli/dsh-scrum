@@ -170,3 +170,30 @@ describe('what the wizard submits', () => {
     expect(toCreateInput('  优惠券服务 ', 'SCR', '').name).toBe('  优惠券服务 ')
   })
 })
+
+describe('the project surface', () => {
+  const surface = createElement('div', { 'data-scrum-surface': true }, 'backlog')
+
+  function withSurface(entry: EntryView): string {
+    return renderToStaticMarkup(createElement(Workbench, { state: ready(entry), surface }))
+  }
+
+  it('shows on a bound project and on an archived one', () => {
+    expect(
+      withSurface({ state: 'bound', workspace: WORKSPACE, project: PROJECT, moved: false }),
+    ).toContain('data-scrum-surface')
+    expect(
+      withSurface({ state: 'archived', workspace: WORKSPACE, project: PROJECT, moved: false }),
+    ).toContain('data-scrum-surface')
+  })
+
+  it('shows on none of the states that have no project to show one for', () => {
+    expect(withSurface({ state: 'no-workspace' })).not.toContain('data-scrum-surface')
+    expect(withSurface({ state: 'unbound', workspace: WORKSPACE })).not.toContain(
+      'data-scrum-surface',
+    )
+    expect(withSurface({ state: 'stale', workspace: WORKSPACE })).not.toContain(
+      'data-scrum-surface',
+    )
+  })
+})
