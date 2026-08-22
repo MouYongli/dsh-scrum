@@ -6,6 +6,10 @@
     // from `.dependency-cruiser.mjs`, which dependency-cruiser has to be able
     // to load directly and so cannot be TypeScript.
     "allowJs": true,
+    // The browser components are driven in a jsdom document by the tests under
+    // `tests/integration`, so the test program needs the DOM library the
+    // packages themselves already compile against.
+    "lib": ["es2023", "dom"],
     "composite": false,
     "declaration": false,
     "declarationMap": false,
