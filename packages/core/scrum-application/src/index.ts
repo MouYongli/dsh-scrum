@@ -33,3 +33,17 @@ export type { CreateProjectCommand, ProjectCommand } from './use-cases/project.j
 export { archiveProject, createProject, getProject, restoreProject } from './use-cases/project.js'
 export type { BindWorkspaceCommand, ResolvedBinding } from './use-cases/workspace.js'
 export { bindWorkspace, resolveWorkspaceBinding, unbindWorkspace } from './use-cases/workspace.js'
+export type {
+  CreateWorkItemCommand,
+  ListWorkItemsCommand,
+  SetAcceptanceCriterionCommand,
+  UpdateWorkItemCommand,
+  WorkItemCommand,
+} from './use-cases/work-item.js'
+export {
+  createWorkItem,
+  getWorkItem,
+  listWorkItems,
+  setAcceptanceCriterion,
+  updateWorkItem,
+} from './use-cases/work-item.js'
