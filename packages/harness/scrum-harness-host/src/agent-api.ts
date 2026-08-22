@@ -6,6 +6,7 @@ import {
   type SprintId,
   type WorkItem,
   type WorkItemId,
+  type WorkItemReferences,
 } from '@dsh-scrum/scrum-domain'
 import {
   resolveSessionAuthorization,
@@ -36,7 +37,25 @@ export interface ScrumAgentApi {
   sprints(): Promise<readonly Sprint[]>
   sprint(id: SprintId): Promise<Sprint>
   progress(id: SprintId): Promise<SprintProgress>
+  createWorkItem(command: AgentCommand<'createWorkItem'>): Promise<WorkItem>
+  updateWorkItem(command: AgentCommand<'updateWorkItem'>): Promise<WorkItem>
+  moveWorkItemToRank(command: AgentCommand<'moveWorkItemToRank'>): Promise<WorkItem>
+  moveWorkItemStatus(command: AgentCommand<'moveWorkItemStatus'>): Promise<WorkItem>
+  blockWorkItem(command: AgentCommand<'blockWorkItem'>): Promise<WorkItem>
+  deleteWorkItem(command: AgentCommand<'deleteWorkItem'>): Promise<WorkItemReferences>
+  planSprint(command: AgentCommand<'planSprint'>): Promise<readonly WorkItem[]>
+  createSprint(command: AgentCommand<'createSprint'>): Promise<Sprint>
+  startSprint(command: AgentCommand<'startSprint'>): Promise<Sprint>
+  closeSprint(command: AgentCommand<'closeSprint'>): Promise<Sprint>
+  configureProject(command: AgentCommand<'configureProject'>): Promise<StoredProject>
 }
+
+/** The command one host call takes, so the two surfaces cannot drift apart. */
+type AgentCommand<Name extends keyof ScrumHostApi> = ScrumHostApi[Name] extends (
+  command: infer Command,
+) => unknown
+  ? Command
+  : never
 
 export function createAgentApi(
   harness: HarnessContext,
@@ -72,6 +91,23 @@ export function createAgentApi(
     return project
   }
 
+  /**
+   * A write, gated on a permission the session must hold.
+   *
+   * The permission named here is the one the use case will check for the
+   * ordinary case. Where the use case decides between two — moving your own
+   * card versus anyone's — the gate names the weaker, because its question is
+   * only whether the session may write at all; the role check that follows is
+   * what decides which.
+   */
+  async function writing<Result>(
+    permission: Permission,
+    run: () => Promise<Result>,
+  ): Promise<Result> {
+    await assertSessionAllows(permission)
+    return await run()
+  }
+
   async function reading<Result>(
     permission: Permission,
     run: (project: StoredProject) => Result | Promise<Result>,
@@ -93,5 +129,34 @@ export function createAgentApi(
       await reading(PERMISSION.projectView, async () => await api.sprint(id)),
     progress: async (id: SprintId) =>
       await reading(PERMISSION.reportView, async () => await api.progress(id)),
+
+    createWorkItem: async (command) =>
+      await writing(PERMISSION.workItemWrite, async () => await api.createWorkItem(command)),
+    updateWorkItem: async (command) =>
+      await writing(PERMISSION.workItemWrite, async () => await api.updateWorkItem(command)),
+    moveWorkItemToRank: async (command) =>
+      await writing(
+        PERMISSION.backlogPrioritize,
+        async () => await api.moveWorkItemToRank(command),
+      ),
+    moveWorkItemStatus: async (command) =>
+      await writing(
+        PERMISSION.workItemUpdateOwnStatus,
+        async () => await api.moveWorkItemStatus(command),
+      ),
+    blockWorkItem: async (command) =>
+      await writing(PERMISSION.workItemSetBlocked, async () => await api.blockWorkItem(command)),
+    deleteWorkItem: async (command) =>
+      await writing(PERMISSION.workItemWrite, async () => await api.deleteWorkItem(command)),
+    planSprint: async (command) =>
+      await writing(PERMISSION.sprintAssignWorkItems, async () => await api.planSprint(command)),
+    createSprint: async (command) =>
+      await writing(PERMISSION.sprintCreate, async () => await api.createSprint(command)),
+    startSprint: async (command) =>
+      await writing(PERMISSION.sprintTransition, async () => await api.startSprint(command)),
+    closeSprint: async (command) =>
+      await writing(PERMISSION.sprintTransition, async () => await api.closeSprint(command)),
+    configureProject: async (command) =>
+      await writing(PERMISSION.projectConfigure, async () => await api.configureProject(command)),
   }
 }

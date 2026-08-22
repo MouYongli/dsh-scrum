@@ -41,4 +41,11 @@ export interface ProjectRepository {
    * a write that can silently discard someone else's change.
    */
   save(project: Project, expected: Revision): Promise<void>
+  /**
+   * Replaces the configuration file. Separate from `save` because the project
+   * and its configuration are two files under two revisions, and one call that
+   * wrote both would have to invent a rule for what happens when one of the
+   * two expectations is stale.
+   */
+  saveConfig(config: ProjectConfig, expected: Revision): Promise<void>
 }
