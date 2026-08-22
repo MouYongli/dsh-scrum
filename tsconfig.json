@@ -11,6 +11,9 @@
       "path": "packages/adapters/adapter-identity-personal"
     },
     {
+      "path": "packages/adapters/adapter-remote-api"
+    },
+    {
       "path": "packages/core/scrum-domain"
     },
     {

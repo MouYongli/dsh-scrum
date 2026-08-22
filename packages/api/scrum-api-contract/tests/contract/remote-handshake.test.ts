@@ -4,10 +4,15 @@ import {
   REMOTE_PROTOCOL,
   createRemoteHandshakeRequest,
   parseRemoteHandshakeResponse,
+  recognizedCapabilities,
   remoteHandshakeResponseSchema,
 } from '../../src/index.js'
 
 describe('remote handshake contract', () => {
+  const serviceContext = {
+    edition: 'teams' as const,
+    tenant: { id: 'tenant-1', displayName: 'Team One' },
+  }
   it('advertises every API version supported by the plugin', () => {
     expect(createRemoteHandshakeRequest('dsh-scrum-plugin', '0.1.0')).toEqual({
       protocol: REMOTE_PROTOCOL,
@@ -22,6 +27,7 @@ describe('remote handshake contract', () => {
       protocol: REMOTE_PROTOCOL,
       serviceName: 'dsh-scrum-server',
       serviceVersion: '0.1.0',
+      ...serviceContext,
       selectedApiVersion: API_VERSION,
       capabilities: ['scrum.core', 'future.capability'],
       principal: {
@@ -32,6 +38,7 @@ describe('remote handshake contract', () => {
     })
 
     expect(response.capabilities).toContain('future.capability')
+    expect(recognizedCapabilities(response.capabilities)).toEqual(['scrum.core'])
   })
 
   it('rejects a response that is not from the Scrum protocol', () => {
@@ -40,6 +47,7 @@ describe('remote handshake contract', () => {
         protocol: 'other-service',
         serviceName: 'other',
         serviceVersion: '1.0.0',
+        ...serviceContext,
         selectedApiVersion: API_VERSION,
         capabilities: [],
         principal: { id: 'user-1', displayName: 'User One', permissions: [] },
@@ -55,6 +63,7 @@ describe('remote handshake contract', () => {
         protocol: REMOTE_PROTOCOL,
         serviceName: 'dsh-scrum-server',
         serviceVersion: '0.1.0',
+        ...serviceContext,
         selectedApiVersion: 999,
         capabilities: ['scrum.core'],
         principal: { id: 'user-1', displayName: 'User One', permissions: [] },
