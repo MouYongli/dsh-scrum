@@ -8,6 +8,7 @@ import {
   type ReactElement,
   type ReactNode,
 } from 'react'
+import { toProjectKey } from '@dsh-scrum/scrum-domain'
 import { createBacklogController } from './backlog-controller.js'
 import { BacklogScreen } from './backlog-view.js'
 import { createSessionAccessController } from './session-controller.js'
@@ -16,6 +17,7 @@ import { createSprintController } from './sprint-controller.js'
 import { SprintScreen } from './sprint-view.js'
 import type { CreateProjectInput, ScrumClient } from './client.js'
 import { createWorkbenchController, type WorkbenchState } from './controller.js'
+import type { ScrumFailure } from './failure.js'
 import { DraftsProvider, NO_DRAFTS, useDraftGuard, type DraftRegistry } from './drafts.js'
 import { createTranslate, type Translate } from './messages.js'
 import { pageFor } from './pages.js'
@@ -140,6 +142,7 @@ function body(props: WorkbenchProps, t: Translate): ReactElement | null {
           { 'data-scrum-project': page.project.key },
           `${page.project.key} · ${page.project.name}`,
         ),
+    page.action === null || state.failure === null ? null : refusal(state.failure, t),
     page.action === null
       ? null
       : createElement(ProjectWizard, {
@@ -148,6 +151,23 @@ function body(props: WorkbenchProps, t: Translate): ReactElement | null {
           onCreate: props.onCreate,
         }),
     page.project === null ? null : props.surface,
+  )
+}
+
+/**
+ * A creation the host refused, shown above the form that caused it.
+ *
+ * Above rather than instead of: the form still holds the name, key and
+ * description that were typed, and the next thing the user does is edit one of
+ * them. The banner carries the host's own sentence — it is the only thing that
+ * says which of them to edit.
+ */
+function refusal(failure: ScrumFailure, t: Translate): ReactElement {
+  return createElement(
+    'div',
+    { role: 'alert', 'data-scrum-create-failure': failure.kind },
+    createElement('p', null, t('error.title')),
+    createElement('p', null, failure.message),
   )
 }
 
@@ -170,11 +190,18 @@ function ProjectWizard(props: WizardProps): ReactElement {
   const [name, setName] = useState('')
   const [key, setKey] = useState('')
   const [description, setDescription] = useState('')
+  const [rejected, setRejected] = useState(false)
   useDraftGuard(name !== '' || key !== '' || description !== '')
 
   function submit(event: FormEvent): void {
     event.preventDefault()
-    props.onCreate?.(toCreateInput(name, key, description))
+    const input = toCreateInput(name, key, description)
+    if (!isProjectKey(input.key)) {
+      setRejected(true)
+      return
+    }
+    setRejected(false)
+    props.onCreate?.(input)
   }
 
   return createElement(
@@ -182,7 +209,21 @@ function ProjectWizard(props: WizardProps): ReactElement {
     { onSubmit: submit, 'data-scrum-wizard': true },
     createElement('h3', null, props.t('wizard.title')),
     field('scrum-name', props.t('wizard.name'), name, setName, true),
-    field('scrum-key', props.t('wizard.key'), key, setKey, true, props.t('wizard.keyHint')),
+    field(
+      'scrum-key',
+      props.t('wizard.key'),
+      key,
+      (next) => {
+        // Cleared as soon as the value changes: the message is about the key
+        // that was submitted, and leaving it under a field the user is in the
+        // middle of correcting says the correction is wrong too.
+        setRejected(false)
+        setKey(next)
+      },
+      true,
+      props.t('wizard.keyHint'),
+      rejected ? props.t('wizard.keyInvalid') : undefined,
+    ),
     field('scrum-description', props.t('wizard.description'), description, setDescription, false),
     createElement(
       'button',
@@ -190,6 +231,28 @@ function ProjectWizard(props: WizardProps): ReactElement {
       props.creating ? props.t('wizard.creating') : props.t('wizard.submit'),
     ),
   )
+}
+
+/**
+ * Whether the host would accept this key, asked before it is sent.
+ *
+ * The rule is read from the domain rather than spelled again here. A second
+ * pattern in the interface is one that can drift from the one the store parses
+ * against, and either direction of drift is a defect: a form that refuses a key
+ * the host would take, or one that accepts a key the host will not.
+ *
+ * Asking here does not make the host's own check redundant — the Agent tools
+ * and the remote adapter reach the same use case without passing this form.
+ * What it changes is which sentence the user reads: a named field in their own
+ * language instead of the channel's `payload for project.create is invalid`.
+ */
+function isProjectKey(key: string): boolean {
+  try {
+    toProjectKey(key)
+    return true
+  } catch {
+    return false
+  }
 }
 
 /**
@@ -204,7 +267,14 @@ export function toCreateInput(name: string, key: string, description: string): C
   return { name, key: key.toUpperCase(), description }
 }
 
-/** A labelled input. The label is bound by id, so a screen reader announces it. */
+/**
+ * A labelled input. The label is bound by id, so a screen reader announces it.
+ *
+ * A refusal is bound the same way and marks the input invalid, so it is read
+ * out with the field rather than only being visible beside it. It is described
+ * after the hint, which keeps the rule and the complaint about breaking it in
+ * the order they were read.
+ */
 function field(
   id: string,
   label: string,
@@ -212,8 +282,13 @@ function field(
   onChange: (next: string) => void,
   required: boolean,
   hint?: string,
+  error?: string,
 ): ReactElement {
   const hintId = `${id}-hint`
+  const errorId = `${id}-error`
+  const described = [hint === undefined ? null : hintId, error === undefined ? null : errorId]
+    .filter((token): token is string => token !== null)
+    .join(' ')
   return createElement(
     'p',
     { key: id },
@@ -222,12 +297,16 @@ function field(
       id,
       value,
       required,
-      'aria-describedby': hint === undefined ? undefined : hintId,
+      'aria-describedby': described === '' ? undefined : described,
+      'aria-invalid': error === undefined ? undefined : true,
       onChange: (event: { target: { value: string } }) => {
         onChange(event.target.value)
       },
     }),
     hint === undefined ? null : createElement('span', { id: hintId }, hint),
+    error === undefined
+      ? null
+      : createElement('span', { id: errorId, role: 'alert', 'data-scrum-field-error': id }, error),
   )
 }
 

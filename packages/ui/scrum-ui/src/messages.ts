@@ -56,7 +56,9 @@ export const SCRUM_MESSAGES = {
     'wizard.title': '创建 Scrum 项目',
     'wizard.name': '项目名称',
     'wizard.key': '项目标识',
-    'wizard.keyHint': '用作工作项编号前缀，例如 SCR-12。',
+    'wizard.keyHint':
+      '2 到 10 位大写字母或数字，首位是字母，例如 SCR。工作项编号以它为前缀，形如 SCR-12，创建后不能更改。',
+    'wizard.keyInvalid': '项目标识只能是 2 到 10 位大写字母或数字，且首位是字母，例如 SCR。',
     'wizard.description': '项目描述',
     'wizard.submit': '创建项目',
     'wizard.cancel': '取消',
@@ -225,7 +227,10 @@ export const SCRUM_MESSAGES = {
     'wizard.title': 'Create a Scrum project',
     'wizard.name': 'Project name',
     'wizard.key': 'Project key',
-    'wizard.keyHint': 'Used as the work item prefix, such as SCR-12.',
+    'wizard.keyHint':
+      'Two to ten upper-case letters or digits, starting with a letter, such as SCR. Work items are numbered from it, as in SCR-12, and it cannot be changed later.',
+    'wizard.keyInvalid':
+      'A project key is two to ten upper-case letters or digits and starts with a letter, such as SCR.',
     'wizard.description': 'Description',
     'wizard.submit': 'Create project',
     'wizard.cancel': 'Cancel',
