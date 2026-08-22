@@ -2,7 +2,7 @@ import { ValidationError } from './errors.js'
 import { newProjectId, type IdGenerator, type IdentityId, type ProjectId } from './ids.js'
 import type { ProjectKey, TenantId } from './ids.js'
 import { createEntityMetadata, touchEntityMetadata, type EntityMetadata } from './metadata.js'
-import { requireOptionalText, requireText } from './text.js'
+import { requireOptionalMultilineText, requireText } from './text.js'
 import type { Timestamp } from './time.js'
 
 const MAX_NAME_LENGTH = 120
@@ -61,7 +61,7 @@ export function createProject(input: CreateProjectInput): Project {
     tenantId: input.tenantId,
     key: input.key,
     name: requireText(input.name, 'Project name', MAX_NAME_LENGTH),
-    description: requireOptionalText(
+    description: requireOptionalMultilineText(
       input.description ?? '',
       'Project description',
       MAX_DESCRIPTION_LENGTH,
@@ -92,7 +92,11 @@ export function updateProjectDetails(
     description:
       changes.description === undefined
         ? project.description
-        : requireOptionalText(changes.description, 'Project description', MAX_DESCRIPTION_LENGTH),
+        : requireOptionalMultilineText(
+            changes.description,
+            'Project description',
+            MAX_DESCRIPTION_LENGTH,
+          ),
   }
 }
 
