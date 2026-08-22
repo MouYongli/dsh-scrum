@@ -65,11 +65,7 @@ describe('what the current user sees', () => {
       },
     }
 
-    registerScrumTools(
-      registry,
-      api,
-      new Set([PERMISSION.projectView, PERMISSION.backlogView]),
-    )
+    registerScrumTools(registry, api, new Set([PERMISSION.projectView, PERMISSION.backlogView]))
 
     expect(registered.some((name) => (WRITE_TOOL_NAMES as readonly string[]).includes(name))).toBe(
       false,

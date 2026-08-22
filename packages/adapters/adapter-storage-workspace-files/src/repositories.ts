@@ -21,13 +21,7 @@ export interface WorkspaceRepositoriesInput {
 
 export type WorkspaceRepositories = Pick<
   ApplicationDependencies,
-  | 'projects'
-  | 'workItems'
-  | 'sprints'
-  | 'transactions'
-  | 'members'
-  | 'bindings'
-  | 'idempotency'
+  'projects' | 'workItems' | 'sprints' | 'transactions' | 'members' | 'bindings' | 'idempotency'
 >
 
 export function createWorkspaceRepositories(

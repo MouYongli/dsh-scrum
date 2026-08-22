@@ -104,5 +104,8 @@ export {
   startSprint,
   updateSprint,
 } from './use-cases/sprint.js'
-export type { ProjectAuthorization, ResolveProjectAuthorizationCommand } from './use-cases/access.js'
+export type {
+  ProjectAuthorization,
+  ResolveProjectAuthorizationCommand,
+} from './use-cases/access.js'
 export { resolveProjectAuthorization } from './use-cases/access.js'

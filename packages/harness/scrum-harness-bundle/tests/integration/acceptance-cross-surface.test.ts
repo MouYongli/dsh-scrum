@@ -1,9 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import {
-  HIGH_IMPACT_TOOLS,
-  WRITE_TOOL_NAMES,
-  confirmationFor,
-} from '@dsh-scrum/scrum-agent-tools'
+import { HIGH_IMPACT_TOOLS, WRITE_TOOL_NAMES, confirmationFor } from '@dsh-scrum/scrum-agent-tools'
 import {
   ERROR_CODE,
   WORK_ITEM_STATUS,

@@ -4,10 +4,7 @@ import {
   workspaceLayout,
   type WorkspaceRepositories,
 } from '@dsh-scrum/adapter-storage-workspace-files'
-import {
-  toIdempotencyKey,
-  toWorkspaceRef,
-} from '@dsh-scrum/scrum-application'
+import { toIdempotencyKey, toWorkspaceRef } from '@dsh-scrum/scrum-application'
 import { ERROR_CODE } from '@dsh-scrum/scrum-domain'
 import {
   OWNER,
