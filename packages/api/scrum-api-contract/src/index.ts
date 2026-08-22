@@ -6,6 +6,26 @@ export {
   assertSupportedApiVersion,
   isSupportedApiVersion,
 } from './version.js'
+export type { ScrumCall, ScrumEndpoint, ScrumInput, ScrumScope } from './channel.js'
+export {
+  SCRUM_CHANNEL,
+  SCRUM_ENDPOINT,
+  SCRUM_INPUT,
+  isScrumEndpoint,
+  scrumCallSchema,
+  scrumScopeSchema,
+} from './channel.js'
+export type { EntryPayload, ProjectPayload, SessionPayload, WorkspacePayload } from './results.js'
+export {
+  entryPayloadSchema,
+  payloadSchema,
+  projectPayloadSchema,
+  sessionPayloadSchema,
+  sprintPayloadSchema,
+  sprintsPayloadSchema,
+  workItemPayloadSchema,
+  workItemsPayloadSchema,
+} from './results.js'
 export type { ApiErrorResponse, ApiRequest, ApiResponse, ApiSuccessResponse } from './envelope.js'
 export {
   createRequest,

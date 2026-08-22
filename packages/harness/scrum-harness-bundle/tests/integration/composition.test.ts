@@ -12,9 +12,36 @@ function harnessAt(version: string) {
   return () => ({ name: '@deepseek-ai/dsh-base', version })
 }
 
+interface Registered {
+  readonly channel: string
+  readonly authority: string
+}
+
+/**
+ * A Harness with the two services the plugin declares.
+ *
+ * Nothing here is the real thing — an empty registry and a channel registry
+ * that only records — because what this file checks is what the profile gets
+ * when it loads the bundle, not what the Harness does with it afterwards.
+ */
+function harnessContext(): { ctx: Context; channels: Registered[] } {
+  const ctx = new Context()
+  const channels: Registered[] = []
+  ctx.provide('workspaceRegistry', { get: () => undefined, list: () => [] })
+  ctx.provide('connection', {
+    rpc: {
+      handle: (channel: string, _handler: unknown, options: { authority: string }) => {
+        channels.push({ channel, authority: options.authority })
+        return () => Promise.resolve()
+      },
+    },
+  })
+  return { ctx, channels }
+}
+
 describe('loading the bundle', () => {
   it('brings the Community runtime with it, so nothing else has to supply one', async () => {
-    const ctx = new Context()
+    const { ctx } = harnessContext()
 
     await ctx.plugin(bundle, { readManifest: harnessAt(VERIFIED_HARNESS_VERSION) })
 
@@ -25,7 +52,7 @@ describe('loading the bundle', () => {
   })
 
   it('takes a runtime the profile supplied over the one it composes', async () => {
-    const ctx = new Context()
+    const { ctx } = harnessContext()
     const runtime = {
       identity: () => Promise.reject(new Error('not used')),
       tenant: () => Promise.reject(new Error('not used')),
@@ -35,6 +62,27 @@ describe('loading the bundle', () => {
     await ctx.plugin(bundle, { readManifest: harnessAt(VERIFIED_HARNESS_VERSION), runtime })
 
     expect(ctx.scrumHost).toBeDefined()
+  })
+
+  it('serves the workbench channel, and only to a loopback caller', async () => {
+    const { ctx, channels } = harnessContext()
+
+    await ctx.plugin(bundle, { readManifest: harnessAt(VERIFIED_HARNESS_VERSION) })
+
+    // Community's data is the user's own working directory, and the shell does
+    // not support serving the browser half beyond loopback until there is an
+    // authentication layer to serve it behind.
+    expect(channels).toEqual([{ channel: '/scrum', authority: 'loopback' }])
+  })
+
+  it('stays pending in a Harness that provides neither service', async () => {
+    const ctx = new Context()
+
+    await ctx.plugin(bundle, { readManifest: harnessAt(VERIFIED_HARNESS_VERSION) })
+
+    // Loading anyway would answer every call with "no workspace", which reads
+    // as a user who has selected nothing rather than as a plugin left unwired.
+    expect(ctx.scrumHost).toBeUndefined()
   })
 
   it('refuses a Harness outside the range it declares, at load time', () => {

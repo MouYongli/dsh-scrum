@@ -82,7 +82,10 @@ describe('where the workbench is registered', () => {
   })
 
   it('declares the dependency that gates it', () => {
-    expect(clientEntry.inject).toEqual(['slots'])
+    // The slot registry gates the registrations; the other three are what the
+    // workbench is scoped and carried by, and a shell missing any of them is a
+    // shell this entry has nothing to say in.
+    expect(clientEntry.inject).toEqual(['slots', 'connection', 'workspaces', 'sessions'])
     expect(clientEntry.name).toBe('scrum-harness-client')
   })
 })
