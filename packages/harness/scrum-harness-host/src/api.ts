@@ -7,16 +7,28 @@ import {
   type SprintId,
   type WorkItem,
   type WorkItemId,
+  type WorkItemReferences,
 } from '@dsh-scrum/scrum-domain'
 import {
   archiveProject,
   bindWorkspace,
   createProject,
+  blockWorkItem,
+  closeSprint,
+  configureProject,
+  createSprint,
+  createWorkItem,
+  deleteWorkItem,
   getSprint,
   getWorkItem,
   listSprints,
   listWorkItems,
+  moveWorkItemStatus,
+  moveWorkItemToRank,
+  planSprint,
   readSprintProgress,
+  startSprint,
+  updateWorkItem,
   resolveSessionAuthorization,
   restoreProject,
   setSessionAccess,
@@ -24,7 +36,18 @@ import {
   type AccessMode,
   type SessionAccess,
   type SessionAuthorization,
+  type BlockWorkItemCommand,
+  type CloseSprintCommand,
+  type ConfigureProjectCommand,
+  type CreateSprintCommand,
+  type CreateWorkItemCommand,
+  type DeleteWorkItemCommand,
+  type MoveWorkItemRankCommand,
+  type MoveWorkItemStatusCommand,
+  type PlanSprintCommand,
   type SprintProgress,
+  type StartSprintCommand,
+  type UpdateWorkItemCommand,
   type WorkItemFilter,
   type ActorContext,
   type ApplicationDependencies,
@@ -104,7 +127,28 @@ export interface ScrumHostApi {
   sprints(): Promise<readonly Sprint[]>
   sprint(id: SprintId): Promise<Sprint>
   progress(id: SprintId): Promise<SprintProgress>
+  createWorkItem(command: WorkOf<CreateWorkItemCommand>): Promise<WorkItem>
+  updateWorkItem(command: WorkOf<UpdateWorkItemCommand>): Promise<WorkItem>
+  moveWorkItemToRank(command: WorkOf<MoveWorkItemRankCommand>): Promise<WorkItem>
+  moveWorkItemStatus(command: WorkOf<MoveWorkItemStatusCommand>): Promise<WorkItem>
+  blockWorkItem(command: WorkOf<BlockWorkItemCommand>): Promise<WorkItem>
+  deleteWorkItem(command: WorkOf<DeleteWorkItemCommand>): Promise<WorkItemReferences>
+  planSprint(command: WorkOf<PlanSprintCommand>): Promise<readonly WorkItem[]>
+  createSprint(command: WorkOf<CreateSprintCommand>): Promise<Sprint>
+  startSprint(command: WorkOf<StartSprintCommand>): Promise<Sprint>
+  closeSprint(command: WorkOf<CloseSprintCommand>): Promise<Sprint>
+  configureProject(command: WorkOf<ConfigureProjectCommand>): Promise<StoredProject>
 }
+
+/**
+ * A use case command without its project.
+ *
+ * The project is the one the workspace is bound to, resolved by the host on
+ * every call. Letting a caller name it would make the binding advisory: a
+ * client or a tool could reach a project this workspace was never attached to
+ * by passing a different identifier.
+ */
+export type WorkOf<Command extends { readonly projectId: ProjectId }> = Omit<Command, 'projectId'>
 
 /**
  * Resolves the workspace, the session and the stores for one call.
@@ -276,6 +320,94 @@ export function createHostApi(harness: HarnessContext, runtime: ScrumRuntime): S
       return await readSprintProgress(request.deps, {
         actor: request.actor,
         command: { projectId: await boundProjectId(request), sprintId: id },
+      })
+    },
+
+    async createWorkItem(command: WorkOf<CreateWorkItemCommand>): Promise<WorkItem> {
+      const request = await resolveRequest(harness, runtime)
+      return await createWorkItem(request.deps, {
+        actor: request.actor,
+        command: { ...command, projectId: await boundProjectId(request) },
+      })
+    },
+
+    async updateWorkItem(command: WorkOf<UpdateWorkItemCommand>): Promise<WorkItem> {
+      const request = await resolveRequest(harness, runtime)
+      return await updateWorkItem(request.deps, {
+        actor: request.actor,
+        command: { ...command, projectId: await boundProjectId(request) },
+      })
+    },
+
+    async moveWorkItemToRank(command: WorkOf<MoveWorkItemRankCommand>): Promise<WorkItem> {
+      const request = await resolveRequest(harness, runtime)
+      return await moveWorkItemToRank(request.deps, {
+        actor: request.actor,
+        command: { ...command, projectId: await boundProjectId(request) },
+      })
+    },
+
+    async moveWorkItemStatus(command: WorkOf<MoveWorkItemStatusCommand>): Promise<WorkItem> {
+      const request = await resolveRequest(harness, runtime)
+      return await moveWorkItemStatus(request.deps, {
+        actor: request.actor,
+        command: { ...command, projectId: await boundProjectId(request) },
+      })
+    },
+
+    async blockWorkItem(command: WorkOf<BlockWorkItemCommand>): Promise<WorkItem> {
+      const request = await resolveRequest(harness, runtime)
+      return await blockWorkItem(request.deps, {
+        actor: request.actor,
+        command: { ...command, projectId: await boundProjectId(request) },
+      })
+    },
+
+    async deleteWorkItem(command: WorkOf<DeleteWorkItemCommand>): Promise<WorkItemReferences> {
+      const request = await resolveRequest(harness, runtime)
+      return await deleteWorkItem(request.deps, {
+        actor: request.actor,
+        command: { ...command, projectId: await boundProjectId(request) },
+      })
+    },
+
+    async planSprint(command: WorkOf<PlanSprintCommand>): Promise<readonly WorkItem[]> {
+      const request = await resolveRequest(harness, runtime)
+      return await planSprint(request.deps, {
+        actor: request.actor,
+        command: { ...command, projectId: await boundProjectId(request) },
+      })
+    },
+
+    async createSprint(command: WorkOf<CreateSprintCommand>): Promise<Sprint> {
+      const request = await resolveRequest(harness, runtime)
+      return await createSprint(request.deps, {
+        actor: request.actor,
+        command: { ...command, projectId: await boundProjectId(request) },
+      })
+    },
+
+    async startSprint(command: WorkOf<StartSprintCommand>): Promise<Sprint> {
+      const request = await resolveRequest(harness, runtime)
+      return await startSprint(request.deps, {
+        actor: request.actor,
+        command: { ...command, projectId: await boundProjectId(request) },
+      })
+    },
+
+    async closeSprint(command: WorkOf<CloseSprintCommand>): Promise<Sprint> {
+      const request = await resolveRequest(harness, runtime)
+      return await closeSprint(request.deps, {
+        actor: request.actor,
+        command: { ...command, projectId: await boundProjectId(request) },
+      })
+    },
+
+    async configureProject(command: WorkOf<ConfigureProjectCommand>): Promise<StoredProject> {
+      const request = await resolveRequest(harness, runtime)
+      return await configureProject(request.deps, {
+        actor: request.actor,
+        command: { ...command, projectId: await boundProjectId(request) },
       })
     },
 
