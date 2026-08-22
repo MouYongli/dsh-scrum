@@ -275,3 +275,30 @@ describe('starting and closing', () => {
     expect(markup).toContain(t('sprint.close.summary'))
   })
 })
+
+describe('reaching the board without a pointer', () => {
+  const active = sprint(1, { status: SPRINT_STATUS.active })
+
+  it('makes every interaction a button or a labelled control', () => {
+    const markup = render({
+      sprints: [active],
+      selected: active,
+      board: boardView([item(1, { status: WORK_ITEM_STATUS.todo })]),
+      unplanned: [item(2)],
+    })
+
+    // Picking a sprint, opening a card, moving it, planning work and starting
+    // or closing the sprint: no gesture among them, and every select labelled.
+    for (const control of [
+      'data-scrum-sprint="sprint-1"',
+      'data-scrum-card="SCR-1"',
+      'data-scrum-move="SCR-1"',
+      'data-scrum-plan="sprint-1"',
+      'data-scrum-transition="close"',
+    ]) {
+      expect(markup).toContain(control)
+    }
+    expect(markup).not.toContain('draggable')
+    expect(markup).toContain('<label for="scrum-move-SCR-1">')
+  })
+})

@@ -10,6 +10,8 @@ import {
 } from 'react'
 import { createBacklogController } from './backlog-controller.js'
 import { BacklogScreen } from './backlog-view.js'
+import { createSprintController } from './sprint-controller.js'
+import { SprintScreen } from './sprint-view.js'
 import type { CreateProjectInput, ScrumClient } from './client.js'
 import { createWorkbenchController, type WorkbenchState } from './controller.js'
 import { createTranslate, type Translate } from './messages.js'
@@ -225,6 +227,97 @@ function ConnectedBacklog(props: {
   })
 }
 
+/**
+ * The sprint screen, wired to a client. A controller of its own for the same
+ * reason the backlog has one.
+ */
+function ConnectedSprints(props: {
+  readonly client: ScrumClient
+  readonly t: Translate
+  readonly readOnly: boolean
+}): ReactElement {
+  const controller = useMemo(() => createSprintController(props.client), [props.client])
+  const state = useSyncExternalStore(controller.subscribe, controller.state, controller.state)
+
+  useEffect(() => {
+    void controller.load()
+  }, [controller])
+
+  return createElement(SprintScreen, {
+    state,
+    t: props.t,
+    readOnly: props.readOnly,
+    actions: {
+      select: (sprintId) => void controller.select(sprintId),
+      create: (input) => void controller.create(input),
+      plan: (items, into) => void controller.plan(items, into),
+      move: (item, status) => void controller.move(item, status),
+      detail: controller.openDetail,
+      refresh: () => void controller.load(),
+      dismiss: controller.dismiss,
+      edit: (command) => void controller.edit(command),
+      criterion: (command) => void controller.setCriterion(command),
+      parent: (command) => void controller.setParent(command),
+      dependency: (command) => void controller.setDependency(command),
+      block: (command) => void controller.block(command),
+      ask: controller.ask,
+      cancel: controller.cancel,
+      start: () => void controller.start(),
+      close: (resultSummary, dispositions) => void controller.close(resultSummary, dispositions),
+    },
+  })
+}
+
+/** The two screens a project has, and which one is showing. */
+const SECTIONS = [
+  { id: 'backlog', label: 'section.backlog' },
+  { id: 'sprint', label: 'section.sprint' },
+] as const
+
+type SectionId = (typeof SECTIONS)[number]['id']
+
+/**
+ * The project surface: a tab strip over two screens.
+ *
+ * Each screen keeps its own controller, mounted only while it is showing. The
+ * board and the backlog read overlapping data, and a hidden screen that went
+ * on refreshing would spend a user's disk and then show them a list assembled
+ * before the write they just made.
+ */
+function ProjectSurface(props: {
+  readonly client: ScrumClient
+  readonly t: Translate
+  readonly readOnly: boolean
+}): ReactElement {
+  const [section, setSection] = useState<SectionId>('backlog')
+  return createElement(
+    'div',
+    { 'data-scrum-surface': section },
+    createElement(
+      'nav',
+      { 'aria-label': props.t('workbench.title') },
+      SECTIONS.map((entry) =>
+        createElement(
+          'button',
+          {
+            key: entry.id,
+            type: 'button',
+            'aria-pressed': section === entry.id,
+            'data-scrum-section': entry.id,
+            onClick: () => {
+              setSection(entry.id)
+            },
+          },
+          props.t(entry.label),
+        ),
+      ),
+    ),
+    section === 'backlog'
+      ? createElement(ConnectedBacklog, props)
+      : createElement(ConnectedSprints, props),
+  )
+}
+
 export interface ConnectedWorkbenchProps {
   readonly client: ScrumClient
   readonly t?: Translate | undefined
@@ -251,7 +344,7 @@ export function ConnectedWorkbench(props: ConnectedWorkbenchProps): ReactElement
     onCreate: (input) => void controller.create(input),
     surface:
       state.kind === 'ready' && (state.entry.state === 'bound' || state.entry.state === 'archived')
-        ? createElement(ConnectedBacklog, {
+        ? createElement(ProjectSurface, {
             client: props.client,
             t,
             readOnly: state.entry.state === 'archived',
