@@ -39,3 +39,11 @@ export {
   readProjectFile,
   scanWorkspace,
 } from './store.js'
+export {
+  TEMPORARY_SUFFIX,
+  removeTemporaryFiles,
+  temporaryFileFor,
+  writeFileAtomically,
+} from './atomic.js'
+export type { WriteExpectation } from './writes.js'
+export { NEW_ENTITY, saveProject, saveProjectConfig, saveSprint, saveWorkItem } from './writes.js'
