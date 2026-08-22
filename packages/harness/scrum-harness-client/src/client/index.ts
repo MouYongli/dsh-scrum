@@ -22,6 +22,7 @@ import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
 // Pulls in the slot map augmentations that declare the two slots used here.
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
+import type { ScrumScope } from '@dsh-scrum/scrum-api-contract'
 import {
   ConnectedWorkbench,
   SCRUM_NAMESPACE,
@@ -31,14 +32,20 @@ import {
   type ScrumClient,
   type WorkbenchStore,
 } from '@dsh-scrum/scrum-ui'
+import { createTransportClient, type RpcCall } from './transport.js'
 
 export const name = 'scrum-harness-client'
 
 /**
- * The slot registry is the only service this entry needs. Declaring it keeps
- * the plugin pending rather than registering into a surface that is not there.
+ * What this entry needs from the shell.
+ *
+ * Declaring them keeps the plugin pending rather than registering into
+ * surfaces that are not there. `connection` carries the channel the workbench
+ * talks to the host over; `workspaces` and `sessions` are where the selection
+ * lives, and the selection is what every call is scoped by — the host holds
+ * none of its own.
  */
-export const inject = ['slots']
+export const inject = ['slots', 'connection', 'workspaces', 'sessions']
 
 /** Identifier the sidebar and the overlay address these registrations by. */
 const ENTRY_ID = 'scrum'
@@ -251,9 +258,72 @@ function overlayComponent(store: WorkbenchStore, client: ScrumClient): () => Rea
   }
 }
 
+/**
+ * The shell services this entry reads, as it reads them.
+ *
+ * Written structurally because the browser half of the connection publishes no
+ * Cordis augmentation — the shipped one describes the node half's handle — so
+ * the concrete types are not reachable from a browser plugin. Narrow on
+ * purpose: what is written down here is the whole of what this plugin assumes
+ * about the shell, and a shell that stops providing any of it is answered by
+ * the disconnected client rather than by a crash.
+ */
+interface ShellServices {
+  readonly connection?: { readonly rpc: { call: RpcCall } }
+  readonly workspaces?: {
+    readonly list: {
+      getSnapshot(): {
+        readonly items: readonly {
+          readonly workspaceId: string
+          readonly sessionIds: readonly string[]
+        }[]
+        readonly recentWorkspaceId?: string | undefined
+      }
+    }
+  }
+  readonly sessions?: {
+    readonly list: { getSnapshot(): { readonly current?: string | undefined } }
+  }
+}
+
+/**
+ * Which workspace and session the window is showing, read on every call.
+ *
+ * The workspace is the one accounting for the open session rather than a
+ * selection of its own: that is what the sidebar highlights, and reading it
+ * from the session means the two can never disagree. With no session open the
+ * most recent workspace is the answer, which is the one the shell would
+ * connect a new session to.
+ */
+function readScope(shell: ShellServices): ScrumScope {
+  const sessionId = shell.sessions?.list.getSnapshot().current ?? null
+  const workspaces = shell.workspaces?.list.getSnapshot()
+  const owning = workspaces?.items.find(
+    (workspace) => sessionId !== null && workspace.sessionIds.includes(sessionId),
+  )
+  return {
+    workspaceId: owning?.workspaceId ?? workspaces?.recentWorkspaceId ?? null,
+    sessionId,
+  }
+}
+
+/** The client over the shell's channel, or nothing when it carries none. */
+function shellClient(ctx: ClientContext): ScrumClient | null {
+  const shell = ctx as unknown as ShellServices
+  const connection = shell.connection
+  if (connection === undefined) {
+    return null
+  }
+  return createTransportClient(
+    (channel, endpoint, payload) => connection.rpc.call(channel, endpoint, payload),
+    () => readScope(shell),
+  )
+}
+
 export function apply(ctx: ClientContext, config: ScrumClientConfig = {}): void {
   const store = config.store ?? createWorkbenchStore()
-  const client = config.client ?? disconnectedClient(createTranslate()('error.notConnected'))
+  const client =
+    config.client ?? shellClient(ctx) ?? disconnectedClient(createTranslate()('error.notConnected'))
 
   ctx.slots.inject('sidebar.footer.action', () =>
     ctx.slots.register(
@@ -273,3 +343,5 @@ export function apply(ctx: ClientContext, config: ScrumClientConfig = {}): void 
 }
 
 export { SCRUM_NAMESPACE }
+export type { RpcCall, RpcOutcome, ScopeReader } from './transport.js'
+export { ScrumCallError, createTransportClient } from './transport.js'

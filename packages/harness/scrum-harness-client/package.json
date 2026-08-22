@@ -40,6 +40,8 @@
     "@types/react-dom": "~18.3.7"
   },
   "dependencies": {
-    "@dsh-scrum/scrum-ui": "workspace:*"
+    "@dsh-scrum/scrum-ui": "workspace:*",
+    "@dsh-scrum/scrum-api-contract": "workspace:*",
+    "@dsh-scrum/scrum-domain": "workspace:*"
   }
 }
