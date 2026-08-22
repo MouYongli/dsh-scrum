@@ -5,6 +5,7 @@ import {
   toIdentityId,
   toTenantId,
   toTimestamp,
+  toWorkItemId,
   type Clock,
   type IdGenerator,
   type IdentityId,
@@ -12,14 +13,18 @@ import {
   type ProjectId,
   type ProjectMember,
   type Revision,
+  type WorkItem,
+  type WorkItemId,
 } from '@dsh-scrum/scrum-domain'
-import type {
-  ApplicationDependencies,
-  NewProject,
-  SessionAccess,
-  StoredProject,
-  WorkspaceBinding,
-  WorkspaceRef,
+import {
+  filterWorkItems,
+  type ApplicationDependencies,
+  type NewProject,
+  type SessionAccess,
+  type StoredProject,
+  type WorkItemFilter,
+  type WorkspaceBinding,
+  type WorkspaceRef,
 } from '@dsh-scrum/scrum-application'
 import type {
   HarnessContext,
@@ -49,6 +54,7 @@ export class MemoryStore {
   readonly owners = new Map<ProjectId, ProjectMember>()
   readonly bindings = new Map<string, WorkspaceBinding>()
   readonly sessions = new Map<string, SessionAccess>()
+  readonly workItems = new Map<WorkItemId, WorkItem>()
 }
 
 function key(workspace: WorkspaceRef): string {
@@ -111,7 +117,39 @@ export function dependencies(store: MemoryStore): ApplicationDependencies {
         store.sessions.set(`${access.harnessInstanceId}/${access.sessionId}`, access)
       },
     },
-    workItems: notComposed('work items'),
+    workItems: {
+      find: async (_projectId: ProjectId, id: WorkItemId) => store.workItems.get(id) ?? null,
+      list: async (projectId: ProjectId, filter: WorkItemFilter) =>
+        filterWorkItems(
+          [...store.workItems.values()].filter((item) => item.projectId === projectId),
+          filter,
+        ),
+      nextIdentifier: async (projectId: ProjectId) => {
+        const project = store.projects.get(projectId)
+        return toWorkItemId(`${project?.project.key ?? 'SCR'}-${store.workItems.size + 1}`)
+      },
+      create: async (item: WorkItem) => {
+        if (store.workItems.has(item.id)) {
+          throw new ConflictError('work item already exists', 0, 0, { id: item.id })
+        }
+        store.workItems.set(item.id, item)
+      },
+      // The revision check is the point of the stub, not an accident of it:
+      // every write in this package carries an expected revision, and a store
+      // that accepted a stale one would make those tests prove nothing.
+      save: async (item: WorkItem, expected: Revision) => {
+        const current = store.workItems.get(item.id)
+        if (current !== undefined && current.revision !== expected) {
+          throw new ConflictError('work item was modified', expected, current.revision, {
+            id: item.id,
+          })
+        }
+        store.workItems.set(item.id, item)
+      },
+      remove: async (_projectId: ProjectId, id: WorkItemId) => {
+        store.workItems.delete(id)
+      },
+    },
     sprints: notComposed('sprints'),
     transactions: notComposed('transactions'),
     activity: { record: async () => undefined },

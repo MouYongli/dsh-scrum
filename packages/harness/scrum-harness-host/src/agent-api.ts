@@ -42,6 +42,9 @@ export interface ScrumAgentApi {
   moveWorkItemToRank(command: AgentCommand<'moveWorkItemToRank'>): Promise<WorkItem>
   moveWorkItemStatus(command: AgentCommand<'moveWorkItemStatus'>): Promise<WorkItem>
   blockWorkItem(command: AgentCommand<'blockWorkItem'>): Promise<WorkItem>
+  setWorkItemParent(command: AgentCommand<'setWorkItemParent'>): Promise<WorkItem>
+  setWorkItemDependency(command: AgentCommand<'setWorkItemDependency'>): Promise<WorkItem>
+  setAcceptanceCriterion(command: AgentCommand<'setAcceptanceCriterion'>): Promise<WorkItem>
   deleteWorkItem(command: AgentCommand<'deleteWorkItem'>): Promise<WorkItemReferences>
   planSprint(command: AgentCommand<'planSprint'>): Promise<readonly WorkItem[]>
   createSprint(command: AgentCommand<'createSprint'>): Promise<Sprint>
@@ -146,6 +149,17 @@ export function createAgentApi(
       ),
     blockWorkItem: async (command) =>
       await writing(PERMISSION.workItemSetBlocked, async () => await api.blockWorkItem(command)),
+    setWorkItemParent: async (command) =>
+      await writing(PERMISSION.workItemWrite, async () => await api.setWorkItemParent(command)),
+    setWorkItemDependency: async (command) =>
+      await writing(PERMISSION.workItemWrite, async () => await api.setWorkItemDependency(command)),
+    // Accepting is its own row in the matrix: writing down what done means and
+    // declaring it met are different acts, given to different roles.
+    setAcceptanceCriterion: async (command) =>
+      await writing(
+        PERMISSION.workItemAccept,
+        async () => await api.setAcceptanceCriterion(command),
+      ),
     deleteWorkItem: async (command) =>
       await writing(PERMISSION.workItemWrite, async () => await api.deleteWorkItem(command)),
     planSprint: async (command) =>

@@ -32,7 +32,10 @@ import {
   updateWorkItem,
   resolveSessionAuthorization,
   restoreProject,
+  setAcceptanceCriterion,
   setSessionAccess,
+  setWorkItemDependency,
+  setWorkItemParent,
   unbindWorkspace,
   type AccessMode,
   type SessionAccess,
@@ -46,9 +49,12 @@ import {
   type MoveWorkItemRankCommand,
   type MoveWorkItemStatusCommand,
   type PlanSprintCommand,
+  type SetAcceptanceCriterionCommand,
+  type SetWorkItemParentCommand,
   type SprintProgress,
   type StartSprintCommand,
   type UpdateWorkItemCommand,
+  type WorkItemDependencyCommand,
   type WorkItemFilter,
   type ActorContext,
   type ApplicationDependencies,
@@ -155,6 +161,18 @@ export interface ScrumHostApi {
   moveWorkItemToRank(command: WorkOf<MoveWorkItemRankCommand>): Promise<WorkItem>
   moveWorkItemStatus(command: WorkOf<MoveWorkItemStatusCommand>): Promise<WorkItem>
   blockWorkItem(command: WorkOf<BlockWorkItemCommand>): Promise<WorkItem>
+  /**
+   * The three edits the detail panel makes that `updateWorkItem` deliberately
+   * cannot. `WorkItemDetailChanges` leaves out parent, dependencies and
+   * acceptance state because each carries a rule of its own — a parent that
+   * cannot form a cycle, a dependency that must resolve inside the project,
+   * and a criterion governed by who may declare work accepted rather than by
+   * who may describe it. Routing them through the detail editor would route
+   * them past those rules.
+   */
+  setWorkItemParent(command: WorkOf<SetWorkItemParentCommand>): Promise<WorkItem>
+  setWorkItemDependency(command: WorkOf<WorkItemDependencyCommand>): Promise<WorkItem>
+  setAcceptanceCriterion(command: WorkOf<SetAcceptanceCriterionCommand>): Promise<WorkItem>
   deleteWorkItem(command: WorkOf<DeleteWorkItemCommand>): Promise<WorkItemReferences>
   planSprint(command: WorkOf<PlanSprintCommand>): Promise<readonly WorkItem[]>
   createSprint(command: WorkOf<CreateSprintCommand>): Promise<Sprint>
@@ -387,6 +405,32 @@ export function createHostApi(harness: HarnessContext, runtime: ScrumRuntime): S
     async blockWorkItem(command: WorkOf<BlockWorkItemCommand>): Promise<WorkItem> {
       const request = await resolveRequest(harness, runtime)
       return await blockWorkItem(request.deps, {
+        actor: request.actor,
+        command: { ...command, projectId: await boundProjectId(request) },
+      })
+    },
+
+    async setWorkItemParent(command: WorkOf<SetWorkItemParentCommand>): Promise<WorkItem> {
+      const request = await resolveRequest(harness, runtime)
+      return await setWorkItemParent(request.deps, {
+        actor: request.actor,
+        command: { ...command, projectId: await boundProjectId(request) },
+      })
+    },
+
+    async setWorkItemDependency(command: WorkOf<WorkItemDependencyCommand>): Promise<WorkItem> {
+      const request = await resolveRequest(harness, runtime)
+      return await setWorkItemDependency(request.deps, {
+        actor: request.actor,
+        command: { ...command, projectId: await boundProjectId(request) },
+      })
+    },
+
+    async setAcceptanceCriterion(
+      command: WorkOf<SetAcceptanceCriterionCommand>,
+    ): Promise<WorkItem> {
+      const request = await resolveRequest(harness, runtime)
+      return await setAcceptanceCriterion(request.deps, {
         actor: request.actor,
         command: { ...command, projectId: await boundProjectId(request) },
       })
