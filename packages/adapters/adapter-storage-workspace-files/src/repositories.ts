@@ -1,5 +1,7 @@
 import type { ApplicationDependencies } from '@dsh-scrum/scrum-application'
 import type { WriteCoordinator } from './coordinator.js'
+import { workspaceLayout } from './paths.js'
+import { sprintRepository, transactionPort, workItemRepository } from './repository-entities.js'
 import { memberRepository, projectRepository, type StoredEdition } from './repository-project.js'
 
 /**
@@ -16,16 +18,23 @@ export interface WorkspaceRepositoriesInput {
   readonly edition: StoredEdition
 }
 
-export type WorkspaceRepositories = Pick<ApplicationDependencies, 'projects' | 'members'>
+export type WorkspaceRepositories = Pick<
+  ApplicationDependencies,
+  'projects' | 'members' | 'workItems' | 'sprints' | 'transactions'
+>
 
 export function createWorkspaceRepositories(
   input: WorkspaceRepositoriesInput,
 ): WorkspaceRepositories {
+  const layout = workspaceLayout(input.workspaceRoot)
   const root = input.workspaceRoot
   const run = input.coordinator.run.bind(input.coordinator)
 
   return {
     projects: projectRepository(root, input.edition, run),
     members: memberRepository(root),
+    workItems: workItemRepository(root, layout, run),
+    sprints: sprintRepository(root, layout, run),
+    transactions: transactionPort(layout, run),
   }
 }
