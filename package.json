@@ -29,7 +29,9 @@
     "format:check": "prettier --check ."
   },
   "devDependencies": {
+    "@dsh-scrum/scrum-application": "workspace:*",
     "@dsh-scrum/scrum-harness-host": "workspace:*",
+    "@dsh-scrum/scrum-ui": "workspace:*",
     "@eslint/js": "^10.0.1",
     "@types/node": "^24.13.3",
     "@vitest/coverage-v8": "^4.1.11",

@@ -1,3 +1,4 @@
+import type { AccessMode, SessionView } from './session.js'
 import type {
   AcceptanceCriterion,
   Priority,
@@ -165,6 +166,14 @@ export interface CloseSprint extends SprintRef {
 }
 
 export interface ScrumClient {
+  /**
+   * What the open Harness session may do right now, resolved on the call.
+   * Nothing is cached: lowering the mode, archiving the project or losing the
+   * binding has to show up on the next read rather than when something
+   * remembers to refresh.
+   */
+  session(): Promise<SessionView>
+  setSessionAccess(mode: AccessMode): Promise<SessionView>
   entry(): Promise<EntryView>
   createProject(input: CreateProjectInput): Promise<ProjectView>
   backlog(query?: BacklogQuery): Promise<readonly WorkItem[]>
