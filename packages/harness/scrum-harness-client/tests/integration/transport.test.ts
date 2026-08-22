@@ -6,7 +6,7 @@ import {
   successResponse,
   type ScrumScope,
 } from '@dsh-scrum/scrum-api-contract'
-import { ConflictError } from '@dsh-scrum/scrum-domain'
+import { ConflictError, toRevision } from '@dsh-scrum/scrum-domain'
 import { toFailure } from '@dsh-scrum/scrum-ui'
 import {
   createTransportClient,
@@ -86,6 +86,34 @@ describe('what goes onto the channel', () => {
     expect(wire.sent[0]).toMatchObject({
       endpoint: SCRUM_ENDPOINT.remoteAttach,
       payload: { input: { connectionId: 'connection-1', projectId: 'project-1' } },
+    })
+  })
+
+  it('sends project detail edits with the revision the screen read', async () => {
+    const wire = transport(
+      answering({
+        id: 'prj_1',
+        revision: 2,
+        key: 'SCR',
+        name: 'Storefront',
+        description: 'Two paragraphs',
+      }),
+    )
+    const client = createTransportClient(wire.call, () => SCOPE)
+
+    await client.updateProject({
+      expectedRevision: toRevision(1),
+      changes: { name: 'Storefront', description: 'Two paragraphs' },
+    })
+
+    expect(wire.sent[0]).toMatchObject({
+      endpoint: SCRUM_ENDPOINT.updateProject,
+      payload: {
+        input: {
+          expectedRevision: 1,
+          changes: { name: 'Storefront', description: 'Two paragraphs' },
+        },
+      },
     })
   })
 })

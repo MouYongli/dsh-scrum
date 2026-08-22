@@ -21,6 +21,7 @@ export type {
   ScrumClient,
   SetCriterion,
   SprintRef,
+  UpdateProjectInput,
   WorkItemRef,
   WorkspaceView,
 } from './client.js'
