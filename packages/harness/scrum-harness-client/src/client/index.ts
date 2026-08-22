@@ -29,6 +29,7 @@ import {
   SCRUM_NAMESPACE,
   createTranslate,
   type Translate,
+  type MessageKey,
   createDraftRegistry,
   createScrumModeStore,
   disconnectedClient,
@@ -37,6 +38,7 @@ import {
   type ScrumModeStore,
   type ShellMode,
 } from '@dsh-scrum/scrum-ui'
+import type { EntryView } from '@dsh-scrum/scrum-ui'
 import { createTransportClient, type RpcCall } from './transport.js'
 import { SCRUM_STYLES } from './styles.js'
 
@@ -470,6 +472,7 @@ function WorkspaceHeader(props: {
   readonly switchingTo: MutableRefObject<string | null>
   readonly drafts: DraftRegistry
   readonly t: Translate
+  readonly entry: EntryView | null
 }): ReactElement {
   const source = props.shell.workspaces?.list
   const snapshot = useSyncExternalStore(
@@ -502,7 +505,7 @@ function WorkspaceHeader(props: {
     createElement(
       'label',
       { htmlFor: 'scrum-workspace' },
-      props.t(current === null ? 'topbar.unbound' : 'topbar.bound'),
+      props.t(topbarMessage(props.entry, current)),
     ),
     createElement(
       'select',
@@ -539,6 +542,11 @@ function WorkspaceHeader(props: {
       ),
     ),
   )
+}
+
+export function topbarMessage(entry: EntryView | null, workspaceId: string | null): MessageKey {
+  if (workspaceId === null) return 'topbar.unbound'
+  return entry?.state === 'unbound' ? 'topbar.projectUnbound' : 'topbar.bound'
 }
 
 /**
@@ -646,7 +654,7 @@ function overlayComponent(
         key: workspace,
         client,
         drafts,
-        header: createElement(WorkspaceHeader, { shell, switchingTo, drafts, t }),
+        header: (entry) => createElement(WorkspaceHeader, { shell, switchingTo, drafts, t, entry }),
         leaving,
         onExit: store.leave,
         onResume: store.resume,

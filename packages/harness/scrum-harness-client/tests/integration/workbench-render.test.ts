@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { createTranslate, createScrumModeStore, type ScrumModeStore } from '@dsh-scrum/scrum-ui'
 import { registrations as registered } from '../support/shell.js'
+import { topbarMessage } from '@dsh-scrum/scrum-harness-client/client'
 
 /** Applies the plugin against a registry that declares both slots at once. */
 function registrations(store: ScrumModeStore): ReturnType<typeof registered> {
@@ -44,6 +45,14 @@ describe('the sidebar entry', () => {
 })
 
 describe('the overlay', () => {
+  it('keeps the selector position while changing the title for project binding state', () => {
+    expect(topbarMessage(null, 'ws-1')).toBe('topbar.bound')
+    expect(
+      topbarMessage({ state: 'unbound', workspace: { id: 'ws-1', name: 'YouTube_DSH' } }, 'ws-1'),
+    ).toBe('topbar.projectUnbound')
+    expect(topbarMessage(null, null)).toBe('topbar.unbound')
+  })
+
   it('renders nothing in conversation mode, so it is not a layer over it', () => {
     const store = createScrumModeStore()
     const overlay = registrations(store).get('shell.overlay')!

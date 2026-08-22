@@ -45,6 +45,16 @@ function workbench(
 }
 
 describe('a workbench over a bound project', () => {
+  it('uses one consistent tab row for home, backlog, sprint and agent', async () => {
+    const mounted = workbench(stubClient({ entry: () => Promise.resolve(BOUND) }))
+    await settle()
+
+    expect(mounted.all('[data-scrum-surface] > nav [data-scrum-section]')).toHaveLength(4)
+    expect(
+      mounted.all('[data-scrum-surface] > nav [data-scrum-section]').map((tab) => tab.textContent),
+    ).toEqual(['首页', '产品 Backlog', 'Sprint 看板', '打开 Scrum Agent'])
+  })
+
   it('opens the workspace agent without requiring a conversation', async () => {
     const openAgent = vi.fn()
     const mounted = workbench(
