@@ -21,6 +21,21 @@ export const SCRUM_MESSAGES = {
     'workbench.close': '关闭',
     'section.backlog': '产品 Backlog',
     'section.sprint': 'Sprint 看板',
+    'section.access': '会话权限',
+    'access.title': '本次会话的 Scrum 权限',
+    'access.body':
+      '这里决定当前对话中的 Agent 能读写多少 Scrum 数据，改动在它的下一次调用生效，不需要重启会话。',
+    'access.loading': '正在读取会话权限……',
+    'access.off': '关闭',
+    'access.off.hint': 'Agent 看不到任何 Scrum 工具。',
+    'access.read': '只读',
+    'access.read.hint': 'Agent 可以查看项目、Backlog 和 Sprint，但不能修改。',
+    'access.write': '可写',
+    'access.write.hint': 'Agent 可以创建和修改工作项与 Sprint；高风险操作仍会请求确认。',
+    'access.effective': '当前实际生效：',
+    'access.degraded.archived': '项目已归档，可写会自动降级为只读；恢复项目后才能再写入。',
+    'access.degraded.roles': '你在本项目中的角色不再包含写入权限，因此可写无法生效。',
+    'access.degraded.binding': '此工作区当前没有绑定 Scrum 项目，会话拿不到任何权限。',
     'state.noWorkspace.title': '请先选择一个代码工作区',
     'state.noWorkspace.body': 'Scrum 项目保存在工作区目录中，需要先选择工作区才能使用。',
     'state.unbound.title': '此工作区尚未启用 Scrum 项目管理',
@@ -161,6 +176,25 @@ export const SCRUM_MESSAGES = {
     'workbench.close': 'Close',
     'section.backlog': 'Product backlog',
     'section.sprint': 'Sprint board',
+    'section.access': 'Session access',
+    'access.title': "This session's Scrum access",
+    'access.body':
+      'This decides how much Scrum data the agent in this conversation can reach. A change applies on its next call; the session does not restart.',
+    'access.loading': 'Reading the session access\u2026',
+    'access.off': 'Off',
+    'access.off.hint': 'The agent sees no Scrum tools at all.',
+    'access.read': 'Read',
+    'access.read.hint': 'The agent can look at the project, the backlog and the sprints.',
+    'access.write': 'Write',
+    'access.write.hint':
+      'The agent can create and change work items and sprints. High risk actions still ask first.',
+    'access.effective': 'In force right now:',
+    'access.degraded.archived':
+      'The project is archived, so write falls back to read. Restore it to write again.',
+    'access.degraded.roles':
+      'Your roles in this project no longer include writing, so write cannot take effect.',
+    'access.degraded.binding':
+      'This workspace is not attached to a Scrum project, so the session has no access at all.',
     'state.noWorkspace.title': 'Select a code workspace first',
     'state.noWorkspace.body':
       'A Scrum project lives in a workspace directory, so one has to be open.',
