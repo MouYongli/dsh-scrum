@@ -33,6 +33,8 @@ export type {
   GroupTotals,
 } from './backlog.js'
 export { BACKLOG_GROUPING, backlogPage } from './backlog.js'
+export type { BoardCard, BoardColumn, BoardView } from './board.js'
+export { boardView, moveTargets } from './board.js'
 export type { BacklogController, BacklogState } from './backlog-controller.js'
 export { DEFAULT_BACKLOG_QUERY, createBacklogController } from './backlog-controller.js'
 export {
