@@ -371,7 +371,7 @@ scrum_activity
   tenant_id
   project_id
   actor_identity_id
-  source                   // ui | agent | api | automation
+  source                   // ui | agent | api | automation | system
   harness_instance_id      // 可为空
   harness_session_id       // 可为空
   action
@@ -383,6 +383,8 @@ scrum_activity
 ```
 
 Activity 用于回答谁修改了数据、修改来自哪个入口和 Session，以及操作影响了哪个对象版本。
+
+`system` 表示没有任何人直接发起的变更，例如恢复流程或 Schema 迁移。它必须能与用户操作区分开，否则工具自身的修复会被记到当时打开 Workspace 的那个人头上。取值由 `scrum-application` 发布，Adapter 只能写其中的子集。
 
 ### 8.4 核心数据不变量
 
