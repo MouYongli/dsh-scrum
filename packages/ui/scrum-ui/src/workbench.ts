@@ -464,22 +464,60 @@ function surfaceFor(
 ): ReactElement {
   switch (section) {
     case 'home':
-      return createElement(
-        'section',
-        { 'data-scrum-home': true },
-        createElement('p', { 'data-scrum-project': props.project.key }, props.project.key),
-        createElement('h2', null, props.project.name),
-        props.project.description === ''
-          ? null
-          : createElement('p', null, props.project.description),
-        createElement('h3', null, props.t('home.title')),
-        createElement('p', null, props.t('home.body')),
-      )
+      return createElement(ConnectedHome, props)
     case 'backlog':
       return createElement(ConnectedBacklog, props)
     case 'sprint':
       return createElement(ConnectedSprints, props)
   }
+}
+
+function ConnectedHome(props: {
+  readonly client: ScrumClient
+  readonly t: Translate
+  readonly project: { readonly key: string; readonly name: string; readonly description: string }
+}): ReactElement {
+  const [authorization, setAuthorization] = useState<Awaited<
+    ReturnType<ScrumClient['authorization']>
+  > | null>(null)
+
+  useEffect(() => {
+    let current = true
+    void props.client
+      .authorization()
+      .then((resolved) => {
+        if (current) setAuthorization(resolved)
+      })
+      .catch(() => {
+        if (current) setAuthorization(null)
+      })
+    return () => {
+      current = false
+    }
+  }, [props.client])
+
+  return createElement(
+    'section',
+    { 'data-scrum-home': true },
+    createElement('p', { 'data-scrum-project': props.project.key }, props.project.key),
+    createElement('h2', null, props.project.name),
+    props.project.description === '' ? null : createElement('p', null, props.project.description),
+    createElement('h3', null, props.t('home.title')),
+    createElement('p', null, props.t('home.body')),
+    authorization?.membership.mode === 'personal'
+      ? createElement(
+          'aside',
+          { 'data-scrum-personal-owner': true },
+          createElement('h3', null, props.t('membership.personal.title')),
+          createElement('p', null, props.t('membership.personal.body')),
+          createElement(
+            'p',
+            { 'data-scrum-owner-roles': true },
+            authorization.membership.roles.join(', '),
+          ),
+        )
+      : null,
+  )
 }
 
 export interface ConnectedWorkbenchProps {

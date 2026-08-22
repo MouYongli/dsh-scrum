@@ -1,4 +1,4 @@
-import type { Permission, Sprint, WorkItem } from '@dsh-scrum/scrum-domain'
+import type { Permission, ProjectRole, Sprint, WorkItem } from '@dsh-scrum/scrum-domain'
 import { z } from 'zod'
 
 /**
@@ -64,6 +64,10 @@ export type EntryPayload =
 export interface AuthorizationPayload {
   readonly permissions: readonly Permission[]
   readonly projectArchived: boolean
+  readonly membership: {
+    readonly mode: 'personal' | 'managed'
+    readonly roles: readonly ProjectRole[]
+  }
 }
 
 /**

@@ -75,6 +75,7 @@ export function clientOver(host: ScrumHostApi): ScrumClient {
       return {
         permissions: [...authorization.permissions],
         projectArchived: authorization.projectArchived,
+        membership: authorization.membership,
       }
     },
   }

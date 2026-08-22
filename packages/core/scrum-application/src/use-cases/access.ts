@@ -1,9 +1,11 @@
 import {
+  CAPABILITY,
   PROJECT_STATUS,
   isReadPermission,
   PERMISSION,
   type Permission,
   type ProjectId,
+  type ProjectRole,
 } from '@dsh-scrum/scrum-domain'
 import type { UseCaseRequest } from '../actor.js'
 import { authorizeProject } from '../authorization.js'
@@ -19,6 +21,10 @@ export interface ResolveProjectAuthorizationCommand {
 export interface ProjectAuthorization {
   readonly permissions: ReadonlySet<Permission>
   readonly projectArchived: boolean
+  readonly membership: {
+    readonly mode: 'personal' | 'managed'
+    readonly roles: readonly ProjectRole[]
+  }
 }
 
 /**
@@ -42,5 +48,9 @@ export async function resolveProjectAuthorization(
       ? new Set([...authorized.permissions].filter(isReadPermission))
       : authorized.permissions,
     projectArchived,
+    membership: {
+      mode: deps.capabilities.has(CAPABILITY.rbac) ? 'managed' : 'personal',
+      roles: authorized.roles,
+    },
   }
 }
