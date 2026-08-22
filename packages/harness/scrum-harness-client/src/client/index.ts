@@ -93,6 +93,18 @@ function entryComponent(store: WorkbenchStore): (props: { wide: boolean }) => Re
 }
 
 /**
+ * The shell's own page background.
+ *
+ * The overlay covers the whole shell, so it has to bring a background of its
+ * own or the conversation shows through it. That background must come from the
+ * shell's palette rather than a literal: the text colour is inherited, and a
+ * fixed one pairs a light surface with whatever foreground the active theme
+ * chose. `Canvas` is the system keyword, so even a shell that publishes no
+ * tokens at all still gets a pair that agrees.
+ */
+const SHELL_BACKGROUND = 'var(--dsw-alias-bg-base, Canvas)'
+
+/**
  * The overlay entry.
  *
  * It renders nothing at all while closed. The overlay slot is click-through
@@ -113,7 +125,7 @@ function overlayComponent(store: WorkbenchStore, client: ScrumClient): () => Rea
           inset: 0,
           overflow: 'auto',
           pointerEvents: 'auto',
-          background: 'var(--dsh-color-background, #fff)',
+          background: SHELL_BACKGROUND,
         },
       },
       createElement(ConnectedWorkbench, { client, onClose: () => store.close() }),

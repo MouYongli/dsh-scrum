@@ -78,6 +78,20 @@ describe('the overlay', () => {
     expect(markup).toContain('role="dialog"')
   })
 
+  it('paints itself from the shell palette, so the inherited text stays legible', () => {
+    const store = createWorkbenchStore()
+    const overlay = registrations(store).get('shell.overlay')!
+    store.open()
+
+    const markup = render(overlay.component)
+
+    // Pinned by name: the overlay covers the shell and inherits its foreground,
+    // so a background the shell does not publish falls back to a literal and
+    // pairs, on the dark theme, near-white text with a white surface.
+    expect(markup).toContain('var(--dsw-alias-bg-base, Canvas)')
+    expect(markup).not.toContain('#fff')
+  })
+
   it('says it is not connected when nothing composed a client', () => {
     const store = createWorkbenchStore()
     const overlay = registrations(store).get('shell.overlay')!
