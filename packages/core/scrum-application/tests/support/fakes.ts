@@ -15,6 +15,7 @@ import {
   type Timestamp,
   type Sprint,
   type SprintId,
+  formatSprintId,
   type WorkItem,
   type WorkItemId,
 } from '@dsh-scrum/scrum-domain'
@@ -27,8 +28,8 @@ import {
   type IdempotencyRecord,
   type NewProject,
   type StoredProject,
+  type AtomicWrites,
   type WorkItemFilter,
-  type WorkItemWrite,
   type WorkspaceBinding,
   type WorkspaceRef,
   filterWorkItems,
@@ -106,14 +107,12 @@ export class FakeWorkItemRepository {
   readonly items = new Map<WorkItemId, WorkItem>()
   /** How many more times to hand out a number that is already taken. */
   collisions = 0
-  /**
-   * Runs once, immediately before the next write reaches storage. It is how a
-   * test puts a concurrent writer exactly where a batch would tear.
-   */
-  beforeWriteOnce: (() => void) | null = null
 
-  constructor(projects: FakeProjectRepository) {
+  readonly hook: WriteHook
+
+  constructor(projects: FakeProjectRepository, hook: WriteHook) {
     this.projects = projects
+    this.hook = hook
   }
 
   async find(projectId: ProjectId, id: WorkItemId): Promise<WorkItem | null> {
@@ -145,19 +144,9 @@ export class FakeWorkItemRepository {
   }
 
   async save(item: WorkItem, expected: Revision): Promise<void> {
-    this.runBeforeWrite()
+    this.hook.run()
     this.assertExpected(item, expected)
     this.items.set(item.id, item)
-  }
-
-  async saveAll(writes: readonly WorkItemWrite[]): Promise<void> {
-    this.runBeforeWrite()
-    for (const write of writes) {
-      this.assertExpected(write.item, write.expected)
-    }
-    for (const write of writes) {
-      this.items.set(write.item.id, write.item)
-    }
   }
 
   async remove(projectId: ProjectId, id: WorkItemId, expected: Revision): Promise<void> {
@@ -169,13 +158,7 @@ export class FakeWorkItemRepository {
     this.items.delete(id)
   }
 
-  private runBeforeWrite(): void {
-    const hook = this.beforeWriteOnce
-    this.beforeWriteOnce = null
-    hook?.()
-  }
-
-  private assertExpected(item: WorkItem, expected: Revision): void {
+  assertExpected(item: WorkItem, expected: Revision): void {
     const current = this.items.get(item.id)
     if (current === undefined) {
       throw new ConflictError('the work item is no longer there', expected, 0, { id: item.id })
@@ -205,8 +188,82 @@ export class FakeSprintRepository {
     return [...this.sprints.values()].filter((sprint) => sprint.projectId === projectId)
   }
 
+  async nextIdentifier(projectId: ProjectId): Promise<SprintId> {
+    const owned = [...this.sprints.values()].filter((sprint) => sprint.projectId === projectId)
+    return formatSprintId(owned.length + 1)
+  }
+
+  async create(sprint: Sprint): Promise<void> {
+    if (this.sprints.has(sprint.id)) {
+      throw new ConflictError('the sprint already exists', 0, sprint.revision, { id: sprint.id })
+    }
+    this.sprints.set(sprint.id, sprint)
+  }
+
+  async save(sprint: Sprint, expected: Revision): Promise<void> {
+    this.assertExpected(sprint, expected)
+    this.sprints.set(sprint.id, sprint)
+  }
+
+  assertExpected(sprint: Sprint, expected: Revision): void {
+    const current = this.sprints.get(sprint.id)
+    if (current === undefined) {
+      throw new ConflictError('the sprint is no longer there', expected, 0, { id: sprint.id })
+    }
+    if (current.revision !== expected) {
+      throw new ConflictError('the sprint changed since it was read', expected, current.revision, {
+        id: sprint.id,
+      })
+    }
+  }
+
   add(sprint: Sprint): void {
     this.sprints.set(sprint.id, sprint)
+  }
+}
+
+/**
+ * A place for a test to stand a concurrent writer, immediately before the next
+ * write reaches storage. Shared by the stores so a batch and a single write
+ * both pass through it.
+ */
+export class WriteHook {
+  beforeNext: (() => void) | null = null
+
+  run(): void {
+    const hook = this.beforeNext
+    this.beforeNext = null
+    hook?.()
+  }
+}
+
+export class FakeTransactions {
+  readonly workItems: FakeWorkItemRepository
+  readonly sprints: FakeSprintRepository
+  readonly hook: WriteHook
+  readonly applied: string[] = []
+
+  constructor(workItems: FakeWorkItemRepository, sprints: FakeSprintRepository, hook: WriteHook) {
+    this.workItems = workItems
+    this.sprints = sprints
+    this.hook = hook
+  }
+
+  async apply(operation: string, writes: AtomicWrites): Promise<void> {
+    this.hook.run()
+    for (const write of writes.workItems ?? []) {
+      this.workItems.assertExpected(write.item, write.expected)
+    }
+    for (const write of writes.sprints ?? []) {
+      this.sprints.assertExpected(write.sprint, write.expected)
+    }
+    for (const write of writes.workItems ?? []) {
+      this.workItems.items.set(write.item.id, write.item)
+    }
+    for (const write of writes.sprints ?? []) {
+      this.sprints.sprints.set(write.sprint.id, write.sprint)
+    }
+    this.applied.push(operation)
   }
 }
 
@@ -277,6 +334,8 @@ export interface TestDependencies extends ApplicationDependencies {
   readonly projects: FakeProjectRepository
   readonly workItems: FakeWorkItemRepository
   readonly sprints: FakeSprintRepository
+  readonly transactions: FakeTransactions
+  readonly writes: WriteHook
   readonly members: FakeMemberRepository
   readonly bindings: FakeBindingRepository
   readonly activity: FakeActivityRecorder
@@ -291,10 +350,15 @@ export function capabilities(...granted: Capability[]): ReadonlySet<Capability> 
 
 export function dependencies(overrides: Partial<TestDependencies> = {}): TestDependencies {
   const projects = overrides.projects ?? new FakeProjectRepository()
+  const writes = overrides.writes ?? new WriteHook()
+  const workItems = overrides.workItems ?? new FakeWorkItemRepository(projects, writes)
+  const sprints = overrides.sprints ?? new FakeSprintRepository()
   return {
     projects,
-    workItems: new FakeWorkItemRepository(projects),
-    sprints: new FakeSprintRepository(),
+    workItems,
+    sprints,
+    writes,
+    transactions: new FakeTransactions(workItems, sprints, writes),
     members: new FakeMemberRepository(),
     bindings: new FakeBindingRepository(),
     activity: new FakeActivityRecorder(),

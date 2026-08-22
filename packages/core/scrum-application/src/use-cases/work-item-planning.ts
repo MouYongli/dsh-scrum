@@ -26,7 +26,7 @@ import {
 import type { UseCaseRequest } from '../actor.js'
 import { authorizeProject } from '../authorization.js'
 import type { ApplicationDependencies } from '../dependencies.js'
-import type { WorkItemWrite } from '../ports/work-items.js'
+import type { WorkItemWrite } from '../ports/transactions.js'
 import {
   assertExpectedRevision,
   assertHeld,
@@ -37,7 +37,14 @@ import {
 
 type Dependencies = Pick<
   ApplicationDependencies,
-  'projects' | 'members' | 'workItems' | 'sprints' | 'capabilities' | 'activity' | 'clock'
+  | 'projects'
+  | 'members'
+  | 'workItems'
+  | 'sprints'
+  | 'transactions'
+  | 'capabilities'
+  | 'activity'
+  | 'clock'
 >
 
 export interface MoveWorkItemRankCommand extends WorkItemCommand {
@@ -253,7 +260,7 @@ export async function planSprint(
     })
   }
 
-  await deps.workItems.saveAll(writes)
+  await deps.transactions.apply('sprint.plan', { workItems: writes })
   for (const write of writes) {
     await report(
       deps,
