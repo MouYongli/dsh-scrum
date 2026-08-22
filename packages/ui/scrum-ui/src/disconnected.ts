@@ -23,5 +23,11 @@ export function disconnectedClient(message: string): ScrumClient {
     setWorkItemParent: refuse,
     setWorkItemDependency: refuse,
     blockWorkItem: refuse,
+    moveWorkItemStatus: refuse,
+    sprints: refuse,
+    createSprint: refuse,
+    planSprint: refuse,
+    startSprint: refuse,
+    closeSprint: refuse,
   }
 }

@@ -3,9 +3,13 @@ import type {
   Priority,
   Rank,
   Revision,
+  Sprint,
+  SprintId,
+  Timestamp,
   WorkItem,
   WorkItemDetailChanges,
   WorkItemId,
+  WorkItemStatus,
   WorkItemType,
 } from '@dsh-scrum/scrum-domain'
 
@@ -55,11 +59,11 @@ export interface CreateProjectInput {
 /**
  * Which items the screen is asking for.
  *
- * A narrower shape than the store's filter, holding only what the backlog
- * screen offers. `planned` is the one field with no counterpart there: it is
- * how the screen says "the product backlog" (items in no sprint) as opposed to
- * "everything", and the adapter turns it into the sprint narrowing the store
- * understands.
+ * A narrower shape than the store's filter, holding only what the screens
+ * offer. `sprintId` carries three answers and needs all three: an identifier
+ * is one sprint's board, `null` is the product backlog, and leaving it out is
+ * every item in the project. A boolean could not say which sprint, and the
+ * board asks exactly that.
  */
 export interface BacklogQuery {
   readonly text?: string | undefined
@@ -67,8 +71,7 @@ export interface BacklogQuery {
   readonly priorities?: readonly Priority[] | undefined
   readonly labels?: readonly string[] | undefined
   readonly blocked?: boolean | undefined
-  /** `false` narrows to items in no sprint; absent means both. */
-  readonly planned?: boolean | undefined
+  readonly sprintId?: SprintId | null | undefined
 }
 
 /**
@@ -121,6 +124,46 @@ export interface BlockWorkItem extends WorkItemRef {
   readonly reason: string | null
 }
 
+export interface MoveWorkItemStatus extends WorkItemRef {
+  readonly status: WorkItemStatus
+}
+
+/**
+ * A new sprint.
+ *
+ * The dates are part of creating it, not something set afterwards: they are
+ * the box the team agreed to and the baseline every "was it on time" question
+ * is measured against.
+ */
+export interface NewSprint {
+  readonly name: string
+  readonly goal?: string | undefined
+  readonly startDate: Timestamp
+  readonly endDate: Timestamp
+}
+
+export interface SprintRef {
+  readonly sprintId: SprintId
+  readonly expectedRevision: Revision
+}
+
+/** Moving work into a sprint, or out of one when `sprintId` is `null`. */
+export interface PlanSprint {
+  readonly sprintId: SprintId | null
+  readonly items: readonly WorkItemRef[]
+}
+
+/** Where one unfinished item goes when its sprint closes. */
+export interface Disposition extends WorkItemRef {
+  /** The next sprint, or `null` to return the item to the backlog. */
+  readonly moveTo: SprintId | null
+}
+
+export interface CloseSprint extends SprintRef {
+  readonly resultSummary?: string | undefined
+  readonly dispositions: readonly Disposition[]
+}
+
 export interface ScrumClient {
   entry(): Promise<EntryView>
   createProject(input: CreateProjectInput): Promise<ProjectView>
@@ -132,4 +175,10 @@ export interface ScrumClient {
   setWorkItemParent(command: ParentWorkItem): Promise<WorkItem>
   setWorkItemDependency(command: DependWorkItem): Promise<WorkItem>
   blockWorkItem(command: BlockWorkItem): Promise<WorkItem>
+  moveWorkItemStatus(command: MoveWorkItemStatus): Promise<WorkItem>
+  sprints(): Promise<readonly Sprint[]>
+  createSprint(input: NewSprint): Promise<Sprint>
+  planSprint(command: PlanSprint): Promise<readonly WorkItem[]>
+  startSprint(command: SprintRef): Promise<Sprint>
+  closeSprint(command: CloseSprint): Promise<Sprint>
 }

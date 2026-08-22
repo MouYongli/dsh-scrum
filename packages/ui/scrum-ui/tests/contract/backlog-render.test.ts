@@ -30,7 +30,7 @@ const actions: BacklogActions = {
 function state(overrides: Partial<BacklogState> = {}): BacklogState {
   return {
     phase: 'ready',
-    query: { planned: false },
+    query: { sprintId: null },
     grouping: BACKLOG_GROUPING.none,
     page: backlogPage([], BACKLOG_GROUPING.none, false),
     ordered: [],

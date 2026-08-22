@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { ConflictError, WORK_ITEM_TYPE, toRevision } from '@dsh-scrum/scrum-domain'
+import { ConflictError, WORK_ITEM_TYPE, toRevision, toSprintId } from '@dsh-scrum/scrum-domain'
 import {
   BACKLOG_GROUPING,
   DEFAULT_BACKLOG_QUERY,
@@ -74,7 +74,7 @@ describe('reading the backlog', () => {
   it('does not count the sprint scope as a filter the user set', async () => {
     const controller = createBacklogController(stubClient({ backlog: () => Promise.resolve([]) }))
 
-    await controller.setQuery({ planned: true })
+    await controller.setQuery({ sprintId: toSprintId('sprint-1') })
 
     expect(controller.state().page.emptiness).toBe('no-items')
   })

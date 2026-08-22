@@ -1,16 +1,22 @@
 export type {
   BacklogQuery,
   BlockWorkItem,
+  CloseSprint,
   CreateProjectInput,
   DependWorkItem,
+  Disposition,
   EditWorkItem,
   EntryView,
+  MoveWorkItemStatus,
+  NewSprint,
   NewWorkItem,
   ParentWorkItem,
+  PlanSprint,
   ProjectView,
   RankWorkItem,
   ScrumClient,
   SetCriterion,
+  SprintRef,
   WorkItemRef,
   WorkspaceView,
 } from './client.js'
@@ -29,7 +35,15 @@ export type {
 export { BACKLOG_GROUPING, backlogPage } from './backlog.js'
 export type { BacklogController, BacklogState } from './backlog-controller.js'
 export { DEFAULT_BACKLOG_QUERY, createBacklogController } from './backlog-controller.js'
-export { PRIORITIES, WORK_ITEM_TYPES, priorityLabel, typeLabel } from './vocabulary.js'
+export {
+  BOARD_COLUMNS,
+  PRIORITIES,
+  WORK_ITEM_TYPES,
+  priorityLabel,
+  sprintStatusLabel,
+  statusLabel,
+  typeLabel,
+} from './vocabulary.js'
 export type { Locale, MessageKey, Translate } from './messages.js'
 export { MESSAGE_KEYS, SCRUM_MESSAGES, SCRUM_NAMESPACE, createTranslate } from './messages.js'
 export type { PageView } from './pages.js'

@@ -18,7 +18,7 @@ import { toFailure, type ScrumFailure } from './failure.js'
  * screen asks for. Widening to everything is a switch the user throws, not a
  * default that quietly turns the backlog into a list of all work items.
  */
-export const DEFAULT_BACKLOG_QUERY: BacklogQuery = { planned: false }
+export const DEFAULT_BACKLOG_QUERY: BacklogQuery = { sprintId: null }
 
 /**
  * What the backlog screen is showing.

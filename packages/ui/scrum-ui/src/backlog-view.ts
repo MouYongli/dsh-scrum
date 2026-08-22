@@ -298,9 +298,9 @@ function toolbar(props: BacklogProps): ReactElement {
     checkbox(
       'scrum-backlog-planned',
       t('backlog.filter.planned'),
-      query.planned === undefined,
+      query.sprintId === undefined,
       (on) => {
-        props.actions.query(on ? without(query, 'planned') : { ...query, planned: false })
+        props.actions.query(on ? without(query, 'sprintId') : { ...query, sprintId: null })
       },
     ),
   )
@@ -309,18 +309,18 @@ function toolbar(props: BacklogProps): ReactElement {
 /**
  * Drops one narrowing.
  *
- * Dropping means clearing the field, not setting it to `false`: an explicit
- * `false` reads as "only the ones without", which is a third state neither
- * checkbox offers and nobody asked for.
+ * Dropping means clearing the field, not setting it to `false` or `null`: both
+ * of those already mean something else here — "only the unblocked ones" and
+ * "only the unplanned ones" — and neither is what an unticked box says.
  */
-function without(query: BacklogQuery, key: 'blocked' | 'planned'): BacklogQuery {
+function without(query: BacklogQuery, key: 'blocked' | 'sprintId'): BacklogQuery {
   return {
     text: query.text,
     types: query.types,
     priorities: query.priorities,
     labels: query.labels,
     blocked: key === 'blocked' ? undefined : query.blocked,
-    planned: key === 'planned' ? undefined : query.planned,
+    sprintId: key === 'sprintId' ? undefined : query.sprintId,
   }
 }
 
