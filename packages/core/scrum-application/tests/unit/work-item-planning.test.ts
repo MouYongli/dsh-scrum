@@ -374,7 +374,7 @@ describe('planSprint', () => {
     const target = sprint(deps, stored)
     // Someone else edits the second item after this planner read it, in the
     // one window a per-item write would tear the batch apart.
-    deps.workItems.beforeWriteOnce = () => {
+    deps.writes.beforeNext = () => {
       deps.workItems.items.set(second.id, { ...second, revision: toRevision(second.revision + 1) })
     }
 

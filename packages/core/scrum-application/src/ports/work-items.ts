@@ -75,12 +75,6 @@ export function filterWorkItems(
     .sort((left, right) => compareRanks(left.rank, right.rank))
 }
 
-/** One entity in a batch, with the revision the caller read it at. */
-export interface WorkItemWrite {
-  readonly item: WorkItem
-  readonly expected: Revision
-}
-
 export interface WorkItemRepository {
   find(projectId: ProjectId, id: WorkItemId): Promise<WorkItem | null>
   list(projectId: ProjectId, filter: WorkItemFilter): Promise<readonly WorkItem[]>
@@ -96,13 +90,5 @@ export interface WorkItemRepository {
   /** Refuses with a `ConflictError` if the identifier is already taken. */
   create(item: WorkItem): Promise<void>
   save(item: WorkItem, expected: Revision): Promise<void>
-  /**
-   * All of them or none of them.
-   *
-   * Planning a sprint moves many items at once, and a batch that stopped
-   * halfway would leave a sprint holding some of a decision. Every revision is
-   * checked before anything is written.
-   */
-  saveAll(writes: readonly WorkItemWrite[]): Promise<void>
   remove(projectId: ProjectId, id: WorkItemId, expected: Revision): Promise<void>
 }
