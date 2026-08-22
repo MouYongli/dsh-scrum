@@ -9,7 +9,15 @@
  *
  * @module @dsh-scrum/scrum-harness-client/client
  */
-import { createElement, useSyncExternalStore, type ReactElement } from 'react'
+import {
+  createElement,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ReactElement,
+} from 'react'
 import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
 // Pulls in the slot map augmentations that declare the two slots used here.
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
@@ -105,6 +113,107 @@ function entryComponent(store: WorkbenchStore): (props: { wide: boolean }) => Re
 const SHELL_BACKGROUND = 'var(--dsw-alias-bg-base, Canvas)'
 
 /**
+ * Where the sidebar ends, measured rather than read from the slot.
+ *
+ * `shell.overlay` is declared with no owner props, `ctx.layout` exposes only
+ * panel transitions, and the frame writes its column widths as an inline
+ * `grid-template-columns` rather than a custom property. Nothing in the
+ * contract can answer this, and the shipped geometry — the workbench covers
+ * the conversation and the details, starting at the sidebar's right edge — is
+ * not expressible without it.
+ *
+ * Both ends of the measurement are elements this plugin owns. The sidebar
+ * entry is ours and always renders, degrading to an icon on the collapsed
+ * rail, so walking up from it to the frame's direct child names the sidebar
+ * column without touching a host class name or component. A walk that does not
+ * arrive returns no offset, and the overlay covers the frame as it did before.
+ *
+ * @param overlay - the overlay's own element, once mounted.
+ * @returns the offset in the overlay layer's own coordinates.
+ */
+function sidebarColumn(overlay: HTMLElement): { layer: Element; column: HTMLElement } | null {
+  const layer = overlay.closest('[data-shell-overlay]')
+  const frame = layer?.parentElement
+  const entry = overlay.ownerDocument.querySelector<HTMLElement>(`[data-scrum-entry="${ENTRY_ID}"]`)
+  if (layer === null || frame === null || frame === undefined || entry === null) {
+    return null
+  }
+  let column: HTMLElement | null = entry
+  while (column !== null && column.parentElement !== frame) {
+    column = column.parentElement
+  }
+  return column === null ? null : { layer, column }
+}
+
+function measureSidebar(overlay: HTMLElement): number {
+  const found = sidebarColumn(overlay)
+  if (found === null) {
+    return 0
+  }
+  const right = found.column.getBoundingClientRect().right
+  return Math.max(0, right - found.layer.getBoundingClientRect().left)
+}
+
+/**
+ * The measured offset, kept current.
+ *
+ * The sidebar is drag-resizable and collapsible, so a width read once is wrong
+ * by the next frame. Observing the column itself catches both, and the window
+ * covers the case where the frame moves without the column resizing. A shell
+ * without `ResizeObserver` still gets the mount-time measurement rather than
+ * no overlay at all.
+ */
+function useSidebarInset(open: boolean): {
+  readonly ref: (element: HTMLElement | null) => void
+  readonly inset: number
+} {
+  const [inset, setInset] = useState(0)
+  const element = useRef<HTMLElement | null>(null)
+
+  const measure = useCallback(() => {
+    const current = element.current
+    setInset(current === null ? 0 : measureSidebar(current))
+  }, [])
+
+  const ref = useCallback(
+    (next: HTMLElement | null) => {
+      element.current = next
+      measure()
+    },
+    [measure],
+  )
+
+  useEffect(() => {
+    const current = element.current
+    if (!open || current === null) {
+      return undefined
+    }
+    // Again here, not only in the ref: the ref runs during the commit, and the
+    // sidebar entry is a second registration that may not have mounted yet.
+    // Effects run after the whole commit, so by now both are in the document.
+    measure()
+    if (typeof ResizeObserver === 'undefined') {
+      return undefined
+    }
+    const observer = new ResizeObserver(measure)
+    const found = sidebarColumn(current)
+    // The column itself, for a drag or a collapse; the overlay, for everything
+    // that moves the columns without resizing the one being watched.
+    observer.observe(current)
+    if (found !== null) {
+      observer.observe(found.column)
+    }
+    current.ownerDocument.defaultView?.addEventListener('resize', measure)
+    return () => {
+      observer.disconnect()
+      current.ownerDocument.defaultView?.removeEventListener('resize', measure)
+    }
+  }, [open, measure])
+
+  return { ref, inset }
+}
+
+/**
  * The overlay entry.
  *
  * It renders nothing at all while closed. The overlay slot is click-through
@@ -113,16 +222,25 @@ const SHELL_BACKGROUND = 'var(--dsw-alias-bg-base, Canvas)'
  */
 function overlayComponent(store: WorkbenchStore, client: ScrumClient): () => ReactElement | null {
   return function ScrumOverlay(): ReactElement | null {
-    if (!useIsOpen(store)) {
+    const open = useIsOpen(store)
+    const sidebar = useSidebarInset(open)
+    if (!open) {
       return null
     }
     return createElement(
       'div',
       {
+        ref: sidebar.ref,
         'data-scrum-overlay': ENTRY_ID,
         style: {
           position: 'absolute',
-          inset: 0,
+          // Not `inset`, which would take the sidebar with it. The workbench
+          // replaces the conversation and the details, and the column the user
+          // opened it from stays where it was.
+          top: 0,
+          right: 0,
+          bottom: 0,
+          left: sidebar.inset,
           overflow: 'auto',
           pointerEvents: 'auto',
           background: SHELL_BACKGROUND,

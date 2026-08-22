@@ -121,11 +121,20 @@ Sidebar 由 `@deepseek-ai/dsh-client-ui-sidebar` 声明三个：
 
 | Slot | 用途 |
 |---|---|
-| `shell.overlay` | 根级全局浮层，可覆盖对话主区与详情区，是整页工作台的落点 |
+| `shell.overlay` | 根级全局浮层，可覆盖对话主区与详情区，是整页工作台的落点；`list` 型，**无 owner props** |
 | `conversation.input.dock` | 输入框上方的附加条，宿主的目标/待办 chip 也在这里 |
 | `tool.call.toolview` | 按工具名注册的工具调用卡片视图 |
 
 **`sidebar.primaryActions` 与 `application.view` 不存在**，本文早前版本据此提出的上游 Slot 提案不再需要：整页工作台用 `shell.overlay` 就能实现，无需修改宿主布局。
+
+`shell.overlay` 的容器是 `position: absolute; inset: 0`，覆盖整个 Frame，**包含 Sidebar 列**。注册方拿不到任何列几何：
+
+- Slot 声明是 `{ kind: 'list'; scope: 'root' }`，没有 owner props。
+- `ctx.layout` 只有 `toggleSidebar`、`openDetails` 和 `closeDetails`，没有几何读取。
+- 列宽存在根入口的私有 layout store 里，Frame 以内联 `grid-template-columns` 写出，不是 CSS 变量。
+- 该容器是绝对定位元素，其子元素也拿不到 Grid 列。
+
+因此「从 Sidebar 右缘起」只能由浮层自行测量。本仓库的做法是**只从本插件自己的元素出发**：Sidebar 入口 `[data-scrum-entry]` 是我们注册的，且折叠时也渲染，所以从它向上走到 Frame 的直接子元素即得 Sidebar 列，全程不触碰宿主的 class 名或组件。Sidebar 可拖拽也可折叠，测量因此用 `ResizeObserver` 保持跟随；走不到列时退回覆盖整个 Frame，而不是按猜的数字缩进。
 
 ### 4.3 浏览器产物的加载契约
 
@@ -213,7 +222,7 @@ Client Context 需要注入的服务按用途声明，例如 `['slots', 'locale'
 └──────────────────┴─────────────────────────────────────────────────────┘
 ```
 
-Scrum 工作台是注册在 `shell.overlay` 的根级浮层，从 Sidebar 右缘起覆盖原 Conversation 和 Details 空间，关闭后两栏原样恢复。入口位于 Sidebar 底部的 `sidebar.footer.action`，与 Settings 并列——宿主没有开放顶部操作 Slot。工作项详情由工作台自己的抽屉承载，不复用对话的工具详情面板。
+Scrum 工作台是注册在 `shell.overlay` 的根级浮层，从 Sidebar 右缘起覆盖原 Conversation 和 Details 空间，关闭后两栏原样恢复。该左缘偏移不在 Slot 契约里，由浮层自行测量，做法见 4.2。入口位于 Sidebar 底部的 `sidebar.footer.action`，与 Settings 并列——宿主没有开放顶部操作 Slot。工作项详情由工作台自己的抽屉承载，不复用对话的工具详情面板。
 
 ## 7. 首次进入状态
 
