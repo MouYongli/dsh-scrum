@@ -1,0 +1,31 @@
+{
+  "name": "@dsh-scrum/scrum-ui",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Edition-independent Scrum interface components",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "lint": "eslint src"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "~18.3.31",
+    "@types/react-dom": "~18.3.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  }
+}
