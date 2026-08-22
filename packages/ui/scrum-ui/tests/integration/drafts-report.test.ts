@@ -169,6 +169,7 @@ describe('the project wizard', () => {
         state: {
           kind: 'ready',
           creating: false,
+          failure: null,
           entry: { state: 'unbound', workspace: { id: 'ws-1', name: 'shop-service' } },
         },
       }),

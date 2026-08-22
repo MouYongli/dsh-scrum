@@ -117,6 +117,30 @@ describe('a workspace with no project yet', () => {
     expect(mounted.container.querySelector('[data-scrum-page="bound"]')).not.toBeNull()
   })
 
+  it('keeps what was typed when the host refuses the creation', async () => {
+    const mounted = workbench(
+      stubClient({
+        entry: () =>
+          Promise.resolve({ state: 'unbound', workspace: { id: 'ws_1', name: 'shop-service' } }),
+        createProject: () => Promise.reject(new Error('the key is already taken')),
+      }),
+    )
+    await settle()
+
+    mounted.type('#scrum-name', 'shop-service')
+    mounted.type('#scrum-key', 'SCR')
+    mounted.submit('[data-scrum-wizard]')
+    await settle()
+
+    expect(mounted.find('[data-scrum-create-failure]').textContent).toContain(
+      'the key is already taken',
+    )
+    expect((mounted.find('#scrum-name') as HTMLInputElement).value).toBe('shop-service')
+    expect((mounted.find('#scrum-key') as HTMLInputElement).value).toBe('SCR')
+    // The button is usable again rather than left saying it is still creating.
+    expect((mounted.find('[data-scrum-submit]') as HTMLButtonElement).disabled).toBe(false)
+  })
+
   it('refuses a key the host would refuse, naming the field rather than calling', async () => {
     const createProject = vi.fn()
     const mounted = workbench(

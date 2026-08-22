@@ -1,4 +1,5 @@
 import type { CreateProjectInput, EntryView, ScrumClient } from './client.js'
+import { toFailure, type ScrumFailure } from './failure.js'
 
 /**
  * What the workbench is showing.
@@ -7,10 +8,21 @@ import type { CreateProjectInput, EntryView, ScrumClient } from './client.js'
  * stays on screen while a project is being created, and a separate state would
  * mean rebuilding it — and losing what the user typed — the moment they
  * submitted.
+ *
+ * A refused creation rides on `ready` for the same reason, and it is the case
+ * that matters most: the user has three fields filled in, one of them is what
+ * the host objected to, and replacing the page with an error screen throws all
+ * three away at the exact moment they need to be edited. `failed` is left for
+ * the load, where there is no page to keep.
  */
 export type WorkbenchState =
   | { readonly kind: 'loading' }
-  | { readonly kind: 'ready'; readonly entry: EntryView; readonly creating: boolean }
+  | {
+      readonly kind: 'ready'
+      readonly entry: EntryView
+      readonly creating: boolean
+      readonly failure: ScrumFailure | null
+    }
   | { readonly kind: 'failed'; readonly message: string }
 
 /**
@@ -45,7 +57,7 @@ export function createWorkbenchController(client: ScrumClient): WorkbenchControl
 
   async function load(): Promise<void> {
     try {
-      set({ kind: 'ready', entry: await client.entry(), creating: false })
+      set({ kind: 'ready', entry: await client.entry(), creating: false, failure: null })
     } catch (error: unknown) {
       set({ kind: 'failed', message: messageOf(error) })
     }
@@ -68,13 +80,21 @@ export function createWorkbenchController(client: ScrumClient): WorkbenchControl
      */
     create: async (input: CreateProjectInput) => {
       if (state.kind === 'ready') {
-        set({ ...state, creating: true })
+        set({ ...state, creating: true, failure: null })
       }
       try {
         await client.createProject(input)
         await load()
       } catch (error: unknown) {
-        set({ kind: 'failed', message: messageOf(error) })
+        // The page is kept when there is one to keep. A creation refused for a
+        // key somebody already took, or for a permission the session does not
+        // have, is a refusal the user answers by editing the form they are
+        // looking at.
+        set(
+          state.kind === 'ready'
+            ? { ...state, creating: false, failure: toFailure(error) }
+            : { kind: 'failed', message: messageOf(error) },
+        )
       }
     },
   }

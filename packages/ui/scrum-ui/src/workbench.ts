@@ -17,6 +17,7 @@ import { createSprintController } from './sprint-controller.js'
 import { SprintScreen } from './sprint-view.js'
 import type { CreateProjectInput, ScrumClient } from './client.js'
 import { createWorkbenchController, type WorkbenchState } from './controller.js'
+import type { ScrumFailure } from './failure.js'
 import { DraftsProvider, NO_DRAFTS, useDraftGuard, type DraftRegistry } from './drafts.js'
 import { createTranslate, type Translate } from './messages.js'
 import { pageFor } from './pages.js'
@@ -141,6 +142,7 @@ function body(props: WorkbenchProps, t: Translate): ReactElement | null {
           { 'data-scrum-project': page.project.key },
           `${page.project.key} · ${page.project.name}`,
         ),
+    page.action === null || state.failure === null ? null : refusal(state.failure, t),
     page.action === null
       ? null
       : createElement(ProjectWizard, {
@@ -149,6 +151,23 @@ function body(props: WorkbenchProps, t: Translate): ReactElement | null {
           onCreate: props.onCreate,
         }),
     page.project === null ? null : props.surface,
+  )
+}
+
+/**
+ * A creation the host refused, shown above the form that caused it.
+ *
+ * Above rather than instead of: the form still holds the name, key and
+ * description that were typed, and the next thing the user does is edit one of
+ * them. The banner carries the host's own sentence — it is the only thing that
+ * says which of them to edit.
+ */
+function refusal(failure: ScrumFailure, t: Translate): ReactElement {
+  return createElement(
+    'div',
+    { role: 'alert', 'data-scrum-create-failure': failure.kind },
+    createElement('p', null, t('error.title')),
+    createElement('p', null, failure.message),
   )
 }
 

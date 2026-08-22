@@ -2,7 +2,7 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { ConnectedWorkbench, Workbench, createTranslate, toCreateInput } from '@dsh-scrum/scrum-ui'
-import type { EntryView, WorkbenchState } from '@dsh-scrum/scrum-ui'
+import type { EntryView, ScrumFailure, WorkbenchState } from '@dsh-scrum/scrum-ui'
 import { stubClient } from '../support/client.js'
 
 // Rendered to markup rather than asserted as an element tree. A tree assertion
@@ -17,8 +17,12 @@ function render(state: WorkbenchState, onExit?: () => void): string {
   return renderToStaticMarkup(createElement(Workbench, { state, onExit }))
 }
 
-function ready(entry: EntryView, creating = false): WorkbenchState {
-  return { kind: 'ready', entry, creating }
+function ready(
+  entry: EntryView,
+  creating = false,
+  failure: ScrumFailure | null = null,
+): WorkbenchState {
+  return { kind: 'ready', entry, creating, failure }
 }
 
 describe('the workbench frame', () => {
@@ -138,6 +142,22 @@ describe('the creation wizard', () => {
 
     expect(markup).toContain('disabled')
     expect(markup).toContain(t('wizard.creating'))
+  })
+
+  it('shows a refused creation above the form rather than in place of it', () => {
+    const refused = ready({ state: 'unbound', workspace: WORKSPACE }, false, {
+      kind: 'other',
+      message: 'the key is already taken',
+    })
+
+    const markup = render(refused)
+
+    expect(markup).toContain('data-scrum-create-failure="other"')
+    expect(markup).toContain('the key is already taken')
+    expect(markup).toContain('data-scrum-wizard')
+    expect(markup.indexOf('data-scrum-create-failure')).toBeLessThan(
+      markup.indexOf('data-scrum-wizard'),
+    )
   })
 
   it('renders in English when the shell is English', () => {
