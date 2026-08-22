@@ -7,5 +7,10 @@
     "lib": ["es2023", "dom"],
     "types": []
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*"],
+  "references": [
+    {
+      "path": "../../core/scrum-domain"
+    }
+  ]
 }

@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { ConnectedWorkbench, Workbench, createTranslate, toCreateInput } from '@dsh-scrum/scrum-ui'
 import type { EntryView, WorkbenchState } from '@dsh-scrum/scrum-ui'
+import { stubClient } from '../support/client.js'
 
 // Rendered to markup rather than asserted as an element tree. A tree assertion
 // passes while the page shows nothing, because a component that returns the
@@ -147,10 +148,7 @@ describe('the connected workbench', () => {
   it('shows the loading frame before the client has answered', () => {
     const markup = renderToStaticMarkup(
       createElement(ConnectedWorkbench, {
-        client: {
-          entry: () => new Promise<EntryView>(() => undefined),
-          createProject: () => new Promise<never>(() => undefined),
-        },
+        client: stubClient({ entry: () => new Promise<EntryView>(() => undefined) }),
       }),
     )
 
@@ -170,5 +168,32 @@ describe('what the wizard submits', () => {
 
   it('leaves the name alone, because it belongs to the user', () => {
     expect(toCreateInput('  优惠券服务 ', 'SCR', '').name).toBe('  优惠券服务 ')
+  })
+})
+
+describe('the project surface', () => {
+  const surface = createElement('div', { 'data-scrum-surface': true }, 'backlog')
+
+  function withSurface(entry: EntryView): string {
+    return renderToStaticMarkup(createElement(Workbench, { state: ready(entry), surface }))
+  }
+
+  it('shows on a bound project and on an archived one', () => {
+    expect(
+      withSurface({ state: 'bound', workspace: WORKSPACE, project: PROJECT, moved: false }),
+    ).toContain('data-scrum-surface')
+    expect(
+      withSurface({ state: 'archived', workspace: WORKSPACE, project: PROJECT, moved: false }),
+    ).toContain('data-scrum-surface')
+  })
+
+  it('shows on none of the states that have no project to show one for', () => {
+    expect(withSurface({ state: 'no-workspace' })).not.toContain('data-scrum-surface')
+    expect(withSurface({ state: 'unbound', workspace: WORKSPACE })).not.toContain(
+      'data-scrum-surface',
+    )
+    expect(withSurface({ state: 'stale', workspace: WORKSPACE })).not.toContain(
+      'data-scrum-surface',
+    )
   })
 })
