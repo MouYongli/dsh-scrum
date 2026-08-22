@@ -2,6 +2,7 @@ export type { WorkspaceLayout } from './paths.js'
 export {
   SCRUM_DIRECTORY,
   contains,
+  digestFileName,
   layoutDirectories,
   realPathInside,
   resolveInside,
@@ -63,3 +64,6 @@ export {
   readActivity,
   toActivitySource,
 } from './activity.js'
+export type { StoredEdition } from './repository-project.js'
+export type { WorkspaceRepositories, WorkspaceRepositoriesInput } from './repositories.js'
+export { createWorkspaceRepositories } from './repositories.js'

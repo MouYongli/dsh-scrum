@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { realpath } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { ValidationError, type SprintId, type WorkItemId } from '@dsh-scrum/scrum-domain'
@@ -22,6 +23,15 @@ export interface WorkspaceLayout {
   readonly comments: string
   readonly activities: string
   readonly sessions: string
+  /**
+   * Where this workspace records which project it is attached to, per Harness
+   * installation. The project itself says what it is; the binding also has to
+   * remember where the workspace was when it was attached, which nothing else
+   * on disk can answer.
+   */
+  readonly bindings: string
+  /** Completed operations remembered by the key their caller supplied. */
+  readonly idempotency: string
   readonly pendingOperations: string
   readonly attachments: string
   readonly backups: string
@@ -42,6 +52,8 @@ export function workspaceLayout(workspaceRoot: string): WorkspaceLayout {
     comments: join(scrum, 'comments'),
     activities: join(scrum, 'activities'),
     sessions: join(scrum, 'sessions'),
+    bindings: join(scrum, 'bindings'),
+    idempotency: join(scrum, 'idempotency'),
     pendingOperations: join(scrum, 'operations', 'pending'),
     attachments: join(scrum, 'attachments'),
     backups: join(scrum, 'backups'),
@@ -58,6 +70,8 @@ export function layoutDirectories(layout: WorkspaceLayout): readonly string[] {
     layout.comments,
     layout.activities,
     layout.sessions,
+    layout.bindings,
+    layout.idempotency,
     layout.pendingOperations,
     layout.attachments,
     layout.backups,
@@ -70,6 +84,19 @@ export function workItemFile(layout: WorkspaceLayout, id: WorkItemId): string {
 
 export function sprintFile(layout: WorkspaceLayout, id: SprintId): string {
   return resolveInside(layout.sprints, `${id}.json`)
+}
+
+/**
+ * A filename that stands for an opaque reference without spelling it out.
+ *
+ * `.scrum/` is committed to the user's repository as often as not, and a
+ * Harness instance id or a caller's idempotency key would then sit in a
+ * directory listing and in every diff that touches it. A digest still answers
+ * the only question a filename is asked — whether this is the same reference —
+ * and the file's own contents carry whatever the reader has to compare.
+ */
+export function digestFileName(reference: string): string {
+  return `${createHash('sha256').update(reference).digest('hex')}.json`
 }
 
 /** Whether `child` is `parent` itself or sits somewhere beneath it. */

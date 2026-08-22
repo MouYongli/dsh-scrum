@@ -56,13 +56,13 @@ importers:
 
   packages/adapters/adapter-storage-workspace-files:
     dependencies:
+      '@dsh-scrum/scrum-application':
+        specifier: workspace:*
+        version: link:../../core/scrum-application
       '@dsh-scrum/scrum-domain':
         specifier: workspace:*
         version: link:../../core/scrum-domain
     devDependencies:
-      '@dsh-scrum/scrum-application':
-        specifier: workspace:*
-        version: link:../../core/scrum-application
       '@types/node':
         specifier: ^24.13.3
         version: 24.13.3
