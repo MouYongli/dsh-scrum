@@ -304,7 +304,7 @@ Workspace 和 Session ID 只应被视为某个 Harness 实例中的稳定标识�
 (harness_instance_id, harness_session_id)
 ```
 
-不能假设 Workspace ID 或 Session ID 在所有客户、设备和部署之间全局唯一。具体绑定和 Session Context Schema 见[系统架构](architecture.md#8-harness-绑定与活动模型)。
+不能假设 Workspace ID 或 Session ID 在所有客户、设备和部署之间全局唯一。具体绑定和 Session Activity Context 见[系统架构](architecture.md#8-harness-绑定与活动模型)。
 
 ### 8.3 Workspace 生命周期
 
@@ -314,37 +314,15 @@ Workspace 和 Session ID 只应被视为某个 Harness 实例中的稳定标识�
 - **Workspace 路径变化**：使用 Workspace ID 作为主引用，路径指纹只用于检测异常，不使用路径作为外键。
 - **Workspace 从 Harness 删除**：默认不删除 Scrum Project；将 Workspace Link 标记为失效或解除，项目数据仍然保留。
 - **Workspace 重新添加**：如果产生新的 Workspace ID，不应只根据路径自动恢复远端项目绑定；提示用户确认后重新绑定。
-- **Scrum Project 归档**：Workspace Link 可以保留，但页面显示只读归档状态；Session 的 Write 权限自动降级为 Read 或 Off。
+- **Scrum Project 归档**：Workspace Link 可以保留，但页面和 Agent 权限自动收窄为只读。
 
-## 9. Session 与 Agent 授权
+## 9. Workspace 与 Agent 授权
 
-### 9.1 Session Scrum Access
+### 9.1 Workspace 继承
 
-每个 Session 独立设置 Scrum 访问模式，默认值为 `Off`，遵循最小权限原则：
+Workspace 绑定 Scrum Project 后，该 Workspace 下的所有 Session 和 Scrum 工作台内的 Agent 自动继承当前用户的有效 Project 权限。产品不提供逐 Session 的 Off、Read 或 Write 开关。
 
-| 模式 | Agent 能力 |
-|---|---|
-| Off | 不显示 Scrum 工具，不注入项目上下文 |
-| Read | 可以查询项目、Sprint、Backlog 和工作项 |
-| Write | 可以在当前用户权限范围内创建和修改数据 |
-
-建议在对话输入框附近显示：
-
-```text
-[模型：DeepSeek V4] [权限：Workspace Write] [Scrum：Off ▾]
-```
-
-选择菜单：
-
-```text
-Scrum access
-
-● Off
-○ Read project
-○ Read and update project
-```
-
-启用时从当前 Workspace Link 解析项目并写入 Session Scrum Context。每次操作仍要重新验证 Session、Workspace 和当前绑定是否一致，不能把启用时的结果永久当作授权事实。
+每次操作重新解析 Workspace Link、当前用户和 Project 状态。Session ID 只作为可选 Activity 来源，用于回答操作来自哪次对话，不参与授权，也不单独持久化 Scrum Access。
 
 ### 9.2 最终权限计算
 
@@ -354,17 +332,18 @@ Agent 的最终权限是多个权限层的交集：
 最终权限 =
     版本能力
   ∩ 用户项目角色权限
-  ∩ Session Scrum Access
+  ∩ Project Permission Policy
+  ∩ Project 状态
   ∩ 操作级安全策略
 ```
 
-例如，用户角色为 Developer、Session Scrum Access 为 Write，但项目策略规定 Developer 不能删除 Sprint，则 Agent 可以更新任务但不能删除 Sprint。
+例如，用户角色为 Developer，但项目策略规定 Developer 不能结束 Sprint，则 Agent 可以更新任务但不能结束 Sprint。
 
-前端隐藏入口不能替代权限检查。每次写操作都必须重新检查当前用户、项目角色、Session 授权、操作策略和资源版本。
+前端隐藏入口不能替代权限检查。每次写操作都必须重新检查当前用户、项目角色、Project Policy、Project 状态、操作策略和资源版本。
 
 ### 9.3 Agent 工具
 
-Harness 支持在全局或 Agent Scope 中注册工具。Scrum 工具只应在允许使用 Scrum 的 Session 或 Agent Scope 中可见，避免全局注册后仅依靠工具内部拒绝。
+Harness 支持在 Workspace 或 Agent Scope 中注册工具。Scrum 工具只应在 Workspace 已绑定 Project 且当前用户拥有相应 Permission 时可见，避免全局注册后仅依靠工具内部拒绝。
 
 参考资料：[DeepSeek Harness Tools](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/core/tools/README.md)
 
@@ -421,7 +400,7 @@ Session Log 只记录必要引用和操作结果，例如：
 2. 按第 4 节的实测契约接入现有 Slot，不向上游提交新的扩展点。
 3. 将 Scrum 拆分为 Host 插件和 Client 插件，通过 Bundle 安装。
 4. 为工作区选择、空项目、已绑定项目、归档项目和失效绑定分别实现状态页面。
-5. 实现 Session Scrum Access 和按 Scope 注册的 Agent 工具。
+5. 实现 Workspace 继承授权和按有效 Permission 注册的 Agent 工具。
 6. 使用 Harness 标准主题变量、国际化和 Slot Props Contract。
 7. 避免直接依赖 `ui-sidebar`、`ui-layout` 等插件的内部 React 组件。
 8. 为 Slot 注册、页面切换、折叠 Sidebar、无 Session 状态、权限降级和绑定变化建立兼容性测试。

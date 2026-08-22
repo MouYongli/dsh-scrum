@@ -106,7 +106,7 @@ dsh-scrum/
 
 ### `scrum-agent-tools`
 
-提供 Scrum 查询和写入 Tool，根据 Session Access 和用户权限控制 Tool 可见性及执行权限。
+提供 Scrum 查询和写入 Tool，根据 Workspace 绑定和当前用户有效权限控制 Tool 可见性及执行权限。
 
 ### `scrum-harness-bundle`
 
@@ -188,7 +188,7 @@ Harness Instance
 └── Workspace
     ├── Workspace Project Link
     └── Session
-        └── Scrum Session Context
+        └── Optional Activity Provenance
 ```
 
 共享领域对象包括 Tenant、Scrum Project、Product Goal、Product Backlog、Epic、Feature、User Story、Task、Bug、Spike、Sprint、Sprint Goal、Workflow、Acceptance Criteria、Definition of Done、Comment、Activity、Project Role 和 Permission。
@@ -339,20 +339,14 @@ UNIQUE(harness_instance_id, harness_workspace_id)
 
 它保证一个 Harness Workspace 最多绑定一个 Scrum Project。如果业务要求一个 Scrum Project 最多绑定一个 Workspace，可以增加 `UNIQUE(scrum_project_id)`，但不建议默认增加；Teams 和 Enterprise 可能需要多个开发环境访问同一个远端项目。
 
-### 8.2 Session Scrum Context
+### 8.2 Session Activity Context
 
 ```text
-scrum_session_context
-  id
-  tenant_id
+scrum_activity_context
   harness_instance_id
   harness_session_id
   harness_workspace_id
   scrum_project_id
-  access_mode              // off | read | write
-  enabled_by
-  enabled_at
-  updated_at
 ```
 
 核心约束：
@@ -361,7 +355,7 @@ scrum_session_context
 UNIQUE(harness_instance_id, harness_session_id)
 ```
 
-启用时从 Workspace Link 解析并记录 `scrum_project_id`，用于审计和发现绑定变化。每次操作仍应验证 Session、Workspace 和当前绑定是否一致。访问方式和权限计算见 [DSH 开发指南](dsh-dev-guide.md#9-session-与-agent-授权)。
+该上下文只用于 Activity 追踪，可以在操作发生时从当前 Workspace Link 和调用来源生成，无需独立持久化。Session ID 可以为空且不参与授权。每次操作仍应验证 Workspace 和当前绑定是否一致。权限计算见 [DSH 开发指南](dsh-dev-guide.md#9-workspace-与-agent-授权)。
 
 ### 8.3 Activity
 
@@ -489,9 +483,6 @@ Workspace 中存在有效 project.json   → 已绑定一个 Scrum Project
 │  └─ SCR-2.jsonl
 ├─ activities/
 │  └─ 2026-08.jsonl
-├─ sessions/
-│  └─ <harness-instance-id>/
-│     └─ <session-id>.json
 ├─ operations/
 │  └─ pending/
 ├─ attachments/
@@ -562,20 +553,6 @@ Sprint 成员关系只由 `sprintId` 表达，Sprint 文件不重复保存 Work 
 - `sprints/<id>.json`：保存 Sprint Goal、状态、日期和 Revision，不重复保存可从 Work Item 派生的数据。
 - `comments/<work-item-id>.jsonl`：每行一条不可变 Comment Event；编辑或删除通过追加更正事件表达。
 - `activities/<yyyy-mm>.jsonl`：按月拆分的 Activity，记录 Actor、UI/Agent 来源、Session ID、Action、Target 和 Revision。
-- `sessions/.../<session-id>.json`：只保存 Session 对 Scrum 的访问模式，不复制 Harness 对话和 Tool Log。
-
-Session Access 文件示例：
-
-```json
-{
-  "schemaVersion": 1,
-  "harnessInstanceId": "dsh_local_1",
-  "sessionId": "session_123",
-  "accessMode": "write",
-  "revision": 1,
-  "updatedAt": "2026-08-20T12:00:00Z"
-}
-```
 
 ## 11. 写入安全与一致性
 
@@ -633,7 +610,7 @@ Revision 不匹配时返回 Conflict，调用方必须重新读取，不能覆�
 JSON/JSONL 允许用户选择将 Scrum 数据纳入 Git，初始化向导应明确询问：
 
 - **本地私有**：将整个 `.scrum/` 加入根 `.gitignore`。
-- **Git 协作**：提交 JSON/JSONL，忽略临时文件、锁、备份和本地 Session Access。
+- **Git 协作**：提交 JSON/JSONL，忽略临时文件、锁和备份。
 
 建议 `.scrum/.gitignore`：
 
@@ -642,7 +619,6 @@ JSON/JSONL 允许用户选择将 Scrum 数据纳入 Git，初始化向导应明�
 *.lock
 operations/pending/
 backups/
-sessions/
 ```
 
 临时文件用 `*.tmp` 后缀而不是 `.tmp-*` 前缀：前缀形式写出来的名字仍以 `.json` 结尾（`.tmp-SCR-1.json`），会被目录扫描当成一个工作项读进去。后缀形式保证它永远不以 `.json` 结尾，扫描无需知道写入机制就会跳过它。

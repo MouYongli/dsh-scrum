@@ -187,7 +187,7 @@ Agent 可以根据用户请求：
 - 协助整理 Sprint Planning、Review 和 Retrospective；
 - 生成摘要、发布说明或改进建议。
 
-Agent 必须使用当前用户身份执行操作，不能绕过用户角色、Session 授权、资源版本和高风险操作确认。
+Agent 必须使用当前用户身份执行操作，不能绕过用户角色、Project Policy、资源版本和高风险操作确认。Session 只作为可选审计来源，不参与授权。
 
 ## 3. 基于角色的系统功能
 
@@ -285,17 +285,12 @@ Agent 的最终权限由以下权限层共同决定：
 Agent 最终权限
   = 版本能力
   ∩ 当前用户的项目角色权限
-  ∩ 当前 Session 的 Scrum Access
+  ∩ Project Permission Policy
+  ∩ Project 状态
   ∩ 操作级安全策略
 ```
 
-Session 的 Scrum Access 包含：
-
-| 模式 | Agent 能力 |
-|---|---|
-| `off` | 不读取或修改 Scrum 数据 |
-| `read` | 可以查询和汇总 Scrum 数据 |
-| `write` | 可以在用户权限范围内创建和修改数据 |
+Workspace 绑定 Project 后，该 Workspace 下的所有 Session 和 Scrum 工作台内的 Agent 自动继承当前用户的有效 Project 权限，不提供逐 Session 的 Off、Read 或 Write 开关。
 
 删除工作项、结束 Sprint、批量修改和项目设置变更等高影响操作必须获得明确确认。
 
