@@ -26,6 +26,12 @@ export type ResolvedBinding =
       readonly binding: WorkspaceBinding
       readonly project: StoredProject
       readonly permissions: ReadonlySet<Permission>
+      /**
+       * The workspace is not where it was when it was attached. The binding
+       * still holds — the workspace id is the reference, not the path — but a
+       * caller that writes without saying so may be writing into a copy.
+       */
+      readonly moved: boolean
     }
 
 /**
@@ -43,7 +49,11 @@ export type ResolvedBinding =
  */
 export async function resolveWorkspaceBinding(
   deps: Pick<Dependencies, 'projects' | 'members' | 'bindings' | 'capabilities'>,
-  request: UseCaseRequest<{ readonly workspace: WorkspaceRef }>,
+  request: UseCaseRequest<{
+    readonly workspace: WorkspaceRef
+    /** Where the workspace is now, when the caller can say. */
+    readonly pathFingerprint?: string | undefined
+  }>,
 ): Promise<ResolvedBinding> {
   const binding = await deps.bindings.find(request.command.workspace)
   if (binding === null) {
@@ -54,12 +64,21 @@ export async function resolveWorkspaceBinding(
     return { state: 'stale', binding }
   }
   const authorized = await resolvePermissions(deps, request.actor, stored)
-  return { state: 'bound', binding, project: stored, permissions: authorized.permissions }
+  const presented = request.command.pathFingerprint
+  return {
+    state: 'bound',
+    binding,
+    project: stored,
+    permissions: authorized.permissions,
+    moved: presented !== undefined && presented !== binding.pathFingerprint,
+  }
 }
 
 export interface BindWorkspaceCommand {
   readonly workspace: WorkspaceRef
   readonly projectId: ProjectId
+  /** Where the workspace is now, recorded so a later move can be reported. */
+  readonly pathFingerprint: string
 }
 
 /**
@@ -99,6 +118,7 @@ export async function bindWorkspace(
     projectId: command.projectId,
     linkedBy: actor.identityId,
     linkedAt: deps.clock.now(),
+    pathFingerprint: command.pathFingerprint,
   }
   await deps.bindings.save(binding)
   await report(deps, actor, 'workspace.bind', command.workspace)
