@@ -23,6 +23,7 @@
     "@dsh-scrum/scrum-domain": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^24.13.3"
+    "@types/node": "^24.13.3",
+    "@dsh-scrum/scrum-application": "workspace:*"
   }
 }
