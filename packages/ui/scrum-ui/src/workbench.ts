@@ -10,6 +10,8 @@ import {
 } from 'react'
 import { createBacklogController } from './backlog-controller.js'
 import { BacklogScreen } from './backlog-view.js'
+import { createSessionAccessController } from './session-controller.js'
+import { SessionAccessControl } from './session-view.js'
 import { createSprintController } from './sprint-controller.js'
 import { SprintScreen } from './sprint-view.js'
 import type { CreateProjectInput, ScrumClient } from './client.js'
@@ -268,10 +270,43 @@ function ConnectedSprints(props: {
   })
 }
 
-/** The two screens a project has, and which one is showing. */
+/**
+ * The session access control, wired to a client.
+ *
+ * `isBound` is read on every answer rather than captured once: a workspace can
+ * lose its project while the workbench is open, and a session that reaches
+ * nothing has to say the binding is why rather than blaming the mode.
+ */
+function ConnectedAccess(props: {
+  readonly client: ScrumClient
+  readonly t: Translate
+  readonly isBound: () => boolean
+}): ReactElement {
+  const controller = useMemo(
+    () => createSessionAccessController(props.client, props.isBound),
+    [props.client, props.isBound],
+  )
+  const state = useSyncExternalStore(controller.subscribe, controller.state, controller.state)
+
+  useEffect(() => {
+    void controller.load()
+  }, [controller])
+
+  return createElement(SessionAccessControl, {
+    state,
+    t: props.t,
+    actions: {
+      setMode: (mode) => void controller.setMode(mode),
+      dismiss: controller.dismiss,
+    },
+  })
+}
+
+/** The screens a project has, and which one is showing. */
 const SECTIONS = [
   { id: 'backlog', label: 'section.backlog' },
   { id: 'sprint', label: 'section.sprint' },
+  { id: 'access', label: 'section.access' },
 ] as const
 
 type SectionId = (typeof SECTIONS)[number]['id']
@@ -288,6 +323,7 @@ function ProjectSurface(props: {
   readonly client: ScrumClient
   readonly t: Translate
   readonly readOnly: boolean
+  readonly isBound: () => boolean
 }): ReactElement {
   const [section, setSection] = useState<SectionId>('backlog')
   return createElement(
@@ -312,10 +348,27 @@ function ProjectSurface(props: {
         ),
       ),
     ),
-    section === 'backlog'
-      ? createElement(ConnectedBacklog, props)
-      : createElement(ConnectedSprints, props),
+    surfaceFor(section, props),
   )
+}
+
+function surfaceFor(
+  section: SectionId,
+  props: {
+    readonly client: ScrumClient
+    readonly t: Translate
+    readonly readOnly: boolean
+    readonly isBound: () => boolean
+  },
+): ReactElement {
+  switch (section) {
+    case 'backlog':
+      return createElement(ConnectedBacklog, props)
+    case 'sprint':
+      return createElement(ConnectedSprints, props)
+    case 'access':
+      return createElement(ConnectedAccess, props)
+  }
 }
 
 export interface ConnectedWorkbenchProps {
@@ -331,6 +384,15 @@ export interface ConnectedWorkbenchProps {
 export function ConnectedWorkbench(props: ConnectedWorkbenchProps): ReactElement {
   const controller = useMemo(() => createWorkbenchController(props.client), [props.client])
   const state = useSyncExternalStore(controller.subscribe, controller.state, controller.state)
+  const isBound = useMemo(() => {
+    return (): boolean => {
+      const current = controller.state()
+      return (
+        current.kind === 'ready' &&
+        (current.entry.state === 'bound' || current.entry.state === 'archived')
+      )
+    }
+  }, [controller])
 
   useEffect(() => {
     void controller.load()
@@ -348,6 +410,7 @@ export function ConnectedWorkbench(props: ConnectedWorkbenchProps): ReactElement
             client: props.client,
             t,
             readOnly: state.entry.state === 'archived',
+            isBound,
           })
         : null,
   })
