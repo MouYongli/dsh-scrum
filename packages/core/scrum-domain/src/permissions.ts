@@ -190,6 +190,29 @@ export function requiredCapability(permission: Permission): Capability {
 }
 
 /**
+ * Whether a permission lets an actor look or change something.
+ *
+ * This is what a read-only grant can be intersected with. It is a property of
+ * the action itself rather than of any role, so it lives beside the matrix:
+ * a permission added without deciding this would default to whatever the last
+ * `includes` call happened to say.
+ */
+export const READ_PERMISSIONS: readonly Permission[] = [
+  PERMISSION.projectView,
+  PERMISSION.backlogView,
+  PERMISSION.reportView,
+]
+
+/**
+ * Every other permission changes something, `workItem.suggest` included: a
+ * suggestion is an artefact that gets stored once there is anywhere to store
+ * it, and a permission whose classification is a guess should guess closed.
+ */
+export function isReadPermission(permission: Permission): boolean {
+  return READ_PERMISSIONS.includes(permission)
+}
+
+/**
  * A project's answer for the configurable cells. Stored in `config.json`, so
  * the effective decision is visible as data rather than hidden in a branch.
  */

@@ -8,8 +8,13 @@ import {
   archiveProject,
   bindWorkspace,
   createProject,
+  resolveSessionAuthorization,
   restoreProject,
+  setSessionAccess,
   unbindWorkspace,
+  type AccessMode,
+  type SessionAccess,
+  type SessionAuthorization,
   type ActorContext,
   type ApplicationDependencies,
   type CreateProjectCommand,
@@ -76,6 +81,13 @@ export interface ScrumHostApi {
   detach(): Promise<WorkspaceBinding | null>
   archive(): Promise<StoredProject>
   restore(): Promise<StoredProject>
+  /**
+   * What the open session may do right now. Nothing is cached: lowering the
+   * mode, archiving the project or losing the binding takes effect on the next
+   * call rather than when something remembers to refresh.
+   */
+  session(): Promise<SessionAuthorization>
+  setSessionAccess(mode: AccessMode): Promise<SessionAccess>
 }
 
 /**
@@ -135,6 +147,19 @@ export function createHostApi(harness: HarnessContext, runtime: ScrumRuntime): S
     return (await requireBoundProject(request, harness)).project.project.id
   }
 
+  /** The open session, refusing when there is none to decide about. */
+  function sessionRefOf(request: HostRequestContext): {
+    harnessInstanceId: string
+    sessionId: string
+  } {
+    if (request.session === null) {
+      throw new ValidationError('no Harness session is open in this workspace', {
+        workspaceId: request.workspace.id,
+      })
+    }
+    return { harnessInstanceId: harness.instanceId, sessionId: request.session.id }
+  }
+
   return {
     version: HOST_API_VERSION,
 
@@ -179,6 +204,22 @@ export function createHostApi(harness: HarnessContext, runtime: ScrumRuntime): S
       return await unbindWorkspace(request.deps, {
         actor: request.actor,
         command: { workspace: workspaceRefOf(harness, request.workspace) },
+      })
+    },
+
+    async session(): Promise<SessionAuthorization> {
+      const request = await resolveRequest(harness, runtime)
+      return await resolveSessionAuthorization(request.deps, {
+        actor: request.actor,
+        command: { ...sessionRefOf(request), projectId: await boundProjectId(request) },
+      })
+    },
+
+    async setSessionAccess(mode: AccessMode): Promise<SessionAccess> {
+      const request = await resolveRequest(harness, runtime)
+      return await setSessionAccess(request.deps, {
+        actor: request.actor,
+        command: { ...sessionRefOf(request), projectId: await boundProjectId(request), mode },
       })
     },
 

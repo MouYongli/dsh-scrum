@@ -15,6 +15,7 @@ import {
 import type {
   ApplicationDependencies,
   NewProject,
+  SessionAccess,
   StoredProject,
   WorkspaceBinding,
   WorkspaceRef,
@@ -45,6 +46,7 @@ export class MemoryStore {
   readonly projects = new Map<ProjectId, StoredProject>()
   readonly owners = new Map<ProjectId, ProjectMember>()
   readonly bindings = new Map<string, WorkspaceBinding>()
+  readonly sessions = new Map<string, SessionAccess>()
 }
 
 function key(workspace: WorkspaceRef): string {
@@ -91,6 +93,13 @@ export function dependencies(store: MemoryStore): ApplicationDependencies {
       },
       remove: async (workspace: WorkspaceRef) => {
         store.bindings.delete(key(workspace))
+      },
+    },
+    sessions: {
+      find: async (harnessInstanceId: string, sessionId: string) =>
+        store.sessions.get(`${harnessInstanceId}/${sessionId}`) ?? null,
+      save: async (access: SessionAccess) => {
+        store.sessions.set(`${access.harnessInstanceId}/${access.sessionId}`, access)
       },
     },
     workItems: notComposed('work items'),
