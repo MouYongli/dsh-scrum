@@ -1,83 +1,41 @@
 import {
   createElement,
-  useCallback,
   useEffect,
+  useMemo,
   useState,
+  useSyncExternalStore,
   type FormEvent,
   type ReactElement,
 } from 'react'
-import type { CreateProjectInput, EntryView, ScrumClient } from './client.js'
+import type { CreateProjectInput, ScrumClient } from './client.js'
+import { createWorkbenchController, type WorkbenchState } from './controller.js'
 import { createTranslate, type Translate } from './messages.js'
 import { pageFor } from './pages.js'
 
 /**
- * The Scrum workbench.
+ * The Scrum workbench, over a state somebody else resolved.
  *
- * It reaches nothing but the client it was given: no file, no socket, no
- * Harness service. That is what lets the same component render against a
- * workspace on disk and against a remote service, and it is the rule the
- * dependency boundary check enforces from outside.
+ * Pure: it reaches no file, no socket and no Harness service, which is what
+ * lets one component render against a workspace on disk and against a remote
+ * service. It is also why every state it can show is renderable in a test
+ * without waiting for anything.
  */
 export interface WorkbenchProps {
-  readonly client: ScrumClient
+  readonly state: WorkbenchState
   readonly t?: Translate | undefined
+  readonly onCreate?: ((input: CreateProjectInput) => void) | undefined
   readonly onClose?: (() => void) | undefined
 }
 
-type Status =
-  | { readonly kind: 'loading' }
-  | { readonly kind: 'ready'; readonly entry: EntryView }
-  | { readonly kind: 'failed'; readonly message: string }
-
 export function Workbench(props: WorkbenchProps): ReactElement {
   const t = props.t ?? createTranslate()
-  const [status, setStatus] = useState<Status>({ kind: 'loading' })
-  const [creating, setCreating] = useState(false)
-
-  const reload = useCallback(() => {
-    let live = true
-    setStatus({ kind: 'loading' })
-    props.client
-      .entry()
-      .then((entry) => {
-        if (live) {
-          setStatus({ kind: 'ready', entry })
-        }
-      })
-      .catch((error: unknown) => {
-        if (live) {
-          setStatus({ kind: 'failed', message: messageOf(error) })
-        }
-      })
-    return () => {
-      live = false
-    }
-  }, [props.client])
-
-  useEffect(() => reload(), [reload])
-
-  const create = useCallback(
-    async (input: CreateProjectInput) => {
-      setCreating(true)
-      try {
-        await props.client.createProject(input)
-        reload()
-      } catch (error: unknown) {
-        setStatus({ kind: 'failed', message: messageOf(error) })
-      } finally {
-        setCreating(false)
-      }
-    },
-    [props.client, reload],
-  )
-
   return createElement(
     'section',
     {
       'data-scrum-workbench': true,
       role: 'dialog',
       'aria-label': t('workbench.title'),
-      'aria-busy': status.kind === 'loading',
+      'aria-busy': props.state.kind === 'loading',
     },
     createElement(
       'header',
@@ -91,28 +49,24 @@ export function Workbench(props: WorkbenchProps): ReactElement {
             t('workbench.close'),
           ),
     ),
-    body(status, t, creating, create),
+    body(props, t),
   )
 }
 
-function body(
-  status: Status,
-  t: Translate,
-  creating: boolean,
-  create: (input: CreateProjectInput) => Promise<void>,
-): ReactElement | null {
-  if (status.kind === 'loading') {
+function body(props: WorkbenchProps, t: Translate): ReactElement | null {
+  const state = props.state
+  if (state.kind === 'loading') {
     return null
   }
-  if (status.kind === 'failed') {
+  if (state.kind === 'failed') {
     return createElement(
       'div',
       { role: 'alert', 'data-scrum-error': true },
       createElement('h2', null, t('error.title')),
-      createElement('p', null, status.message),
+      createElement('p', null, state.message),
     )
   }
-  const page = pageFor(status.entry)
+  const page = pageFor(state.entry)
   return createElement(
     'div',
     { 'data-scrum-page': page.state },
@@ -131,14 +85,20 @@ function body(
           { 'data-scrum-project': page.project.key },
           `${page.project.key} · ${page.project.name}`,
         ),
-    page.action === null ? null : createElement(ProjectWizard, { t, creating, create }),
+    page.action === null
+      ? null
+      : createElement(ProjectWizard, {
+          t,
+          creating: state.creating,
+          onCreate: props.onCreate,
+        }),
   )
 }
 
 interface WizardProps {
   readonly t: Translate
   readonly creating: boolean
-  readonly create: (input: CreateProjectInput) => Promise<void>
+  readonly onCreate?: ((input: CreateProjectInput) => void) | undefined
 }
 
 /**
@@ -157,7 +117,7 @@ function ProjectWizard(props: WizardProps): ReactElement {
 
   function submit(event: FormEvent): void {
     event.preventDefault()
-    void props.create({ name, key: key.toUpperCase(), description })
+    props.onCreate?.(toCreateInput(name, key, description))
   }
 
   return createElement(
@@ -173,6 +133,18 @@ function ProjectWizard(props: WizardProps): ReactElement {
       props.creating ? props.t('wizard.creating') : props.t('wizard.submit'),
     ),
   )
+}
+
+/**
+ * What the three fields mean as a command.
+ *
+ * The key is upper-cased rather than rejected in lower case: the identifier
+ * grammar only admits upper case, and a form that refused `scr` would be
+ * refusing a spelling of the answer it wanted. Nothing else is normalized —
+ * the name is the user's.
+ */
+export function toCreateInput(name: string, key: string, description: string): CreateProjectInput {
+  return { name, key: key.toUpperCase(), description }
 }
 
 /** A labelled input. The label is bound by id, so a screen reader announces it. */
@@ -202,6 +174,28 @@ function field(
   )
 }
 
-function messageOf(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
+export interface ConnectedWorkbenchProps {
+  readonly client: ScrumClient
+  readonly t?: Translate | undefined
+  readonly onClose?: (() => void) | undefined
+}
+
+/**
+ * The workbench wired to a client. The only piece that waits for anything, and
+ * it holds no rendering decisions of its own.
+ */
+export function ConnectedWorkbench(props: ConnectedWorkbenchProps): ReactElement {
+  const controller = useMemo(() => createWorkbenchController(props.client), [props.client])
+  const state = useSyncExternalStore(controller.subscribe, controller.state, controller.state)
+
+  useEffect(() => {
+    void controller.load()
+  }, [controller])
+
+  return createElement(Workbench, {
+    state,
+    t: props.t,
+    onClose: props.onClose,
+    onCreate: (input) => void controller.create(input),
+  })
 }

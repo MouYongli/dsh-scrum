@@ -15,8 +15,8 @@ import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import {
+  ConnectedWorkbench,
   SCRUM_NAMESPACE,
-  Workbench,
   createTranslate,
   createWorkbenchStore,
   type ScrumClient,
@@ -122,7 +122,7 @@ function overlayComponent(store: WorkbenchStore, client: ScrumClient): () => Rea
           background: 'var(--dsh-color-background, #fff)',
         },
       },
-      createElement(Workbench, { client, onClose: () => store.close() }),
+      createElement(ConnectedWorkbench, { client, onClose: () => store.close() }),
     )
   }
 }
