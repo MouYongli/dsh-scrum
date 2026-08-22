@@ -24,6 +24,9 @@
     },
     {
       "path": "packages/harness/scrum-harness-bundle"
+    },
+    {
+      "path": "packages/ui/scrum-ui"
     }
   ]
 }

@@ -20,6 +20,7 @@
       "@dsh-scrum/scrum-harness-client/client": [
         "./packages/harness/scrum-harness-client/src/client/index.ts"
       ],
+      "@dsh-scrum/scrum-ui": ["./packages/ui/scrum-ui/src/index.ts"],
       "@dsh-scrum/scrum-harness-host": ["./packages/harness/scrum-harness-host/src/index.ts"]
     }
   },
