@@ -45,3 +45,5 @@ export {
   temporaryFileFor,
   writeFileAtomically,
 } from './atomic.js'
+export type { WriteExpectation } from './writes.js'
+export { NEW_ENTITY, saveProject, saveProjectConfig, saveSprint, saveWorkItem } from './writes.js'
