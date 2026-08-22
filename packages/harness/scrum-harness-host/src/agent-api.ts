@@ -9,6 +9,7 @@ import {
   type WorkItemReferences,
 } from '@dsh-scrum/scrum-domain'
 import {
+  ACTIVITY_SOURCE,
   resolveProjectAuthorization,
   type SprintProgress,
   type StoredProject,
@@ -64,7 +65,7 @@ export function createAgentApi(
   harness: HarnessContext,
   source: ScrumRuntimeSource,
   api: ScrumHostApi,
-  sessionId: string,
+  sessionId: string | null,
 ): ScrumAgentApi {
   /**
    * Refuses before the call reaches a use case.
@@ -74,7 +75,7 @@ export function createAgentApi(
    * lives, and the two would eventually disagree.
    */
   async function assertProjectAllows(permission: Permission): Promise<StoredProject> {
-    const request = await resolveRequest(harness, source)
+    const request = await resolveRequest(harness, source, ACTIVITY_SOURCE.agent)
     const { project } = await requireBoundProject(request, harness)
     const authorization = await resolveProjectAuthorization(request.deps, {
       actor: request.actor,

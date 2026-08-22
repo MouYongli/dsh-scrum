@@ -55,6 +55,7 @@ import {
   type WorkItemDependencyCommand,
   type WorkItemFilter,
   type ActorContext,
+  type ActivitySource,
   type ApplicationDependencies,
   type CreateProjectCommand,
   type StoredProject,
@@ -276,6 +277,7 @@ export type WorkOf<Command extends { readonly projectId: ProjectId }> = Omit<Com
 export async function resolveRequest(
   harness: HarnessContext,
   source: ScrumRuntimeSource,
+  activitySource?: ActivitySource,
 ): Promise<HostRequestContext> {
   const workspace = await harness.currentWorkspace()
   if (workspace === null) {
@@ -287,7 +289,7 @@ export async function resolveRequest(
     target: resolved.target,
     runtime: resolved.runtime,
     deps: await resolved.runtime.forWorkspace(workspace),
-    actor: hostActor(await resolved.runtime.identity(workspace), session),
+    actor: hostActor(await resolved.runtime.identity(workspace), session, activitySource),
     workspace,
     session,
   }
@@ -325,6 +327,7 @@ export function createHostApi(
   harness: HarnessContext,
   source: ScrumRuntimeSource,
   remote?: RemoteConnectorPort,
+  activitySource?: ActivitySource,
 ): ScrumHostApi {
   async function boundProjectId(request: HostRequestContext): Promise<ProjectId> {
     return (await requireBoundProject(request, harness)).project.project.id
@@ -365,6 +368,7 @@ export function createHostApi(
       const actor = hostActor(
         await resolved.runtime.identity(workspace),
         await currentSessionOf(harness, workspace),
+        activitySource,
       )
       return {
         ...(await describeEntry(deps, harness, actor, workspace)),
@@ -386,7 +390,7 @@ export function createHostApi(
     },
 
     async initialise(command: InitialiseWorkspaceCommand): Promise<StoredProject> {
-      const request = await resolveRequest(harness, source)
+      const request = await resolveRequest(harness, source, activitySource)
       const stored = await createProject(request.deps, {
         actor: request.actor,
         command: { ...command, tenantId: await request.runtime.tenant(request.workspace) },
@@ -403,7 +407,7 @@ export function createHostApi(
     },
 
     async attach(projectId: ProjectId): Promise<WorkspaceBinding> {
-      const request = await resolveRequest(harness, source)
+      const request = await resolveRequest(harness, source, activitySource)
       return await bindWorkspace(request.deps, {
         actor: request.actor,
         command: {
@@ -415,7 +419,7 @@ export function createHostApi(
     },
 
     async detach(): Promise<WorkspaceBinding | null> {
-      const request = await resolveRequest(harness, source)
+      const request = await resolveRequest(harness, source, activitySource)
       return await unbindWorkspace(request.deps, {
         actor: request.actor,
         command: { workspace: workspaceRefOf(harness, request.workspace) },
@@ -423,7 +427,7 @@ export function createHostApi(
     },
 
     async authorization(): Promise<ProjectAuthorization> {
-      const request = await resolveRequest(harness, source)
+      const request = await resolveRequest(harness, source, activitySource)
       return await resolveProjectAuthorization(request.deps, {
         actor: request.actor,
         command: { projectId: await boundProjectId(request) },
@@ -431,7 +435,7 @@ export function createHostApi(
     },
 
     async backlog(filter: WorkItemFilter = {}): Promise<readonly WorkItem[]> {
-      const request = await resolveRequest(harness, source)
+      const request = await resolveRequest(harness, source, activitySource)
       return await listWorkItems(request.deps, {
         actor: request.actor,
         command: { projectId: await boundProjectId(request), filter },
@@ -439,7 +443,7 @@ export function createHostApi(
     },
 
     async workItem(id: WorkItemId): Promise<WorkItem> {
-      const request = await resolveRequest(harness, source)
+      const request = await resolveRequest(harness, source, activitySource)
       return await getWorkItem(request.deps, {
         actor: request.actor,
         command: { projectId: await boundProjectId(request), workItemId: id },
@@ -447,7 +451,7 @@ export function createHostApi(
     },
 
     async sprints(): Promise<readonly Sprint[]> {
-      const request = await resolveRequest(harness, source)
+      const request = await resolveRequest(harness, source, activitySource)
       return await listSprints(request.deps, {
         actor: request.actor,
         command: { projectId: await boundProjectId(request) },
@@ -455,7 +459,7 @@ export function createHostApi(
     },
 
     async sprint(id: SprintId): Promise<Sprint> {
-      const request = await resolveRequest(harness, source)
+      const request = await resolveRequest(harness, source, activitySource)
       return await getSprint(request.deps, {
         actor: request.actor,
         command: { projectId: await boundProjectId(request), sprintId: id },
@@ -463,7 +467,7 @@ export function createHostApi(
     },
 
     async progress(id: SprintId): Promise<SprintProgress> {
-      const request = await resolveRequest(harness, source)
+      const request = await resolveRequest(harness, source, activitySource)
       return await readSprintProgress(request.deps, {
         actor: request.actor,
         command: { projectId: await boundProjectId(request), sprintId: id },
@@ -471,7 +475,7 @@ export function createHostApi(
     },
 
     async createWorkItem(command: WorkOf<CreateWorkItemCommand>): Promise<WorkItem> {
-      const request = await resolveRequest(harness, source)
+      const request = await resolveRequest(harness, source, activitySource)
       return await createWorkItem(request.deps, {
         actor: request.actor,
         command: { ...command, projectId: await boundProjectId(request) },
@@ -479,7 +483,7 @@ export function createHostApi(
     },
 
     async updateWorkItem(command: WorkOf<UpdateWorkItemCommand>): Promise<WorkItem> {
-      const request = await resolveRequest(harness, source)
+      const request = await resolveRequest(harness, source, activitySource)
       return await updateWorkItem(request.deps, {
         actor: request.actor,
         command: { ...command, projectId: await boundProjectId(request) },
@@ -487,7 +491,7 @@ export function createHostApi(
     },
 
     async moveWorkItemToRank(command: WorkOf<MoveWorkItemRankCommand>): Promise<WorkItem> {
-      const request = await resolveRequest(harness, source)
+      const request = await resolveRequest(harness, source, activitySource)
       return await moveWorkItemToRank(request.deps, {
         actor: request.actor,
         command: { ...command, projectId: await boundProjectId(request) },
@@ -495,7 +499,7 @@ export function createHostApi(
     },
 
     async moveWorkItemStatus(command: WorkOf<MoveWorkItemStatusCommand>): Promise<WorkItem> {
-      const request = await resolveRequest(harness, source)
+      const request = await resolveRequest(harness, source, activitySource)
       return await moveWorkItemStatus(request.deps, {
         actor: request.actor,
         command: { ...command, projectId: await boundProjectId(request) },
@@ -503,7 +507,7 @@ export function createHostApi(
     },
 
     async blockWorkItem(command: WorkOf<BlockWorkItemCommand>): Promise<WorkItem> {
-      const request = await resolveRequest(harness, source)
+      const request = await resolveRequest(harness, source, activitySource)
       return await blockWorkItem(request.deps, {
         actor: request.actor,
         command: { ...command, projectId: await boundProjectId(request) },
@@ -511,7 +515,7 @@ export function createHostApi(
     },
 
     async setWorkItemParent(command: WorkOf<SetWorkItemParentCommand>): Promise<WorkItem> {
-      const request = await resolveRequest(harness, source)
+      const request = await resolveRequest(harness, source, activitySource)
       return await setWorkItemParent(request.deps, {
         actor: request.actor,
         command: { ...command, projectId: await boundProjectId(request) },
@@ -519,7 +523,7 @@ export function createHostApi(
     },
 
     async setWorkItemDependency(command: WorkOf<WorkItemDependencyCommand>): Promise<WorkItem> {
-      const request = await resolveRequest(harness, source)
+      const request = await resolveRequest(harness, source, activitySource)
       return await setWorkItemDependency(request.deps, {
         actor: request.actor,
         command: { ...command, projectId: await boundProjectId(request) },
@@ -529,7 +533,7 @@ export function createHostApi(
     async setAcceptanceCriterion(
       command: WorkOf<SetAcceptanceCriterionCommand>,
     ): Promise<WorkItem> {
-      const request = await resolveRequest(harness, source)
+      const request = await resolveRequest(harness, source, activitySource)
       return await setAcceptanceCriterion(request.deps, {
         actor: request.actor,
         command: { ...command, projectId: await boundProjectId(request) },
@@ -537,7 +541,7 @@ export function createHostApi(
     },
 
     async deleteWorkItem(command: WorkOf<DeleteWorkItemCommand>): Promise<WorkItemReferences> {
-      const request = await resolveRequest(harness, source)
+      const request = await resolveRequest(harness, source, activitySource)
       return await deleteWorkItem(request.deps, {
         actor: request.actor,
         command: { ...command, projectId: await boundProjectId(request) },
@@ -545,7 +549,7 @@ export function createHostApi(
     },
 
     async planSprint(command: WorkOf<PlanSprintCommand>): Promise<readonly WorkItem[]> {
-      const request = await resolveRequest(harness, source)
+      const request = await resolveRequest(harness, source, activitySource)
       return await planSprint(request.deps, {
         actor: request.actor,
         command: { ...command, projectId: await boundProjectId(request) },
@@ -553,7 +557,7 @@ export function createHostApi(
     },
 
     async createSprint(command: WorkOf<CreateSprintCommand>): Promise<Sprint> {
-      const request = await resolveRequest(harness, source)
+      const request = await resolveRequest(harness, source, activitySource)
       return await createSprint(request.deps, {
         actor: request.actor,
         command: { ...command, projectId: await boundProjectId(request) },
@@ -561,7 +565,7 @@ export function createHostApi(
     },
 
     async startSprint(command: WorkOf<StartSprintCommand>): Promise<Sprint> {
-      const request = await resolveRequest(harness, source)
+      const request = await resolveRequest(harness, source, activitySource)
       return await startSprint(request.deps, {
         actor: request.actor,
         command: { ...command, projectId: await boundProjectId(request) },
@@ -569,7 +573,7 @@ export function createHostApi(
     },
 
     async closeSprint(command: WorkOf<CloseSprintCommand>): Promise<Sprint> {
-      const request = await resolveRequest(harness, source)
+      const request = await resolveRequest(harness, source, activitySource)
       return await closeSprint(request.deps, {
         actor: request.actor,
         command: { ...command, projectId: await boundProjectId(request) },
@@ -577,7 +581,7 @@ export function createHostApi(
     },
 
     async configureProject(command: WorkOf<ConfigureProjectCommand>): Promise<StoredProject> {
-      const request = await resolveRequest(harness, source)
+      const request = await resolveRequest(harness, source, activitySource)
       return await configureProject(request.deps, {
         actor: request.actor,
         command: { ...command, projectId: await boundProjectId(request) },
@@ -585,7 +589,7 @@ export function createHostApi(
     },
 
     async archive(): Promise<StoredProject> {
-      const request = await resolveRequest(harness, source)
+      const request = await resolveRequest(harness, source, activitySource)
       return await archiveProject(request.deps, {
         actor: request.actor,
         command: { projectId: await boundProjectId(request) },
@@ -593,7 +597,7 @@ export function createHostApi(
     },
 
     async restore(): Promise<StoredProject> {
-      const request = await resolveRequest(harness, source)
+      const request = await resolveRequest(harness, source, activitySource)
       return await restoreProject(request.deps, {
         actor: request.actor,
         command: { projectId: await boundProjectId(request) },

@@ -1,5 +1,6 @@
 import { Service, type Context } from '@deepseek-ai/cordis'
 import { ValidationError } from '@dsh-scrum/scrum-domain'
+import { ACTIVITY_SOURCE } from '@dsh-scrum/scrum-application'
 import {
   HOST_API_VERSION,
   UnsupportedHostApiVersionError,
@@ -42,11 +43,23 @@ export class ScrumHostService extends Service {
    * session rule cannot be skipped by forgetting to apply it.
    */
   agentApi(sessionId: string, version: number = HOST_API_VERSION): ScrumAgentApi {
-    const api = this.api(version)
+    this.api(version)
     if (this.harness === undefined || this.runtime === undefined) {
       throw new ValidationError('the Scrum host was composed without a Harness context', {})
     }
+    const api = createHostApi(this.harness, this.runtime, this.remote, ACTIVITY_SOURCE.agent)
     return createAgentApi(this.harness, this.runtime, api, sessionId)
+  }
+
+  /** Agent surface embedded in the workspace, with no conversation required. */
+  workspaceAgentApi(version: number = HOST_API_VERSION): ScrumAgentApi {
+    this.api(version)
+    if (this.harness === undefined || this.runtime === undefined) {
+      throw new ValidationError('the Scrum host was composed without a Harness context', {})
+    }
+    const harness = { ...this.harness, currentSession: () => Promise.resolve(null) }
+    const api = createHostApi(harness, this.runtime, this.remote, ACTIVITY_SOURCE.agent)
+    return createAgentApi(harness, this.runtime, api, null)
   }
 
   /**

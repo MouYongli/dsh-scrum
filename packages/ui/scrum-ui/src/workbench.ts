@@ -577,8 +577,10 @@ function ProjectSurface(props: {
   readonly t: Translate
   readonly readOnly: boolean
   readonly project: { readonly key: string; readonly name: string; readonly description: string }
+  readonly onOpenAgent?: (() => void) | undefined
 }): ReactElement {
   const [section, setSection] = useState<SectionId>('home')
+  const [agentOpen, setAgentOpen] = useState(false)
   return createElement(
     'div',
     { 'data-scrum-surface': section },
@@ -600,7 +602,22 @@ function ProjectSurface(props: {
           props.t(entry.label),
         ),
       ),
+      createElement(
+        'button',
+        {
+          type: 'button',
+          'data-scrum-agent': true,
+          onClick: () => {
+            setAgentOpen(true)
+            props.onOpenAgent?.()
+          },
+        },
+        props.t('agent.open'),
+      ),
     ),
+    agentOpen
+      ? createElement('aside', { 'data-scrum-agent-panel': true }, props.t('agent.body'))
+      : null,
     surfaceFor(section, props),
   )
 }
@@ -681,6 +698,7 @@ export interface ConnectedWorkbenchProps {
   readonly onResume?: (() => void) | undefined
   readonly onDiscard?: (() => void) | undefined
   readonly onConnectTeam?: ((workspaceId: string) => void) | undefined
+  readonly onOpenAgent?: ((workspaceId: string) => void) | undefined
   /**
    * Where the forms report input the user has not saved. Handed in rather
    * than created here, because whoever decides that leaving needs a question
@@ -698,6 +716,10 @@ export function ConnectedWorkbench(props: ConnectedWorkbenchProps): ReactElement
   const state = useSyncExternalStore(controller.subscribe, controller.state, controller.state)
   const connectWorkspaceId =
     state.kind === 'ready' && state.entry.state === 'unbound' ? state.entry.workspace.id : null
+  const agentWorkspaceId =
+    state.kind === 'ready' && (state.entry.state === 'bound' || state.entry.state === 'archived')
+      ? state.entry.workspace.id
+      : null
   useEffect(() => {
     void controller.load()
   }, [controller])
@@ -734,6 +756,8 @@ export function ConnectedWorkbench(props: ConnectedWorkbenchProps): ReactElement
               t,
               readOnly: state.entry.state === 'archived',
               project: state.entry.project,
+              onOpenAgent:
+                agentWorkspaceId === null ? undefined : () => props.onOpenAgent?.(agentWorkspaceId),
             })
           : null,
     }),
