@@ -14,7 +14,12 @@ import {
   type StoredProject,
   type WorkItemFilter,
 } from '@dsh-scrum/scrum-application'
-import { requireBoundProject, resolveRequest, type ScrumRuntime, type ScrumHostApi } from './api.js'
+import {
+  requireBoundProject,
+  resolveRequest,
+  type ScrumRuntimeSource,
+  type ScrumHostApi,
+} from './api.js'
 import type { HarnessContext } from './workspace.js'
 
 /**
@@ -57,7 +62,7 @@ type AgentCommand<Name extends keyof ScrumHostApi> = ScrumHostApi[Name] extends 
 
 export function createAgentApi(
   harness: HarnessContext,
-  runtime: ScrumRuntime,
+  source: ScrumRuntimeSource,
   api: ScrumHostApi,
   sessionId: string,
 ): ScrumAgentApi {
@@ -69,7 +74,7 @@ export function createAgentApi(
    * lives, and the two would eventually disagree.
    */
   async function assertProjectAllows(permission: Permission): Promise<StoredProject> {
-    const request = await resolveRequest(harness, runtime)
+    const request = await resolveRequest(harness, source)
     const { project } = await requireBoundProject(request, harness)
     const authorization = await resolveProjectAuthorization(request.deps, {
       actor: request.actor,

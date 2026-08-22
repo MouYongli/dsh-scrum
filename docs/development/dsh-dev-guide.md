@@ -280,16 +280,18 @@ Scrum 工作台是注册在 `shell.overlay` 的根级浮层，从 Sidebar 右缘
 - 一个 Harness Workspace 可以包含零个或多个 Session。
 - 一个 Workspace 可以绑定零个或一个 Scrum Project。
 - 一个 Session 可以操作绑定的 Scrum Project，也可以完全不使用 Scrum。
-- Workspace 已绑定项目，不代表其中所有 Session 自动获得项目权限。
+- Workspace 已绑定项目后，其中所有 Session 按当前用户的 Project 角色与权限使用 Scrum。
 - Scrum Project 数据不能以 Session Log 为权威来源。
 
 ```text
 Harness Instance
 └─ Workspace 1 ───── 0..1 ───── Scrum Project
-   ├─ Session A ─── Scrum access: OFF
-   ├─ Session B ─── Scrum access: READ
-   └─ Session C ─── Scrum access: WRITE
+   ├─ Session A ─── inherits current user's Project permissions
+   ├─ Session B ─── inherits current user's Project permissions
+   └─ Scrum Agent ─ inherits current user's Project permissions
 ```
+
+Session ID 仅作为 Activity 的可选来源，不是授权边界，也不持久化独立 Scrum Access。
 
 ### 8.2 Workspace 身份
 

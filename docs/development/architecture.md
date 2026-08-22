@@ -134,6 +134,12 @@ remote
 └─ server-provided principal and capabilities
 ```
 
+Host 不在 Bundle 启动时把整个 Harness 固定到一个 Runtime。每个请求先读取当前 Workspace，
+再由 `WorkspaceRuntimeResolver` 返回该 Workspace 的 `local` 或 `remote` Target 及 Runtime。
+因此同一个 Harness Instance 可以同时打开本地、Teams 和 Enterprise Workspace。Remote Target
+只保存 `connectionId` 与远端 `projectId` 等非敏感引用；令牌和其他凭证由独立 Credential
+Provider 管理，不写入 Workspace 的 `.scrum/`。
+
 ## 5. 远程服务边界
 
 远程服务负责身份、租户隔离、最终授权、服务端存储、同步、审计、通知和商业 Capability。插件负责连接配置、协议校验、凭证引用、错误映射、幂等重试和 UI/Agent 的能力降级。

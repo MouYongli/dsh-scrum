@@ -5,7 +5,7 @@ import {
   UnsupportedHostApiVersionError,
   createHostApi,
   type ScrumHostApi,
-  type ScrumRuntime,
+  type ScrumRuntimeSource,
 } from './api.js'
 import { createAgentApi, type ScrumAgentApi } from './agent-api.js'
 import { assertSupportedHarness, type ManifestReader } from './compatibility.js'
@@ -25,7 +25,7 @@ export const SCRUM_HOST_SERVICE = 'scrumHost'
  */
 export class ScrumHostService extends Service {
   private readonly harness: HarnessContext | undefined
-  private readonly runtime: ScrumRuntime | undefined
+  private readonly runtime: ScrumRuntimeSource | undefined
 
   constructor(ctx: Context, config: ScrumHostConfig = {}) {
     super(ctx, SCRUM_HOST_SERVICE)
@@ -97,7 +97,7 @@ export interface ScrumHostConfig {
    */
   harness?: HarnessContext
   /** The identity and the stores. Supplied by the edition bundle. */
-  runtime?: ScrumRuntime
+  runtime?: ScrumRuntimeSource
 }
 
 export function apply(ctx: Context, config: ScrumHostConfig = {}): void {
@@ -112,8 +112,20 @@ export type {
   InitialiseWorkspaceCommand,
   ScrumHostApi,
   ScrumRuntime,
+  ScrumRuntimeSource,
+  WorkspaceRuntimeResolver,
+  WorkspaceRuntimeTarget,
+  ResolvedWorkspaceRuntime,
 } from './api.js'
-export { HOST_API_VERSION, UnsupportedHostApiVersionError, createHostApi } from './api.js'
+export {
+  HOST_API_VERSION,
+  UnsupportedHostApiVersionError,
+  createHostApi,
+  fixedRuntimeResolver,
+  localRuntimeTarget,
+  remoteRuntimeTarget,
+  resolveRequest,
+} from './api.js'
 export type { ScrumAgentApi } from './agent-api.js'
 export { createAgentApi } from './agent-api.js'
 export type { ApiForScope, ChannelHandler, ChannelResult } from './channel.js'

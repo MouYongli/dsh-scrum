@@ -29,9 +29,10 @@ import {
   createHostApi,
   fingerprintInstanceId,
   scopedHarness,
+  fixedRuntimeResolver,
   type HarnessDirectory,
   type ScrumHostConfig,
-  type ScrumRuntime,
+  type ScrumRuntimeSource,
 } from '@dsh-scrum/scrum-harness-host'
 
 export { name } from '@dsh-scrum/scrum-harness-host'
@@ -58,7 +59,7 @@ export const inject = ['workspaceRegistry', 'connection']
 export type ScrumBundleConfig = ScrumHostConfig
 
 export function apply(ctx: Context, config: ScrumBundleConfig = {}): void {
-  const runtime = config.runtime ?? createCommunityRuntime()
+  const runtime = config.runtime ?? fixedRuntimeResolver(createCommunityRuntime())
   applyHost(ctx, { ...config, runtime })
   serveChannel(ctx, runtime)
 }
@@ -107,7 +108,7 @@ function harnessDirectory(ctx: Context): HarnessDirectory {
  * not support serving the browser half beyond loopback until there is an
  * authentication layer to serve it behind.
  */
-function serveChannel(ctx: Context, runtime: ScrumRuntime): void {
+function serveChannel(ctx: Context, runtime: ScrumRuntimeSource): void {
   const directory = harnessDirectory(ctx)
   const handle = createChannelHandler((scope) =>
     createHostApi(scopedHarness(directory, scope), runtime),
