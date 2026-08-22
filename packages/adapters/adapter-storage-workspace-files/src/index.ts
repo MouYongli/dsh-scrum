@@ -39,3 +39,9 @@ export {
   readProjectFile,
   scanWorkspace,
 } from './store.js'
+export {
+  TEMPORARY_SUFFIX,
+  removeTemporaryFiles,
+  temporaryFileFor,
+  writeFileAtomically,
+} from './atomic.js'
