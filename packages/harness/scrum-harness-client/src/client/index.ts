@@ -174,6 +174,7 @@ function measureSidebar(overlay: HTMLElement): number {
 function useSidebarInset(showing: boolean): {
   readonly ref: (element: HTMLElement | null) => void
   readonly inset: number
+  readonly element: { readonly current: HTMLElement | null }
 } {
   const [inset, setInset] = useState(0)
   const element = useRef<HTMLElement | null>(null)
@@ -218,7 +219,59 @@ function useSidebarInset(showing: boolean): {
     }
   }, [showing, measure])
 
-  return { ref, inset }
+  return { ref, inset, element }
+}
+
+/**
+ * Escape, as the other way back to the conversation.
+ *
+ * Listens on the document that owns the overlay rather than the overlay
+ * itself: entering Scrum from the sidebar leaves the focus on the entry, and a
+ * listener bound to the workbench would answer only after the user had clicked
+ * into it. Reaching that document through this plugin's own element keeps the
+ * hook right in a shell that renders the frame somewhere other than the
+ * ambient document.
+ *
+ * Three events that look like Escape and are not:
+ *
+ * - An input method's candidate window closes on Escape, and the product's
+ *   copy is Chinese with text inputs on every form. Leaving Scrum because
+ *   somebody dismissed a candidate list would be unusable.
+ * - Something nested may already have answered, which is what
+ *   `defaultPrevented` reports.
+ * - The listener is on the bubble phase for the same reason: capturing would
+ *   take Escape away from those inputs before they ever saw it.
+ */
+function useEscape(
+  active: boolean,
+  element: { readonly current: HTMLElement | null },
+  onEscape: () => void,
+): void {
+  useEffect(() => {
+    const owner = element.current?.ownerDocument
+    if (!active || owner === undefined) {
+      return undefined
+    }
+    function onKeyDown(event: KeyboardEvent): void {
+      if (event.key !== 'Escape') {
+        return
+      }
+      // `isComposing` is the standard bit; 229 is what a browser that does not
+      // set it reports for a key the input method is still holding.
+      if (event.isComposing || event.keyCode === 229) {
+        return
+      }
+      if (event.defaultPrevented) {
+        return
+      }
+      event.preventDefault()
+      onEscape()
+    }
+    owner.addEventListener('keydown', onKeyDown)
+    return () => {
+      owner.removeEventListener('keydown', onKeyDown)
+    }
+  }, [active, element, onEscape])
 }
 
 /**
@@ -321,6 +374,7 @@ function overlayComponent(
     // Above the early return, and so still running in conversation mode: the
     // baseline it tracks has to be current when the user next enters Scrum.
     useSessionExit(shell, store)
+    useEscape(showing, sidebar.element, store.leave)
     if (!showing) {
       return null
     }
