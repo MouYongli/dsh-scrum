@@ -29,13 +29,16 @@
     "format:check": "prettier --check ."
   },
   "devDependencies": {
+    "@dsh-scrum/scrum-application": "workspace:*",
     "@dsh-scrum/scrum-harness-host": "workspace:*",
+    "@dsh-scrum/scrum-ui": "workspace:*",
     "@eslint/js": "^10.0.1",
     "@types/node": "^24.13.3",
     "@vitest/coverage-v8": "^4.1.11",
     "dependency-cruiser": "^18.2.0",
     "eslint": "^10.8.1",
     "eslint-config-prettier": "^10.1.8",
+    "jsdom": "^28.1.0",
     "prettier": "^3.9.6",
     "publint": "^0.3.24",
     "typescript": "^6.0.3",

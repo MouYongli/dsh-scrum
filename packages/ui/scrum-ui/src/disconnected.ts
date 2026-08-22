@@ -29,5 +29,7 @@ export function disconnectedClient(message: string): ScrumClient {
     planSprint: refuse,
     startSprint: refuse,
     closeSprint: refuse,
+    session: refuse,
+    setSessionAccess: refuse,
   }
 }
