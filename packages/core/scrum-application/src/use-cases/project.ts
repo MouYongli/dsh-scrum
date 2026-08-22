@@ -8,9 +8,11 @@ import {
   createProject as createProjectEntity,
   restoreProject as restoreProjectEntity,
   toProjectId,
+  updateProjectDetails as updateProjectDetailsEntity,
   updateProjectConfig,
   type Project,
   type ProjectId,
+  type ProjectDetailChanges,
   type ProjectConfigChanges,
   type ProjectKey,
   type Revision,
@@ -101,6 +103,42 @@ export interface ProjectCommand {
 export interface ConfigureProjectCommand extends ProjectCommand {
   readonly expectedRevision: Revision
   readonly changes: ProjectConfigChanges
+}
+
+export interface UpdateProjectDetailsCommand extends ProjectCommand {
+  readonly expectedRevision: Revision
+  readonly changes: ProjectDetailChanges
+}
+
+/** Changes the human-readable project name and description; the key stays immutable. */
+export async function updateProjectDetails(
+  deps: Dependencies,
+  request: UseCaseRequest<UpdateProjectDetailsCommand>,
+): Promise<StoredProject> {
+  const { actor, command } = request
+  const authorized = await authorizeProject(
+    deps,
+    actor,
+    command.projectId,
+    PERMISSION.projectConfigure,
+  )
+  if (authorized.project.revision !== command.expectedRevision) {
+    throw new ConflictError(
+      'the project changed since it was read',
+      command.expectedRevision,
+      authorized.project.revision,
+      { entityType: 'project', entityId: authorized.project.id },
+    )
+  }
+  const project = updateProjectDetailsEntity(authorized.project, command.changes, deps.clock.now())
+  await deps.projects.save(project, authorized.project.revision)
+  await recordActivity(deps, actor, {
+    action: 'project.update',
+    targetType: 'project',
+    targetId: project.id,
+    revision: project.revision,
+  })
+  return { project, config: authorized.config }
 }
 
 /**
