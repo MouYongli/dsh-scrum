@@ -33,6 +33,8 @@ import { pageFor } from './pages.js'
 export interface WorkbenchProps {
   readonly state: WorkbenchState
   readonly t?: Translate | undefined
+  /** Shell-owned title bar, such as the current Workspace switcher. */
+  readonly header?: ReactNode | undefined
   readonly onCreate?: ((input: CreateProjectInput) => void) | undefined
   /** Back to the conversation. Absent leaves the surface with no way out. */
   readonly onExit?: (() => void) | undefined
@@ -63,18 +65,19 @@ export function Workbench(props: WorkbenchProps): ReactElement {
       'aria-label': t('workbench.title'),
       'aria-busy': props.state.kind === 'loading',
     },
-    createElement(
-      'header',
-      null,
-      createElement('h1', null, t('workbench.title')),
-      props.onExit === undefined
-        ? null
-        : createElement(
-            'button',
-            { type: 'button', onClick: props.onExit, 'data-scrum-back': true },
-            t('workbench.back'),
-          ),
-    ),
+    props.header ??
+      createElement(
+        'header',
+        null,
+        createElement('h1', null, t('workbench.title')),
+        props.onExit === undefined
+          ? null
+          : createElement(
+              'button',
+              { type: 'button', onClick: props.onExit, 'data-scrum-back': true },
+              t('workbench.back'),
+            ),
+      ),
     props.leaving === true ? leaveQuestion(props, t) : null,
     body(props, t),
   )
@@ -124,6 +127,16 @@ function body(props: WorkbenchProps, t: Translate): ReactElement | null {
     )
   }
   const page = pageFor(state.entry)
+  if (page.project !== null && props.surface !== undefined && props.surface !== null) {
+    return createElement(
+      'div',
+      { 'data-scrum-page': page.state },
+      page.notice === null
+        ? null
+        : createElement('p', { role: 'status', 'data-scrum-moved': true }, t(page.notice)),
+      props.surface,
+    )
+  }
   return createElement(
     'div',
     { 'data-scrum-page': page.state },
@@ -426,6 +439,7 @@ function ConnectedAccess(props: {
 
 /** The screens a project has, and which one is showing. */
 const SECTIONS = [
+  { id: 'home', label: 'section.home' },
   { id: 'backlog', label: 'section.backlog' },
   { id: 'sprint', label: 'section.sprint' },
   { id: 'access', label: 'section.access' },
@@ -446,8 +460,9 @@ function ProjectSurface(props: {
   readonly t: Translate
   readonly readOnly: boolean
   readonly isBound: () => boolean
+  readonly project: { readonly key: string; readonly name: string; readonly description: string }
 }): ReactElement {
-  const [section, setSection] = useState<SectionId>('backlog')
+  const [section, setSection] = useState<SectionId>('home')
   return createElement(
     'div',
     { 'data-scrum-surface': section },
@@ -481,9 +496,22 @@ function surfaceFor(
     readonly t: Translate
     readonly readOnly: boolean
     readonly isBound: () => boolean
+    readonly project: { readonly key: string; readonly name: string; readonly description: string }
   },
 ): ReactElement {
   switch (section) {
+    case 'home':
+      return createElement(
+        'section',
+        { 'data-scrum-home': true },
+        createElement('p', { 'data-scrum-project': props.project.key }, props.project.key),
+        createElement('h2', null, props.project.name),
+        props.project.description === ''
+          ? null
+          : createElement('p', null, props.project.description),
+        createElement('h3', null, props.t('home.title')),
+        createElement('p', null, props.t('home.body')),
+      )
     case 'backlog':
       return createElement(ConnectedBacklog, props)
     case 'sprint':
@@ -496,6 +524,7 @@ function surfaceFor(
 export interface ConnectedWorkbenchProps {
   readonly client: ScrumClient
   readonly t?: Translate | undefined
+  readonly header?: ReactNode | undefined
   readonly onExit?: (() => void) | undefined
   readonly leaving?: boolean | undefined
   readonly onResume?: (() => void) | undefined
@@ -536,6 +565,7 @@ export function ConnectedWorkbench(props: ConnectedWorkbenchProps): ReactElement
     createElement(Workbench, {
       state,
       t: props.t,
+      header: props.header,
       onExit: props.onExit,
       leaving: props.leaving,
       onResume: props.onResume,
@@ -549,6 +579,7 @@ export function ConnectedWorkbench(props: ConnectedWorkbenchProps): ReactElement
               t,
               readOnly: state.entry.state === 'archived',
               isBound,
+              project: state.entry.project,
             })
           : null,
     }),

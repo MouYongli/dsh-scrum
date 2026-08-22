@@ -39,14 +39,19 @@ function workbench(client: ScrumClient): Mounted {
 }
 
 describe('a workbench over a bound project', () => {
-  it('opens on the backlog and shows what the client answered', async () => {
+  it('opens on the home page and loads the backlog when its tab is selected', async () => {
     const backlog = vi.fn(() => Promise.resolve([item(1, { title: '结算对账' })]))
     const mounted = workbench(stubClient({ entry: () => Promise.resolve(BOUND), backlog }))
 
     await settle()
 
+    expect(backlog).not.toHaveBeenCalled()
+    expect(mounted.find('[data-scrum-surface]').dataset['scrumSurface']).toBe('home')
+    expect(mounted.container.querySelector('[data-scrum-home]')).not.toBeNull()
+
+    mounted.click('[data-scrum-section="backlog"]')
+    await settle()
     expect(backlog).toHaveBeenCalled()
-    expect(mounted.find('[data-scrum-surface]').dataset['scrumSurface']).toBe('backlog')
     expect(mounted.container.textContent).toContain('SCR-1 · 结算对账')
   })
 
