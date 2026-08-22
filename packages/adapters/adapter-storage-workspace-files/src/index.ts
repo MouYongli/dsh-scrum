@@ -53,3 +53,13 @@ export type { WriteCoordinator } from './coordinator.js'
 export { createWriteCoordinator } from './coordinator.js'
 export type { OperationSpec, OperationWrite, RecoveredOperation } from './journal.js'
 export { recoverOperations, runOperation } from './journal.js'
+export type { ActivityReadResult, ActivityRecord, ActivitySource } from './activity.js'
+export {
+  ACTIVITY_SOURCE,
+  activityFile,
+  activityMonth,
+  appendActivity,
+  listActivityMonths,
+  readActivity,
+  toActivitySource,
+} from './activity.js'
