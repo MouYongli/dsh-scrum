@@ -55,18 +55,13 @@ pnpm dev:unlink                       # 用完摘掉
 
 ```bash
 # 添加本地 Bundle 到 web profile
-npx --yes @deepseek-ai/dsh@0.1.0-rc.8 \
-  plugin --profile web add \
-  "$PWD/packages/harness/scrum-harness-bundle"
+npx --yes @deepseek-ai/dsh@0.1.0-rc.8 plugin --profile web add "$PWD/packages/harness/scrum-harness-bundle"
 
 # 验证 web profile 已组合出 Scrum 插件配置
-npx --yes @deepseek-ai/dsh@0.1.0-rc.8 \
-  --profile web --dump-config
+npx --yes @deepseek-ai/dsh@0.1.0-rc.8 --profile web --dump-config
 
 # 按包名从 web profile 移除插件（可在任意目录执行）
-npx --yes @deepseek-ai/dsh@0.1.0-rc.8 \
-  plugin --profile web remove \
-  @dsh-scrum/scrum-harness-bundle
+npx --yes @deepseek-ai/dsh@0.1.0-rc.8 plugin --profile web remove @dsh-scrum/scrum-harness-bundle
 ```
 
 如果不在仓库根目录执行添加命令，请将 `$PWD/packages/harness/scrum-harness-bundle` 换成该目录的完整绝对路径。移除命令按包名操作 profile，不依赖当前目录。
