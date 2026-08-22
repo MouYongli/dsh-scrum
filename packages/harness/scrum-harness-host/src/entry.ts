@@ -61,16 +61,17 @@ export function hostActor(identityId: IdentityId, session: HarnessSession | null
  * `archived` is its own state rather than a flag on `bound`: an archived
  * project is read-only, and a client that had to remember to check a flag is
  * a client that will offer an edit that the host then refuses.
+ *
+ * Takes a workspace rather than a nullable one. Whether the user has selected
+ * anything is the caller's question, and answering it here as well would leave
+ * two places that decide what "nothing selected" means.
  */
 export async function describeEntry(
   deps: Pick<ApplicationDependencies, 'projects' | 'members' | 'bindings' | 'capabilities'>,
   harness: HarnessContext,
   actor: ActorContext,
-  workspace: HarnessWorkspace | null,
+  workspace: HarnessWorkspace,
 ): Promise<EntryState> {
-  if (workspace === null) {
-    return { state: 'no-workspace' }
-  }
   const resolved = await resolveWorkspaceBinding(deps, {
     actor,
     command: {

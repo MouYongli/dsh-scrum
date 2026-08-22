@@ -60,7 +60,13 @@ export function fingerprintWorkspacePath(path: string): string {
   return `${FINGERPRINT_ALGORITHM}:${createHash(FINGERPRINT_ALGORITHM).update(normalized).digest('hex')}`
 }
 
-/** Whether a session belongs to the workspace, which is what makes it usable here. */
+/**
+ * Whether a session belongs to the workspace.
+ *
+ * A session is a member of at most one workspace, and one from elsewhere must
+ * not be recorded as the session behind a change here — an audit trail that
+ * names an unrelated conversation is worse than one that names none.
+ */
 export function sessionBelongsTo(
   session: HarnessSession | null,
   workspace: HarnessWorkspace,

@@ -19,6 +19,7 @@ import {
 import { describeEntry, hostActor, type EntryState } from './entry.js'
 import {
   fingerprintWorkspacePath,
+  sessionBelongsTo,
   workspaceRefOf,
   type HarnessContext,
   type HarnessSession,
@@ -92,13 +93,22 @@ export async function resolveRequest(
   if (workspace === null) {
     throw new ValidationError('no workspace is selected', {})
   }
-  const session = await harness.currentSession()
+  const session = await currentSessionOf(harness, workspace)
   return {
     deps: await runtime.forWorkspace(workspace),
     actor: hostActor(await runtime.identity(), session),
     workspace,
     session,
   }
+}
+
+/** The open session, or null when it belongs to a different workspace. */
+async function currentSessionOf(
+  harness: HarnessContext,
+  workspace: HarnessWorkspace,
+): Promise<HarnessSession | null> {
+  const session = await harness.currentSession()
+  return sessionBelongsTo(session, workspace) ? session : null
 }
 
 /** The project this workspace is attached to, or a refusal naming the state. */
@@ -134,7 +144,7 @@ export function createHostApi(harness: HarnessContext, runtime: ScrumRuntime): S
         return { state: 'no-workspace' }
       }
       const deps = await runtime.forWorkspace(workspace)
-      const actor = hostActor(await runtime.identity(), await harness.currentSession())
+      const actor = hostActor(await runtime.identity(), await currentSessionOf(harness, workspace))
       return await describeEntry(deps, harness, actor, workspace)
     },
 
