@@ -220,8 +220,20 @@ describe('provenance', () => {
     })
 
     expect(state.activity).toMatchObject([
-      { action: 'workItem.create', actorId: IDENTITY, sessionId: SESSION_ID },
+      { action: 'workItem.create', actorId: IDENTITY, source: 'agent', sessionId: SESSION_ID },
     ])
+  })
+
+  it('runs from the workspace with no conversation and records no session', async () => {
+    const state = store()
+    const { api } = await boundHost(state, null)
+
+    await call(api, WRITE_TOOL.createWorkItem, {
+      type: WORK_ITEM_TYPE.story,
+      title: 'workspace agent task',
+    })
+
+    expect(state.activity).toMatchObject([{ actorId: IDENTITY, source: 'agent', sessionId: null }])
   })
 
   it('acts as the user the host resolved, whatever the arguments say', async () => {

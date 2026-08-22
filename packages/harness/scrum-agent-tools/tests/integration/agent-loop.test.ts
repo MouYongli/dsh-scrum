@@ -122,7 +122,7 @@ describe('an agent running a sprint through the tools', () => {
     expect(closed['status']).toBe(SPRINT_STATUS.closed)
     expect(state.workItems.get(second['id'] as never)?.sprintId).toBeNull()
     expect(state.activity.map((event) => event.action)).toContain('sprint.close')
-    expect(state.activity.every((event) => event.source === 'ui')).toBe(true)
+    expect(state.activity.every((event) => event.source === 'agent')).toBe(true)
   })
 
   it('reorders the backlog and changes the project settings', async () => {

@@ -33,6 +33,8 @@ export const SCRUM_MESSAGES = {
     'section.home': '首页',
     'section.backlog': '产品 Backlog',
     'section.sprint': 'Sprint 看板',
+    'agent.open': '打开 Scrum Agent',
+    'agent.body': 'Agent 将使用当前用户在此项目中的有效权限；不需要先创建或选择对话。',
     'state.noWorkspace.title': '请先选择一个代码工作区',
     'state.noWorkspace.body': 'Scrum 项目保存在工作区目录中，需要先选择工作区才能使用。',
     'state.unbound.title': '此工作区尚未启用 Scrum 项目管理',
@@ -201,6 +203,9 @@ export const SCRUM_MESSAGES = {
     'section.home': 'Home',
     'section.backlog': 'Product backlog',
     'section.sprint': 'Sprint board',
+    'agent.open': 'Open Scrum agent',
+    'agent.body':
+      'The agent uses the current user’s effective project permissions; no conversation is required.',
     'state.noWorkspace.title': 'Select a code workspace first',
     'state.noWorkspace.body':
       'A Scrum project lives in a workspace directory, so one has to be open.',

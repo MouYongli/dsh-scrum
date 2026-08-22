@@ -32,13 +32,34 @@ async function settle(): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 0))
 }
 
-function workbench(client: ScrumClient, onConnectTeam?: (workspaceId: string) => void): Mounted {
-  const mounted = mount(createElement(ConnectedWorkbench, { client, t, onConnectTeam }))
+function workbench(
+  client: ScrumClient,
+  onConnectTeam?: (workspaceId: string) => void,
+  onOpenAgent?: (workspaceId: string) => void,
+): Mounted {
+  const mounted = mount(
+    createElement(ConnectedWorkbench, { client, t, onConnectTeam, onOpenAgent }),
+  )
   open = mounted
   return mounted
 }
 
 describe('a workbench over a bound project', () => {
+  it('opens the workspace agent without requiring a conversation', async () => {
+    const openAgent = vi.fn()
+    const mounted = workbench(
+      stubClient({ entry: () => Promise.resolve(BOUND) }),
+      undefined,
+      openAgent,
+    )
+    await settle()
+
+    mounted.click('[data-scrum-agent]')
+
+    expect(openAgent).toHaveBeenCalledWith('ws_1')
+    expect(mounted.container.textContent).toContain(t('agent.body'))
+  })
+
   it('opens on the home page and loads the backlog when its tab is selected', async () => {
     const backlog = vi.fn(() => Promise.resolve([item(1, { title: '结算对账' })]))
     const mounted = workbench(stubClient({ entry: () => Promise.resolve(BOUND), backlog }))

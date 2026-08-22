@@ -20,6 +20,7 @@ import {
   type WorkItemId,
 } from '@dsh-scrum/scrum-domain'
 import {
+  ACTIVITY_SOURCE,
   filterWorkItems,
   type ApplicationDependencies,
   type AtomicWrites,
@@ -190,11 +191,12 @@ function dependencies(state: Store): ApplicationDependencies {
   }
 }
 
-export function harness(): HarnessContext {
+export function harness(sessionId: string | null = SESSION_ID): HarnessContext {
   return {
     instanceId: 'dsh_local_1',
     currentWorkspace: async () => WORKSPACE,
-    currentSession: async () => ({ id: SESSION_ID, workspaceId: WORKSPACE.id }),
+    currentSession: async () =>
+      sessionId === null ? null : { id: sessionId, workspaceId: WORKSPACE.id },
   }
 }
 
@@ -209,9 +211,10 @@ function runtime(state: Store): ScrumRuntime {
 /** A bound project whose creator is a member. */
 export async function boundHost(
   state: Store,
+  sessionId: string | null = SESSION_ID,
 ): Promise<{ api: ScrumAgentApi; projectId: ProjectId }> {
-  const context = harness()
-  const host = createHostApi(context, runtime(state))
+  const context = harness(sessionId)
+  const host = createHostApi(context, runtime(state), undefined, ACTIVITY_SOURCE.agent)
   const created = await host.initialise({ key: toProjectKey('SCR'), name: 'shop-service' })
   state.owners.set(
     created.project.id,
@@ -229,7 +232,7 @@ export async function boundHost(
   state.actors.length = 0
   state.activity.length = 0
   return {
-    api: createAgentApi(context, runtime(state), host, SESSION_ID),
+    api: createAgentApi(context, runtime(state), host, sessionId),
     projectId: created.project.id,
   }
 }

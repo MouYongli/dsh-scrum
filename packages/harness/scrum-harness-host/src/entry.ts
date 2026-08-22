@@ -10,6 +10,7 @@ import {
   ACTIVITY_SOURCE,
   resolveWorkspaceBinding,
   type ActorContext,
+  type ActivitySource,
   type ApplicationDependencies,
   type WorkspaceBinding,
 } from '@dsh-scrum/scrum-application'
@@ -56,10 +57,14 @@ export type EntryState = EntryWithoutRuntime & {
 }
 
 /** Builds the actor for a host-initiated call. */
-export function hostActor(identityId: IdentityId, session: HarnessSession | null): ActorContext {
+export function hostActor(
+  identityId: IdentityId,
+  session: HarnessSession | null,
+  source: ActivitySource = ACTIVITY_SOURCE.ui,
+): ActorContext {
   return {
     identityId,
-    source: ACTIVITY_SOURCE.ui,
+    source,
     sessionId: session === null ? null : session.id,
   }
 }
