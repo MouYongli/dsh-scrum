@@ -47,7 +47,7 @@ function press(init: KeyboardEventInit & { key: string }): KeyboardEvent {
 
 describe('pressing Escape', () => {
   it('goes back to the conversation', () => {
-    const store = createScrumModeStore('scrum')
+    const store = createScrumModeStore({ initial: 'scrum' })
     mounted(store)
 
     press({ key: 'Escape' })
@@ -56,7 +56,7 @@ describe('pressing Escape', () => {
   })
 
   it('answers even though the focus is still on the sidebar entry', () => {
-    const store = createScrumModeStore('scrum')
+    const store = createScrumModeStore({ initial: 'scrum' })
     const host = mounted(store)
 
     // Entering from the sidebar never moves the focus into the workbench, so a
@@ -68,7 +68,7 @@ describe('pressing Escape', () => {
   })
 
   it('ignores the Escape an input method is holding', () => {
-    const store = createScrumModeStore('scrum')
+    const store = createScrumModeStore({ initial: 'scrum' })
     mounted(store)
 
     // Closing a Chinese candidate window is not a request to leave Scrum.
@@ -78,7 +78,7 @@ describe('pressing Escape', () => {
   })
 
   it('ignores the composing Escape a browser reports only as a key code', () => {
-    const store = createScrumModeStore('scrum')
+    const store = createScrumModeStore({ initial: 'scrum' })
     mounted(store)
 
     press({ key: 'Escape', keyCode: 229 })
@@ -87,7 +87,7 @@ describe('pressing Escape', () => {
   })
 
   it('leaves an Escape something nested has already answered alone', () => {
-    const store = createScrumModeStore('scrum')
+    const store = createScrumModeStore({ initial: 'scrum' })
     mounted(store)
 
     const answered = new KeyboardEvent('keydown', {
@@ -104,14 +104,14 @@ describe('pressing Escape', () => {
   })
 
   it('claims the key it acts on, so nothing behind the workbench answers it too', () => {
-    const store = createScrumModeStore('scrum')
+    const store = createScrumModeStore({ initial: 'scrum' })
     mounted(store)
 
     expect(press({ key: 'Escape' }).defaultPrevented).toBe(true)
   })
 
   it('does nothing for any other key', () => {
-    const store = createScrumModeStore('scrum')
+    const store = createScrumModeStore({ initial: 'scrum' })
     mounted(store)
 
     press({ key: 'Enter' })
@@ -129,7 +129,7 @@ describe('pressing Escape', () => {
   })
 
   it('stops listening once the workbench is left', () => {
-    const store = createScrumModeStore('scrum')
+    const store = createScrumModeStore({ initial: 'scrum' })
     mounted(store)
 
     press({ key: 'Escape' })

@@ -106,7 +106,7 @@ describe('where the focus goes', () => {
   })
 
   it('leaves the focus alone on a shell that mounts already in Scrum', () => {
-    const store = createScrumModeStore('scrum')
+    const store = createScrumModeStore({ initial: 'scrum' })
 
     const { overlay } = shell(store)
 

@@ -8,6 +8,8 @@
  * other — they have to read one answer or they will disagree about which mode
  * the shell is in.
  */
+import { NO_DRAFTS, type DraftRegistry } from './drafts.js'
+
 /**
  * Declared as function-valued properties rather than methods: they are handed
  * to `useSyncExternalStore` on their own, and a method signature would let a
@@ -21,37 +23,87 @@ export type ShellMode = 'conversation' | 'scrum'
 
 export interface ScrumModeStore {
   readonly mode: () => ShellMode
+  /** Whether a leave is waiting on an answer about unsaved input. */
+  readonly leaving: () => boolean
   readonly enter: () => void
   /** Back to the conversation. Named for where it goes, not for a widget. */
   readonly leave: () => void
+  /** Answers the question with "drop what I typed". */
+  readonly discard: () => void
+  /** Answers it with "keep editing". The mode does not change either way. */
+  readonly resume: () => void
   readonly toggle: () => void
   readonly subscribe: (listener: () => void) => () => void
 }
 
-export function createScrumModeStore(initial: ShellMode = 'conversation'): ScrumModeStore {
-  let mode = initial
+export function createScrumModeStore(
+  options: {
+    readonly initial?: ShellMode | undefined
+    readonly drafts?: DraftRegistry | undefined
+  } = {},
+): ScrumModeStore {
+  const drafts = options.drafts ?? NO_DRAFTS
+  let mode = options.initial ?? 'conversation'
+  let leaving = false
   const listeners = new Set<() => void>()
 
-  function set(next: ShellMode): void {
-    if (next === mode) {
+  function set(nextMode: ShellMode, nextLeaving: boolean): void {
+    if (nextMode === mode && nextLeaving === leaving) {
       return
     }
-    mode = next
+    mode = nextMode
+    leaving = nextLeaving
     for (const listener of [...listeners]) {
       listener()
     }
   }
 
+  function askOrLeave(): void {
+    if (mode !== 'scrum' || leaving) {
+      return
+    }
+    if (drafts.held()) {
+      // Asking must not change the mode. The forms holding the drafts live in
+      // the overlay's subtree, and the overlay renders nothing in conversation
+      // mode: switching first would take away the very thing being asked about
+      // and leave the question with nowhere to be drawn.
+      set('scrum', true)
+      return
+    }
+    set('conversation', false)
+  }
+
+  drafts.subscribe(() => {
+    // The question outlived what it was about — the form behind it was saved
+    // or cancelled — so finish the leave instead of asking about nothing.
+    if (leaving && !drafts.held()) {
+      set('conversation', false)
+    }
+  })
+
   return {
     mode: () => mode,
+    leaving: () => leaving,
     enter: () => {
-      set('scrum')
+      set('scrum', false)
     },
-    leave: () => {
-      set('conversation')
+    leave: askOrLeave,
+    discard: () => {
+      set('conversation', false)
+    },
+    resume: () => {
+      set(mode, false)
     },
     toggle: () => {
-      set(mode === 'scrum' ? 'conversation' : 'scrum')
+      if (mode === 'conversation') {
+        set('scrum', false)
+        return
+      }
+      if (leaving) {
+        set(mode, false)
+        return
+      }
+      askOrLeave()
     },
     subscribe: (listener) => {
       listeners.add(listener)

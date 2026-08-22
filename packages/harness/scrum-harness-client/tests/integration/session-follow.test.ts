@@ -44,7 +44,7 @@ function mounted(
 
 describe('when the shell changes session', () => {
   it('stays in Scrum on the first snapshot it observes', () => {
-    const store = createScrumModeStore('scrum')
+    const store = createScrumModeStore({ initial: 'scrum' })
 
     const sessions = mounted(store)
     // The same answer again is not a change, however many times it arrives.
@@ -56,7 +56,7 @@ describe('when the shell changes session', () => {
   })
 
   it('goes back to the conversation when another session is opened', () => {
-    const store = createScrumModeStore('scrum')
+    const store = createScrumModeStore({ initial: 'scrum' })
     const sessions = mounted(store)
 
     act(() => {
@@ -67,7 +67,7 @@ describe('when the shell changes session', () => {
   })
 
   it('goes back when a new session clears the selection, having no workspace to connect', () => {
-    const store = createScrumModeStore('scrum')
+    const store = createScrumModeStore({ initial: 'scrum' })
     const sessions = mounted(store)
 
     // `startSession` with no workspace at all clears rather than opens.
@@ -93,7 +93,7 @@ describe('when the shell changes session', () => {
   })
 
   it('does not act on a list that has not finished arriving', () => {
-    const store = createScrumModeStore('scrum')
+    const store = createScrumModeStore({ initial: 'scrum' })
     const sessions = mounted(store, { phase: 'pending', current: undefined })
 
     act(() => {
@@ -104,7 +104,7 @@ describe('when the shell changes session', () => {
   })
 
   it('does not treat the shell’s own startup selection as the user going somewhere', () => {
-    const store = createScrumModeStore('scrum')
+    const store = createScrumModeStore({ initial: 'scrum' })
     const sessions = mounted(store, { phase: 'pending', current: undefined })
 
     // Boot order: the list settles, then the shell connects a workspace and
@@ -120,7 +120,7 @@ describe('when the shell changes session', () => {
   })
 
   it('acts on a selection that returns after the shell has had one', () => {
-    const store = createScrumModeStore('scrum')
+    const store = createScrumModeStore({ initial: 'scrum' })
     const sessions = mounted(store, { phase: 'ready', current: undefined })
 
     act(() => {
@@ -139,7 +139,7 @@ describe('when the shell changes session', () => {
   })
 
   it('lets go of the shell when the overlay is torn down', () => {
-    const store = createScrumModeStore('scrum')
+    const store = createScrumModeStore({ initial: 'scrum' })
     const sessions = mounted(store)
 
     expect(sessions.listeners()).toBe(1)
@@ -153,7 +153,7 @@ describe('when the shell changes session', () => {
   })
 
   it('renders against a shell that publishes no session list at all', () => {
-    const store = createScrumModeStore('scrum')
+    const store = createScrumModeStore({ initial: 'scrum' })
     const overlay = registrations({ store }).get('shell.overlay')!
     const host = document.body.appendChild(document.createElement('div'))
     const root = createRoot(host)
