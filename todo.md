@@ -91,6 +91,29 @@ Community 一个 Workspace 一个项目，目录本身就是作用域，撞不�
 
 `deleteWorkItem` 当前用 `workItem.write`。删除是不可逆动作，按矩阵的粒度它更该有自己一行。#48/#49 的 Agent Tool 会把它标成高风险操作，那时必须有明确答案。
 
+
+### A14. Harness Workspace / Session 服务的宿主端形状未验证
+
+`scrum-harness-host` 定义了 `HarnessContext` Port（`instanceId` / `currentWorkspace()` / `currentSession()`），但**从 Harness 的类型声明里读不到宿主端 `workspaces` / `sessions` 服务的确切形状**，所以真正的 Adapter 没写。#54 组合时必须对着跑起来的 Harness 验证一次。
+
+同理，Session 生命周期事件怎么观察（用来在访问模式变化时增删工具注册）也没验证。
+
+### ~~A15. 浏览器到宿主的调用通道没定~~ — 已定（#51 调研，落地在 #54）
+
+**决定：用 `ctx.connection.rpc`，不用 Typert Gateway。** `@deepseek-ai/dsh-client-connection` 两侧各暴露一半：Host 侧 `ctx.connection.rpc.handle('/scrum', handler, { authority: 'loopback' })` 注册一条逻辑通道，浏览器侧 `ctx.connection.rpc.call('/scrum', endpoint, payload)` 调用它。两者都是公开类型，不需要 Typert 代码生成，也不需要 `@deepseek-ai/dsh-api-gateway` 的 descriptor。
+
+传输层的 `RpcResult` 错误码是封闭 union（`bad-request` / `internal` / …），装不下 `ConflictError` 的 `expectedRevision` / `actualRevision`。因此约定：**传输失败走 `RpcResult` 的 error 分支，业务失败走我们自己的信封**（`{ ok: false, error: SerializedScrumError }`）放在 `ok: true` 的 value 里。UI 侧 `toFailure` 按结构读 `code`，序列化往返后仍然认得出 Conflict。
+
+Adapter 本身属于 #54，#51 起 UI 只依赖 `ScrumClient` 接口。
+
+### A16. 确认门注册在整个 Context 上，不是 Agent Scope
+
+`registerScrumConfirmation(ctx)` 会看到该 Context 里所有工具调用（对非 Scrum 工具一律返回 `allow`，行为上无害）。更整洁的做法是注册到 Scrum 的 Agent Scope，但那要等 #54 组合层显示出这个 scope 在哪。
+
+### A17. `sessions/<instance>/<session>.json` 还没有 Adapter
+
+Schema 和 Port 都定了（#47），Community 的落盘实现属于 #54。
+
 ---
 
 ## B. 我已经拍板了，但现在改便宜、以后改贵
@@ -115,7 +138,25 @@ Community 一个 Workspace 一个项目，目录本身就是作用域，撞不�
 - **B17. 多实体原子写只有一条路径 `TransactionPort`**（#45），`WorkItemRepository.saveAll` 已删。一个包里两套原子机制，只有一套会拿到下一个不变量。
 - **B18. Sprint 进度全部派生，不落盘**（#45）；未估算条目数与估算总和并列上报，不折进总和。
 - **B19. 改 Sprint 日期用 `sprint.create`，改名与目标用 `sprint.setGoal`**（#45）。日期是燃尽图和「是否准时」的度量基准，改它等于重新立项。
+- **B20. 归档是独立入口状态，不是 `bound` 上的一个 flag**（#46）。需要调用方记得查 flag 的设计，一定会有人忘了，然后给出一个 Host 随后拒绝的编辑入口。
+- **B21. Workspace 路径存指纹不存原文**（#46）。路径可能含人名、客户名或未发布产品名，而 `.scrum/` 常被提交进用户仓库；摘要照样能回答"是不是同一个目录"。
+- **B22. 属于别的 Workspace 的 Session 记为"无 Session"**（#46）。审计日志指向一段无关对话，比不指向任何对话更糟。
+- **B23. Agent 侧是"二次收窄"而非第二条执行路径**（#48）。用例问角色允不允许，Agent API 问 Session 给了多大范围；两个问题都必须成立。
+- **B24. Off Session 看不到工具，而不是看到后被拒**（#48）。模型看到不能用的工具会试、被拒、再换个形状试；看不到就一个 turn 都不会花。工具描述本身也会泄露 Session 没被授予什么。
+- **B25. 工具返回值有硬上限，且必带 `total` / `truncated`**（#48）。返回摘要而非实体：结果会被重放进后续每一个 turn。
+- **B26. Revision 冲突返回结构化数据而非抛错，且附带"该怎么办"**（#49）。只报当前 revision 不说怎么办，会诱导模型拿刚拿到的数字重发同一个调用 —— 那就是故意写出的 lost update。工具永不自动重试。
+- **B27. 高风险工具用 `tools/pre-execute` 返回 `ask`**（#49）。没有 Approval Service 的部署会把 `ask` 变成拒绝，方向正确：联系不到人的 Agent 不该以"当时没人反对"为由关掉别人的 Sprint。
+- **B28. `scrum-ui` 的异步部分抽成 Controller，组件对状态纯函数**（#50）。组件内部 fetch 只能靠"渲染后等待"来测，实际结果是没人等的状态就没人测。
+- **B29. 项目 Key 不从名称推导**（#50）。它是所有工作项编号的前缀且不可更改，中文项目名下任何推导都是猜。
 - **B10. `EntitlementService.limit()` / `LimitName` 不进 domain**（#37）。没有任何领域规则消费数值上限，把它拉进来等于把 Edition 关注点下沉到 domain。
+- **B30. `scrum-ui` 依赖 `scrum-domain`**（#51）。实体形状（`WorkItem` / `Sprint` / 状态与优先级词表）不再在 UI 里重新声明。第二份声明就是会漂移的那份，而 domain 是纯数据与规则，UI 依赖它不引入任何运行时。`ScrumClient` 的命令与查询类型仍然由 UI 自己定义 —— 那才是 UI 与「背后是谁」的契约。
+- **B31. 业务失败按结构分类，不按 `instanceof`**（#51）。同一个 `ScrumClient` 接口既在进程内实现也跨传输实现，序列化后重建的错误是同一个失败；只认类的检查会把每一个远程 Conflict 归成 unknown，而那恰好是最需要提示刷新的场景。
+- **B32. 空列表要区分「项目是空的」和「筛选太窄」**（#51）。两者在屏幕上长得一样，需要的下一步却相反。合并成一个空状态，就是用户以为 Backlog 丢了的那条路径。
+- **B33. 冲突不自动刷新、不自动重试**（#51）。自动刷新会丢掉用户正在输入的内容；拿错误里报的 revision 重发就是把 lost update 写出来。屏幕给一个刷新按钮，由用户按。
+- **B34. 排序用上移/下移按钮，不用拖拽**（#51）。拖拽在键盘上不可达，而排 Backlog 是 Product Owner 的主要动作。目标位置按整条排序列表算，不按当前分组算 —— rank 是项目级的一条序。
+- **B35. 估算输入框留空 = 未估算，不是 0**（#51）。Sprint 进度把两者分开计数，表单把一个变成另一个会让「全部已估算」这句话失真。
+- **B36. 验收标准立即写入，不进表单草稿**（#51）。它按位置寻址，本地改过顺序的列表会让勾选落到存储里的另一条上。
+- **B37. 归档项目隐藏写入入口是体面，不是检查**（#51）。Host 无论如何都会拒绝；隐藏只是省掉一个必然通向拒绝的入口。
 
 ---
 
@@ -147,6 +188,8 @@ Community 一个 Workspace 一个项目，目录本身就是作用域，撞不�
   - E-1.1 Domain：#37 ✅、#38 ✅、#39 ✅ —— **完整交付**。
   - #59 Tenant 边界与数据模型表对齐 ✅（PR #60）。
   - E-1.2 Workspace 存储：#40 ✅、#41 ✅、#42 ✅ —— **完整交付**。
-  - E-1.3 Application：#43 ✅（PR #64）、#44 ✅（PR #65）、#45 ✅（PR #66）—— **完整交付**。
-  - 下一条主线：#46 Harness Host API 与 Workspace Context。
-  - 从 #43 起到 #50，测试通过即自行合并，不再逐个等确认。
+  - E-1.3 Application：#43 ✅、#44 ✅、#45 ✅ —— **完整交付**。
+  - E-1.4 Harness Host/Agent：#46 ✅（PR #67）、#47 ✅（PR #68）、#48 ✅（PR #69）、#49 ✅（PR #70）—— **完整交付**。
+  - E-1.5 UI：#50 ✅（PR #71）。#51、#52、#53 待做。
+  - E-1.6：#54 组合、#55 端到端验收，待做。
+  - #43–#50 按你的授权，测试通过即自行合并；#51 起恢复逐个确认。
