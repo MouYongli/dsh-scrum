@@ -106,6 +106,11 @@ export class FakeWorkItemRepository {
   readonly items = new Map<WorkItemId, WorkItem>()
   /** Hands out the same number twice, to exercise the allocation race. */
   collideOnce = false
+  /**
+   * Runs once, immediately before the next write reaches storage. It is how a
+   * test puts a concurrent writer exactly where a batch would tear.
+   */
+  beforeWriteOnce: (() => void) | null = null
 
   constructor(projects: FakeProjectRepository) {
     this.projects = projects
@@ -140,11 +145,13 @@ export class FakeWorkItemRepository {
   }
 
   async save(item: WorkItem, expected: Revision): Promise<void> {
+    this.runBeforeWrite()
     this.assertExpected(item, expected)
     this.items.set(item.id, item)
   }
 
   async saveAll(writes: readonly WorkItemWrite[]): Promise<void> {
+    this.runBeforeWrite()
     for (const write of writes) {
       this.assertExpected(write.item, write.expected)
     }
@@ -160,6 +167,12 @@ export class FakeWorkItemRepository {
     }
     this.assertExpected(current, expected)
     this.items.delete(id)
+  }
+
+  private runBeforeWrite(): void {
+    const hook = this.beforeWriteOnce
+    this.beforeWriteOnce = null
+    hook?.()
   }
 
   private assertExpected(item: WorkItem, expected: Revision): void {
