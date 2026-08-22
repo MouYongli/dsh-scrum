@@ -23,6 +23,8 @@ export type {
 export { disconnectedClient } from './disconnected.js'
 export type { AccessMode, SessionDegradation, SessionSummary, SessionView } from './session.js'
 export { SCRUM_ACCESS_MODE, SCRUM_ACCESS_MODES, describeSession, effectiveMode } from './session.js'
+export type { SessionAccessController, SessionAccessState } from './session-controller.js'
+export { createSessionAccessController } from './session-controller.js'
 export type { ScrumFailure } from './failure.js'
 export { toFailure } from './failure.js'
 export type {
