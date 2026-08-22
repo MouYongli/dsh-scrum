@@ -1,0 +1,174 @@
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
+import { describe, expect, it } from 'vitest'
+import { ConnectedWorkbench, Workbench, createTranslate, toCreateInput } from '@dsh-scrum/scrum-ui'
+import type { EntryView, WorkbenchState } from '@dsh-scrum/scrum-ui'
+
+// Rendered to markup rather than asserted as an element tree. A tree assertion
+// passes while the page shows nothing, because a component that returns the
+// wrong branch still returns elements.
+
+const WORKSPACE = { id: 'ws_1', name: 'shop-service' }
+const PROJECT = { id: 'prj_1', key: 'SCR', name: 'shop-service', description: '' }
+const t = createTranslate()
+
+function render(state: WorkbenchState, onClose?: () => void): string {
+  return renderToStaticMarkup(createElement(Workbench, { state, onClose }))
+}
+
+function ready(entry: EntryView, creating = false): WorkbenchState {
+  return { kind: 'ready', entry, creating }
+}
+
+describe('the workbench frame', () => {
+  it('names itself for a screen reader', () => {
+    const markup = render(ready({ state: 'no-workspace' }))
+
+    expect(markup).toContain('role="dialog"')
+    expect(markup).toContain(`aria-label="${t('workbench.title')}"`)
+  })
+
+  it('shows a close control only when there is somewhere to close to', () => {
+    expect(render(ready({ state: 'no-workspace' }), () => {})).toContain('data-scrum-close')
+    expect(render(ready({ state: 'no-workspace' }))).not.toContain('data-scrum-close')
+  })
+
+  it('marks itself busy while it is still asking, and shows no page yet', () => {
+    const markup = render({ kind: 'loading' })
+
+    expect(markup).toContain('aria-busy="true"')
+    expect(markup).not.toContain('data-scrum-page')
+  })
+
+  it('reports a client that cannot answer, rather than an empty page', () => {
+    const markup = render({ kind: 'failed', message: 'not connected to a workspace' })
+
+    expect(markup).toContain('role="alert"')
+    expect(markup).toContain('not connected to a workspace')
+    expect(markup).toContain(t('error.title'))
+  })
+})
+
+describe('the four first-run states', () => {
+  it('renders the no-workspace page', () => {
+    const markup = render(ready({ state: 'no-workspace' }))
+
+    expect(markup).toContain('data-scrum-page="no-workspace"')
+    expect(markup).toContain(t('state.noWorkspace.title'))
+    expect(markup).not.toContain('data-scrum-wizard')
+  })
+
+  it('renders the unbound page with the creation wizard', () => {
+    const markup = render(ready({ state: 'unbound', workspace: WORKSPACE }))
+
+    expect(markup).toContain('data-scrum-page="unbound"')
+    expect(markup).toContain(t('state.unbound.title'))
+    expect(markup).toContain('data-scrum-wizard')
+    expect(markup).toContain(t('wizard.key'))
+  })
+
+  it('renders the archived page without a wizard', () => {
+    const markup = render(
+      ready({ state: 'archived', workspace: WORKSPACE, project: PROJECT, moved: false }),
+    )
+
+    expect(markup).toContain('data-scrum-page="archived"')
+    expect(markup).toContain(t('state.archived.title'))
+    expect(markup).toContain('data-scrum-project="SCR"')
+    expect(markup).not.toContain('data-scrum-wizard')
+  })
+
+  it('renders the stale binding page', () => {
+    const markup = render(ready({ state: 'stale', workspace: WORKSPACE }))
+
+    expect(markup).toContain('data-scrum-page="stale"')
+    expect(markup).toContain(t('state.stale.title'))
+  })
+
+  it('raises the moved notice where the workspace has moved', () => {
+    const markup = render(
+      ready({ state: 'bound', workspace: WORKSPACE, project: PROJECT, moved: true }),
+    )
+
+    expect(markup).toContain('data-scrum-moved')
+    expect(markup).toContain(t('state.moved.notice'))
+  })
+
+  it('names the workspace on every page that has one', () => {
+    for (const state of [
+      ready({ state: 'unbound', workspace: WORKSPACE }),
+      ready({ state: 'stale', workspace: WORKSPACE }),
+      ready({ state: 'bound', workspace: WORKSPACE, project: PROJECT, moved: false }),
+    ]) {
+      expect(render(state)).toContain('shop-service')
+    }
+    expect(render(ready({ state: 'no-workspace' }))).not.toContain('data-scrum-workspace')
+  })
+})
+
+describe('the creation wizard', () => {
+  const unbound = ready({ state: 'unbound', workspace: WORKSPACE })
+
+  it('labels every field, so a screen reader can announce them', () => {
+    const markup = render(unbound)
+
+    for (const id of ['scrum-name', 'scrum-key', 'scrum-description']) {
+      expect(markup).toContain(`for="${id}"`)
+      expect(markup).toContain(`id="${id}"`)
+    }
+    expect(markup).toContain('aria-describedby="scrum-key-hint"')
+    expect(markup).toContain(t('wizard.keyHint'))
+  })
+
+  it('requires the two fields a project cannot be created without', () => {
+    const required = render(unbound).match(/<input[^>]*required[^>]*>/g) ?? []
+
+    expect(required).toHaveLength(2)
+  })
+
+  it('disables the button and says so while a project is being created', () => {
+    const markup = render(ready({ state: 'unbound', workspace: WORKSPACE }, true))
+
+    expect(markup).toContain('disabled')
+    expect(markup).toContain(t('wizard.creating'))
+  })
+
+  it('renders in English when the shell is English', () => {
+    const markup = renderToStaticMarkup(
+      createElement(Workbench, { state: unbound, t: createTranslate('en') }),
+    )
+
+    expect(markup).toContain('Create a Scrum project')
+    expect(markup).not.toContain('创建新的 Scrum 项目')
+  })
+})
+
+describe('the connected workbench', () => {
+  it('shows the loading frame before the client has answered', () => {
+    const markup = renderToStaticMarkup(
+      createElement(ConnectedWorkbench, {
+        client: {
+          entry: () => new Promise<EntryView>(() => undefined),
+          createProject: () => new Promise<never>(() => undefined),
+        },
+      }),
+    )
+
+    expect(markup).toContain('aria-busy="true"')
+    expect(markup).not.toContain('data-scrum-page')
+  })
+})
+
+describe('what the wizard submits', () => {
+  it('upper-cases the key, because the identifier grammar has no lower case', () => {
+    expect(toCreateInput('shop-service', 'scr', '')).toEqual({
+      name: 'shop-service',
+      key: 'SCR',
+      description: '',
+    })
+  })
+
+  it('leaves the name alone, because it belongs to the user', () => {
+    expect(toCreateInput('  优惠券服务 ', 'SCR', '').name).toBe('  优惠券服务 ')
+  })
+})
