@@ -37,7 +37,6 @@ describe('the workspace layout', () => {
       sprints: join(scrum, 'sprints'),
       comments: join(scrum, 'comments'),
       activities: join(scrum, 'activities'),
-      sessions: join(scrum, 'sessions'),
       bindings: join(scrum, 'bindings'),
       idempotency: join(scrum, 'idempotency'),
       pendingOperations: join(scrum, 'operations', 'pending'),

@@ -28,7 +28,6 @@ import {
   type IdempotencyKey,
   type IdempotencyRecord,
   type NewProject,
-  type SessionAccess,
   type StoredProject,
   type AtomicWrites,
   type WorkItemFilter,
@@ -342,18 +341,6 @@ export class FakeActivityRecorder {
   }
 }
 
-export class FakeSessionAccessRepository {
-  readonly access = new Map<string, SessionAccess>()
-
-  async find(harnessInstanceId: string, sessionId: string): Promise<SessionAccess | null> {
-    return this.access.get(`${harnessInstanceId}/${sessionId}`) ?? null
-  }
-
-  async save(access: SessionAccess): Promise<void> {
-    this.access.set(`${access.harnessInstanceId}/${access.sessionId}`, access)
-  }
-}
-
 export class FakeIdempotencyStore {
   readonly records = new Map<IdempotencyKey, IdempotencyRecord>()
 
@@ -377,7 +364,6 @@ export interface TestDependencies extends ApplicationDependencies {
   readonly writes: WriteHook
   readonly members: FakeMemberRepository
   readonly bindings: FakeBindingRepository
-  readonly sessions: FakeSessionAccessRepository
   readonly activity: FakeActivityRecorder
   readonly idempotency: FakeIdempotencyStore
   readonly clock: Clock & { set(at: Timestamp): void }
@@ -401,7 +387,6 @@ export function dependencies(overrides: Partial<TestDependencies> = {}): TestDep
     transactions: new FakeTransactions(workItems, sprints, writes),
     members: new FakeMemberRepository(),
     bindings: new FakeBindingRepository(),
-    sessions: new FakeSessionAccessRepository(),
     activity: new FakeActivityRecorder(),
     idempotency: new FakeIdempotencyStore(),
     capabilities: capabilities(),

@@ -5,8 +5,6 @@ import {
   type WorkspaceRepositories,
 } from '@dsh-scrum/adapter-storage-workspace-files'
 import {
-  createSessionAccess,
-  setAccessMode,
   toIdempotencyKey,
   toWorkspaceRef,
 } from '@dsh-scrum/scrum-application'
@@ -14,7 +12,6 @@ import { ERROR_CODE } from '@dsh-scrum/scrum-domain'
 import {
   OWNER,
   T1,
-  T2,
   codeOf,
   initialisedWorkspace,
   openWorkspace,
@@ -80,41 +77,6 @@ describe('the workspace binding', () => {
 
   it('detaches an installation that never attached, rather than failing', async () => {
     await expect(repositories.bindings.remove(workspace)).resolves.toBeUndefined()
-  })
-})
-
-describe('session access', () => {
-  it('is absent for a session nobody decided about', async () => {
-    expect(await repositories.sessions.find('dsh_local_1', 'session_1')).toBeNull()
-  })
-
-  it('round trips the mode, and keeps two installations apart', async () => {
-    await repositories.sessions.save(
-      setAccessMode(
-        createSessionAccess({ harnessInstanceId: 'dsh_local_1', sessionId: 'session_1', now: T1 }),
-        'write',
-        T2,
-      ),
-    )
-
-    expect((await repositories.sessions.find('dsh_local_1', 'session_1'))?.accessMode).toBe('write')
-    expect(await repositories.sessions.find('dsh_local_2', 'session_1')).toBeNull()
-  })
-
-  it('never spells a conversation out in a path, because .scrum is committed', async () => {
-    await repositories.sessions.save(
-      createSessionAccess({
-        harnessInstanceId: 'dsh_local_1',
-        sessionId: 'session_about_the_layoffs',
-        now: T1,
-      }),
-    )
-
-    const instances = await readdir(workspaceLayout(root).sessions)
-    const sessions = await readdir(`${workspaceLayout(root).sessions}/${instances[0]}`)
-
-    expect(instances.join()).not.toContain('dsh_local_1')
-    expect(sessions.join()).not.toContain('layoffs')
   })
 })
 

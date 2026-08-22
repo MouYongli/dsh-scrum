@@ -2,24 +2,19 @@ import { rm } from 'node:fs/promises'
 import {
   ConflictError,
   INITIAL_REVISION,
-  assertSupportedSchemaVersion,
   toIdentityId,
   toProjectId,
-  toRevision,
   toTimestamp,
 } from '@dsh-scrum/scrum-domain'
 import {
-  toAccessMode,
   type IdempotencyKey,
   type IdempotencyRecord,
   type IdempotencyStore,
-  type SessionAccess,
-  type SessionAccessRepository,
   type WorkspaceBinding,
   type WorkspaceBindingRepository,
   type WorkspaceRef,
 } from '@dsh-scrum/scrum-application'
-import { numberField, stringField } from './json.js'
+import { stringField } from './json.js'
 import { digestFileName, resolveInside, type WorkspaceLayout } from './paths.js'
 import { RECORD_SCHEMA_VERSION, readJsonFile, writeRecord, type Run } from './records.js'
 
@@ -81,42 +76,6 @@ export function bindingRepository(layout: WorkspaceLayout, run: Run): WorkspaceB
  * segments are digests: `.scrum/` is committed, and neither an installation id
  * nor a conversation id belongs in a directory listing.
  */
-export function sessionRepository(layout: WorkspaceLayout, run: Run): SessionAccessRepository {
-  function file(instanceId: string, sessionId: string): string {
-    const directory = resolveInside(
-      layout.sessions,
-      digestFileName(instanceId).slice(0, -'.json'.length),
-    )
-    return resolveInside(directory, digestFileName(sessionId))
-  }
-
-  return {
-    find: async (harnessInstanceId: string, sessionId: string) => {
-      const record = await readJsonFile(file(harnessInstanceId, sessionId))
-      if (record === null) {
-        return null
-      }
-      const access: SessionAccess = {
-        schemaVersion: assertSupportedSchemaVersion(numberField(record, 'schemaVersion')),
-        revision: toRevision(numberField(record, 'revision')),
-        createdAt: toTimestamp(stringField(record, 'createdAt')),
-        updatedAt: toTimestamp(stringField(record, 'updatedAt')),
-        harnessInstanceId: stringField(record, 'harnessInstanceId'),
-        sessionId: stringField(record, 'sessionId'),
-        accessMode: toAccessMode(stringField(record, 'accessMode')),
-      }
-      return access.harnessInstanceId === harnessInstanceId && access.sessionId === sessionId
-        ? access
-        : null
-    },
-    save: async (access: SessionAccess) => {
-      await run(async () => {
-        await writeRecord(file(access.harnessInstanceId, access.sessionId), access)
-      })
-    },
-  }
-}
-
 /**
  * Completed operations, remembered on disk rather than in memory.
  *
