@@ -28,6 +28,7 @@ import {
   ConnectedWorkbench,
   SCRUM_NAMESPACE,
   createTranslate,
+  type Translate,
   createDraftRegistry,
   createScrumModeStore,
   disconnectedClient,
@@ -464,6 +465,7 @@ function WorkspaceHeader(props: {
   readonly shell: ShellServices
   readonly switchingTo: MutableRefObject<string | null>
   readonly drafts: DraftRegistry
+  readonly t: Translate
 }): ReactElement {
   const source = props.shell.workspaces?.list
   const snapshot = useSyncExternalStore(
@@ -496,7 +498,7 @@ function WorkspaceHeader(props: {
     createElement(
       'label',
       { htmlFor: 'scrum-workspace' },
-      current === null ? '当前未绑定工作区，请选择工作区' : 'Scrum 项目管理：',
+      props.t(current === null ? 'topbar.unbound' : 'topbar.bound'),
     ),
     createElement(
       'select',
@@ -504,8 +506,8 @@ function WorkspaceHeader(props: {
         id: 'scrum-workspace',
         value: current ?? '',
         disabled: empty || hasDraft || props.shell.workspaces === undefined,
-        title: hasDraft ? '请先保存或取消正在编辑的内容，再切换工作区' : undefined,
-        'aria-label': 'Scrum 工作区',
+        title: hasDraft ? props.t('topbar.held') : undefined,
+        'aria-label': props.t('topbar.workspace'),
         onChange: (event: { target: { value: string } }) => {
           const workspaceId = event.target.value
           if (workspaceId === '' || workspaceId === current) {
@@ -519,7 +521,7 @@ function WorkspaceHeader(props: {
         ? createElement(
             'option',
             { value: '', disabled: true },
-            empty ? '没有可用的工作区' : '选择工作区',
+            props.t(empty ? 'topbar.empty' : 'topbar.choose'),
           )
         : null,
       snapshot.items.map((workspace) =>
@@ -586,6 +588,7 @@ function overlayComponent(
   shell: ShellServices,
   drafts: DraftRegistry,
 ): () => ReactElement | null {
+  const t = createTranslate()
   return function ScrumOverlay(): ReactElement | null {
     const mode = useMode(store)
     const leaving = useLeaving(store)
@@ -637,7 +640,7 @@ function overlayComponent(
         key: workspace,
         client,
         drafts,
-        header: createElement(WorkspaceHeader, { shell, switchingTo, drafts }),
+        header: createElement(WorkspaceHeader, { shell, switchingTo, drafts, t }),
         leaving,
         onExit: store.leave,
         onResume: store.resume,
