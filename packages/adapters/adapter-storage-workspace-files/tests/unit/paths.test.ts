@@ -40,6 +40,7 @@ describe('the workspace layout', () => {
       pendingOperations: join(scrum, 'operations', 'pending'),
       attachments: join(scrum, 'attachments'),
       backups: join(scrum, 'backups'),
+      lock: join(scrum, 'workspace.lock'),
     })
   })
 
@@ -51,6 +52,9 @@ describe('the workspace layout', () => {
   it('names every directory it has to create, all inside the scrum directory', () => {
     const directories = layoutDirectories(LAYOUT)
 
+    // The lock is not among them: creating it is how the lock is taken, so
+    // making it up front would leave the workspace permanently locked.
+    expect(directories).not.toContain(LAYOUT.lock)
     expect(directories).toContain(LAYOUT.scrum)
     expect(directories.every((directory) => contains(LAYOUT.scrum, directory))).toBe(true)
     expect(new Set(directories).size).toBe(directories.length)

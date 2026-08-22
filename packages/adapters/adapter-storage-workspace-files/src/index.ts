@@ -47,3 +47,7 @@ export {
 } from './atomic.js'
 export type { WriteExpectation } from './writes.js'
 export { NEW_ENTITY, saveProject, saveProjectConfig, saveSprint, saveWorkItem } from './writes.js'
+export type { DirectoryLockOptions, FileLockPort, LockHolder, WorkspaceLock } from './locking.js'
+export { createDirectoryLockPort } from './locking.js'
+export type { WriteCoordinator } from './coordinator.js'
+export { createWriteCoordinator } from './coordinator.js'
