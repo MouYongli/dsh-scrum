@@ -3,6 +3,7 @@ import {
   ValidationError,
   type IdentityId,
   type ProjectId,
+  type TenantId,
   type Sprint,
   type SprintId,
   type WorkItem,
@@ -86,7 +87,25 @@ export class UnsupportedHostApiVersionError extends ValidationError {
 
 /** What the plugin needs from its edition: an identity, and stores per workspace. */
 export interface ScrumRuntime {
-  identity(): Promise<IdentityId>
+  /**
+   * Who the call runs as, in the workspace it runs against.
+   *
+   * The workspace is a parameter because an edition without a sign-in has to
+   * find the answer in the data — a workspace holding a project records who
+   * created it — and there is no one identity that spans workspaces to hand
+   * back instead.
+   */
+  identity(workspace: HarnessWorkspace): Promise<IdentityId>
+  /**
+   * Which tenant a project created here belongs to.
+   *
+   * Asked of the edition rather than taken from the caller: Community mints a
+   * personal tenant per workspace and a connected service supplies the
+   * authenticated one, and neither is something a browser should be able to
+   * name. A client that could pass a tenant could create a project inside
+   * somebody else's.
+   */
+  tenant(workspace: HarnessWorkspace): Promise<TenantId>
   /**
    * The application ports bound to one workspace. Called per request rather
    * than once, so a workspace that is closed and reopened does not keep
@@ -103,8 +122,12 @@ export interface HostRequestContext {
   readonly session: HarnessSession | null
 }
 
-/** Creating the project and attaching the workspace is one act, so one command. */
-export type InitialiseWorkspaceCommand = CreateProjectCommand
+/**
+ * Creating the project and attaching the workspace is one act, so one command.
+ * The tenant is absent: the edition supplies it, for the reason `ScrumRuntime`
+ * gives.
+ */
+export type InitialiseWorkspaceCommand = Omit<CreateProjectCommand, 'tenantId'>
 
 export interface ScrumHostApi {
   readonly version: number
@@ -168,7 +191,7 @@ export async function resolveRequest(
   const session = await currentSessionOf(harness, workspace)
   return {
     deps: await runtime.forWorkspace(workspace),
-    actor: hostActor(await runtime.identity(), session),
+    actor: hostActor(await runtime.identity(workspace), session),
     workspace,
     session,
   }
@@ -229,13 +252,19 @@ export function createHostApi(harness: HarnessContext, runtime: ScrumRuntime): S
         return { state: 'no-workspace' }
       }
       const deps = await runtime.forWorkspace(workspace)
-      const actor = hostActor(await runtime.identity(), await currentSessionOf(harness, workspace))
+      const actor = hostActor(
+        await runtime.identity(workspace),
+        await currentSessionOf(harness, workspace),
+      )
       return await describeEntry(deps, harness, actor, workspace)
     },
 
     async initialise(command: InitialiseWorkspaceCommand): Promise<StoredProject> {
       const request = await resolveRequest(harness, runtime)
-      const stored = await createProject(request.deps, { actor: request.actor, command })
+      const stored = await createProject(request.deps, {
+        actor: request.actor,
+        command: { ...command, tenantId: await runtime.tenant(request.workspace) },
+      })
       await bindWorkspace(request.deps, {
         actor: request.actor,
         command: {

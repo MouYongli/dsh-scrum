@@ -102,6 +102,31 @@ importers:
 
   packages/core/scrum-domain: {}
 
+  packages/editions/edition-community:
+    dependencies:
+      '@dsh-scrum/adapter-audit-local':
+        specifier: workspace:*
+        version: link:../../adapters/adapter-audit-local
+      '@dsh-scrum/adapter-identity-personal':
+        specifier: workspace:*
+        version: link:../../adapters/adapter-identity-personal
+      '@dsh-scrum/adapter-storage-workspace-files':
+        specifier: workspace:*
+        version: link:../../adapters/adapter-storage-workspace-files
+      '@dsh-scrum/scrum-application':
+        specifier: workspace:*
+        version: link:../../core/scrum-application
+      '@dsh-scrum/scrum-domain':
+        specifier: workspace:*
+        version: link:../../core/scrum-domain
+      '@dsh-scrum/scrum-harness-host':
+        specifier: workspace:*
+        version: link:../../harness/scrum-harness-host
+    devDependencies:
+      '@types/node':
+        specifier: ^24.13.3
+        version: 24.13.3
+
   packages/harness/scrum-agent-tools:
     dependencies:
       '@dsh-scrum/scrum-application':

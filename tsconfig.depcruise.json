@@ -5,9 +5,14 @@
     "noEmit": true,
     "composite": false,
     "paths": {
+      "@dsh-scrum/adapter-audit-local": ["./packages/adapters/adapter-audit-local/src/index.ts"],
+      "@dsh-scrum/adapter-identity-personal": [
+        "./packages/adapters/adapter-identity-personal/src/index.ts"
+      ],
       "@dsh-scrum/adapter-storage-workspace-files": [
         "./packages/adapters/adapter-storage-workspace-files/src/index.ts"
       ],
+      "@dsh-scrum/edition-community": ["./packages/editions/edition-community/src/index.ts"],
       "@dsh-scrum/scrum-agent-tools": ["./packages/harness/scrum-agent-tools/src/index.ts"],
       "@dsh-scrum/scrum-api-contract": ["./packages/api/scrum-api-contract/src/index.ts"],
       "@dsh-scrum/scrum-application": ["./packages/core/scrum-application/src/index.ts"],
