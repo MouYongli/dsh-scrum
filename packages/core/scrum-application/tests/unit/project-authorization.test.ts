@@ -42,6 +42,8 @@ describe('project authorization', () => {
 
     expect(result.permissions.has(PERMISSION.workItemWrite)).toBe(true)
     expect(result.projectArchived).toBe(false)
+    expect(result.membership.mode).toBe('personal')
+    expect(result.membership.roles).toHaveLength(5)
   })
 
   it('narrows an archived project to read permissions', async () => {

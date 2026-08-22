@@ -154,6 +154,7 @@ function toAuthorizationPayload(authorization: ProjectAuthorization): Authorizat
   return {
     permissions: [...authorization.permissions],
     projectArchived: authorization.projectArchived,
+    membership: authorization.membership,
   }
 }
 

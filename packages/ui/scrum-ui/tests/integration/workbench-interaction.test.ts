@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { createElement } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { SPRINT_STATUS } from '@dsh-scrum/scrum-domain'
+import { PROJECT_ROLES, SPRINT_STATUS } from '@dsh-scrum/scrum-domain'
 import { ConnectedWorkbench, createTranslate } from '@dsh-scrum/scrum-ui'
 import type { EntryView, ScrumClient } from '@dsh-scrum/scrum-ui'
 import { stubClient } from '../support/client.js'
@@ -53,6 +53,26 @@ describe('a workbench over a bound project', () => {
     await settle()
     expect(backlog).toHaveBeenCalled()
     expect(mounted.container.textContent).toContain('SCR-1 · 结算对账')
+  })
+
+  it('describes a personal Community owner without offering role editing', async () => {
+    const mounted = workbench(
+      stubClient({
+        entry: () => Promise.resolve(BOUND),
+        authorization: () =>
+          Promise.resolve({
+            permissions: [],
+            projectArchived: false,
+            membership: { mode: 'personal', roles: PROJECT_ROLES },
+          }),
+      }),
+    )
+    await settle()
+
+    expect(mounted.container.querySelector('[data-scrum-personal-owner]')).not.toBeNull()
+    expect(mounted.container.textContent).toContain('个人项目 · 本地 Owner')
+    expect(mounted.find('[data-scrum-owner-roles]').textContent).toContain('administrator')
+    expect(mounted.container.querySelector('[data-scrum-member-editor]')).toBeNull()
   })
 
   it('switches to the board without exposing a session access control', async () => {

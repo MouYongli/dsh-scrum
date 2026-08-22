@@ -1,6 +1,7 @@
 import type {
   AcceptanceCriterion,
   Permission,
+  ProjectRole,
   Priority,
   Rank,
   Revision,
@@ -17,6 +18,10 @@ import type {
 export interface AuthorizationView {
   readonly permissions: readonly Permission[]
   readonly projectArchived: boolean
+  readonly membership: {
+    readonly mode: 'personal' | 'managed'
+    readonly roles: readonly ProjectRole[]
+  }
 }
 
 /**
