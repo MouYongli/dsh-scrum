@@ -71,6 +71,8 @@ export interface ScrumClientConfig {
   readonly client?: ScrumClient | undefined
   readonly store?: ScrumModeStore | undefined
   readonly drafts?: DraftRegistry | undefined
+  /** Starts remote authentication/project selection for this workspace. */
+  readonly onConnectTeam?: ((workspaceId: string) => void) | undefined
 }
 
 /** Reads the mode without owning it, so both registrations see one answer. */
@@ -587,6 +589,7 @@ function overlayComponent(
   client: ScrumClient,
   shell: ShellServices,
   drafts: DraftRegistry,
+  onConnectTeam?: (workspaceId: string) => void,
 ): () => ReactElement | null {
   const t = createTranslate()
   return function ScrumOverlay(): ReactElement | null {
@@ -645,6 +648,7 @@ function overlayComponent(
         onExit: store.leave,
         onResume: store.resume,
         onDiscard: store.discard,
+        onConnectTeam,
       }),
     )
   }
@@ -683,7 +687,7 @@ export function apply(ctx: ClientContext, config: ScrumClientConfig = {}): void 
   ctx.slots.inject('shell.overlay', () =>
     ctx.slots.register(
       { name: 'shell.overlay', id: ENTRY_ID, order: 0 },
-      overlayComponent(store, client, shell, drafts),
+      overlayComponent(store, client, shell, drafts, config.onConnectTeam),
     ),
   )
 }

@@ -158,13 +158,15 @@ function toAuthorizationView(payload: AuthorizationPayload): AuthorizationView {
 }
 
 function toEntryView(payload: EntryPayload): EntryView {
+  const runtime =
+    payload.runtimeContext === undefined ? {} : { runtimeContext: payload.runtimeContext }
   switch (payload.state) {
     case 'no-workspace':
-      return { state: 'no-workspace' }
+      return { state: 'no-workspace', ...runtime }
     case 'unbound':
-      return { state: 'unbound', workspace: payload.workspace }
+      return { state: 'unbound', workspace: payload.workspace, ...runtime }
     case 'stale':
-      return { state: 'stale', workspace: payload.workspace }
+      return { state: 'stale', workspace: payload.workspace, ...runtime }
     case 'bound':
     case 'archived':
       return {
@@ -172,6 +174,7 @@ function toEntryView(payload: EntryPayload): EntryView {
         workspace: payload.workspace,
         project: payload.project,
         moved: payload.moved,
+        ...runtime,
       }
   }
 }

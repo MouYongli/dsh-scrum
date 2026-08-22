@@ -4,6 +4,7 @@ import {
   type Permission,
   type Project,
   type ProjectConfig,
+  type Edition,
 } from '@dsh-scrum/scrum-domain'
 import {
   ACTIVITY_SOURCE,
@@ -27,7 +28,7 @@ import {
  * single record with everything nullable would let the client render a project
  * name from a workspace nobody selected.
  */
-export type EntryState =
+type EntryWithoutRuntime =
   | { readonly state: 'no-workspace' }
   | { readonly state: 'unbound'; readonly workspace: HarnessWorkspace }
   | {
@@ -45,6 +46,14 @@ export type EntryState =
       /** The workspace is not where it was when it was attached. */
       readonly moved: boolean
     }
+
+export type EntryState = EntryWithoutRuntime & {
+  readonly runtimeContext?: {
+    readonly edition: Edition
+    readonly serviceName: string
+    readonly tenantName: string
+  }
+}
 
 /** Builds the actor for a host-initiated call. */
 export function hostActor(identityId: IdentityId, session: HarnessSession | null): ActorContext {

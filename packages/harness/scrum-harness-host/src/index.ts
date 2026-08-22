@@ -115,6 +115,7 @@ export type {
   ScrumRuntimeSource,
   WorkspaceRuntimeResolver,
   WorkspaceRuntimeTarget,
+  WorkspaceRuntimeContext,
   ResolvedWorkspaceRuntime,
 } from './api.js'
 export {

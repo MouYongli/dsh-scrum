@@ -40,6 +40,18 @@ describe('workspace runtime routing', () => {
     )
 
     expect(request.target).toEqual({ kind: 'local' })
+    expect(
+      (
+        await createHostApi(
+          harness(FIRST),
+          fixedRuntimeResolver(runtime(new MemoryStore())),
+        ).entry()
+      ).runtimeContext,
+    ).toEqual({
+      edition: 'community',
+      serviceName: 'Local',
+      tenantName: 'Personal',
+    })
   })
 
   it('describes a remote target with references and no credentials', () => {
@@ -61,10 +73,19 @@ describe('workspace runtime routing', () => {
     const resolver: WorkspaceRuntimeResolver = {
       resolve: async (workspace) =>
         workspace.id === FIRST.id
-          ? { target: { kind: 'local' }, runtime: runtime(local) }
+          ? {
+              target: { kind: 'local' },
+              runtime: runtime(local),
+              context: { edition: 'community', serviceName: 'Local', tenantName: 'Personal' },
+            }
           : {
               target: remoteRuntimeTarget('conn_enterprise_1', 'remote_project_1'),
               runtime: runtime(remote),
+              context: {
+                edition: 'enterprise',
+                serviceName: 'Acme Scrum',
+                tenantName: 'Acme',
+              },
             },
     }
     const api = createHostApi(

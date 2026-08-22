@@ -34,6 +34,7 @@ export interface WorkbenchProps {
   /** Shell-owned title bar, such as the current Workspace switcher. */
   readonly header?: ReactNode | undefined
   readonly onCreate?: ((input: CreateProjectInput) => void) | undefined
+  readonly onConnectTeam?: (() => void) | undefined
   /** Back to the conversation. Absent leaves the surface with no way out. */
   readonly onExit?: (() => void) | undefined
   /** True while a leave is waiting on an answer about unsaved input. */
@@ -77,7 +78,25 @@ export function Workbench(props: WorkbenchProps): ReactElement {
             ),
       ),
     props.leaving === true ? leaveQuestion(props, t) : null,
+    runtimeContext(props.state, t),
     body(props, t),
+  )
+}
+
+function runtimeContext(state: WorkbenchState, t: Translate): ReactElement | null {
+  if (state.kind !== 'ready' || state.entry.runtimeContext === undefined) {
+    return null
+  }
+  const context = state.entry.runtimeContext
+  return createElement(
+    'dl',
+    { 'data-scrum-runtime': context.edition, 'aria-label': t('runtime.edition') },
+    createElement('dt', null, t('runtime.edition')),
+    createElement('dd', null, t(`edition.${context.edition}`)),
+    createElement('dt', null, t('runtime.service')),
+    createElement('dd', { 'data-scrum-service': true }, context.serviceName),
+    createElement('dt', null, t('runtime.tenant')),
+    createElement('dd', { 'data-scrum-tenant': true }, context.tenantName),
   )
 }
 
@@ -161,7 +180,41 @@ function body(props: WorkbenchProps, t: Translate): ReactElement | null {
           creating: state.creating,
           onCreate: props.onCreate,
         }),
+    page.connectAction === null
+      ? null
+      : createElement(TeamConnectionEntry, { t, onConnect: props.onConnectTeam }),
     page.project === null ? null : props.surface,
+  )
+}
+
+function TeamConnectionEntry(props: {
+  readonly t: Translate
+  readonly onConnect?: (() => void) | undefined
+}): ReactElement {
+  const [opened, setOpened] = useState(false)
+  return createElement(
+    'section',
+    { 'data-scrum-connect-entry': true },
+    createElement(
+      'button',
+      {
+        type: 'button',
+        'data-scrum-connect': true,
+        onClick: () => {
+          setOpened(true)
+          props.onConnect?.()
+        },
+      },
+      props.t('state.unbound.connect'),
+    ),
+    opened
+      ? createElement(
+          'div',
+          { role: 'region', 'aria-label': props.t('connect.title') },
+          createElement('h3', null, props.t('connect.title')),
+          createElement('p', null, props.t('connect.body')),
+        )
+      : null,
   )
 }
 
@@ -218,7 +271,7 @@ function ProjectWizard(props: WizardProps): ReactElement {
   return createElement(
     'form',
     { onSubmit: submit, 'data-scrum-wizard': true },
-    createElement('h3', null, props.t('wizard.title')),
+    createElement('h3', null, props.t('state.unbound.create')),
     field('scrum-name', props.t('wizard.name'), name, setName, true),
     field(
       'scrum-key',
@@ -528,6 +581,7 @@ export interface ConnectedWorkbenchProps {
   readonly leaving?: boolean | undefined
   readonly onResume?: (() => void) | undefined
   readonly onDiscard?: (() => void) | undefined
+  readonly onConnectTeam?: ((workspaceId: string) => void) | undefined
   /**
    * Where the forms report input the user has not saved. Handed in rather
    * than created here, because whoever decides that leaving needs a question
@@ -543,6 +597,8 @@ export interface ConnectedWorkbenchProps {
 export function ConnectedWorkbench(props: ConnectedWorkbenchProps): ReactElement {
   const controller = useMemo(() => createWorkbenchController(props.client), [props.client])
   const state = useSyncExternalStore(controller.subscribe, controller.state, controller.state)
+  const connectWorkspaceId =
+    state.kind === 'ready' && state.entry.state === 'unbound' ? state.entry.workspace.id : null
   useEffect(() => {
     void controller.load()
   }, [controller])
@@ -560,6 +616,8 @@ export function ConnectedWorkbench(props: ConnectedWorkbenchProps): ReactElement
       onResume: props.onResume,
       onDiscard: props.onDiscard,
       onCreate: (input) => void controller.create(input),
+      onConnectTeam:
+        connectWorkspaceId === null ? undefined : () => props.onConnectTeam?.(connectWorkspaceId),
       surface:
         state.kind === 'ready' &&
         (state.entry.state === 'bound' || state.entry.state === 'archived')

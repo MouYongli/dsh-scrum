@@ -176,13 +176,14 @@ function toProjectPayload(stored: StoredProject | Project): ProjectPayload {
 }
 
 function toEntryPayload(entry: EntryState): EntryPayload {
+  const runtime = entry.runtimeContext === undefined ? {} : { runtimeContext: entry.runtimeContext }
   switch (entry.state) {
     case 'no-workspace':
-      return { state: 'no-workspace' }
+      return { state: 'no-workspace', ...runtime }
     case 'unbound':
-      return { state: 'unbound', workspace: toWorkspacePayload(entry.workspace) }
+      return { state: 'unbound', workspace: toWorkspacePayload(entry.workspace), ...runtime }
     case 'stale':
-      return { state: 'stale', workspace: toWorkspacePayload(entry.workspace) }
+      return { state: 'stale', workspace: toWorkspacePayload(entry.workspace), ...runtime }
     case 'bound':
     case 'archived':
       return {
@@ -190,6 +191,7 @@ function toEntryPayload(entry: EntryState): EntryPayload {
         workspace: toWorkspacePayload(entry.workspace),
         project: toProjectPayload(entry.project),
         moved: entry.moved,
+        ...runtime,
       }
   }
 }
