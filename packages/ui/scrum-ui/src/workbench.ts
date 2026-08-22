@@ -455,22 +455,23 @@ export function ConnectedWorkbench(props: ConnectedWorkbenchProps): ReactElement
     DraftsProvider,
     { registry: props.drafts ?? NO_DRAFTS },
     createElement(Workbench, {
-    state,
-    t: props.t,
-    onExit: props.onExit,
-    leaving: props.leaving,
-    onResume: props.onResume,
-    onDiscard: props.onDiscard,
-    onCreate: (input) => void controller.create(input),
-    surface:
-      state.kind === 'ready' && (state.entry.state === 'bound' || state.entry.state === 'archived')
-        ? createElement(ProjectSurface, {
-            client: props.client,
-            t,
-            readOnly: state.entry.state === 'archived',
-            isBound,
-          })
-        : null,
+      state,
+      t: props.t,
+      onExit: props.onExit,
+      leaving: props.leaving,
+      onResume: props.onResume,
+      onDiscard: props.onDiscard,
+      onCreate: (input) => void controller.create(input),
+      surface:
+        state.kind === 'ready' &&
+        (state.entry.state === 'bound' || state.entry.state === 'archived')
+          ? createElement(ProjectSurface, {
+              client: props.client,
+              t,
+              readOnly: state.entry.state === 'archived',
+              isBound,
+            })
+          : null,
     }),
   )
 }

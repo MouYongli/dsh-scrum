@@ -80,9 +80,7 @@ function mountShell(options: { sidebarRight: number; layerLeft: number; withEntr
     if (options.withEntry !== false) {
       const entry = createRoot(column)
       roots.push(entry)
-      entry.render(
-        createElement(registered.get('sidebar.footer.action')!, { wide: true }),
-      )
+      entry.render(createElement(registered.get('sidebar.footer.action')!, { wide: true }))
     }
     const overlay = createRoot(layer)
     roots.push(overlay)

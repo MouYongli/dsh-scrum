@@ -29,9 +29,7 @@ function Draft(props: { readonly initial: string }): ReturnType<typeof createEle
 }
 
 function mountDraft(registry: DraftRegistry, initial = ''): Mounted {
-  open = mount(
-    createElement(DraftsProvider, { registry }, createElement(Draft, { initial })),
-  )
+  open = mount(createElement(DraftsProvider, { registry }, createElement(Draft, { initial })))
   return open
 }
 

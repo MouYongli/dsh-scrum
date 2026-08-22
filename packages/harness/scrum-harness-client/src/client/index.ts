@@ -563,7 +563,9 @@ export function apply(ctx: ClientContext, config: ScrumClientConfig = {}): void 
   const drafts = config.drafts ?? createDraftRegistry()
   const store = config.store ?? createScrumModeStore({ drafts })
   const client =
-    config.client ?? shellClient(shell) ?? disconnectedClient(createTranslate()('error.notConnected'))
+    config.client ??
+    shellClient(shell) ??
+    disconnectedClient(createTranslate()('error.notConnected'))
 
   ctx.slots.inject('sidebar.footer.action', () =>
     ctx.slots.register(

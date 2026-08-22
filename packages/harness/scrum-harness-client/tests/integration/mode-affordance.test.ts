@@ -26,7 +26,10 @@ afterEach(() => {
 })
 
 /** Mounts the sidebar entry and the overlay the way the shell would. */
-function shell(store: ScrumModeStore): { readonly entry: HTMLElement; readonly overlay: HTMLElement } {
+function shell(store: ScrumModeStore): {
+  readonly entry: HTMLElement
+  readonly overlay: HTMLElement
+} {
   const registered = registrations({ store })
   const entry = document.body.appendChild(document.createElement('div'))
   const overlay = document.body.appendChild(document.createElement('div'))
