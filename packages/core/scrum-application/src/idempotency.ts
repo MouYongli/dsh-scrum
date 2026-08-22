@@ -97,3 +97,19 @@ function assertReplayable(
   }
   return record.reference
 }
+
+/**
+ * Reads back a reference a previous attempt stored.
+ *
+ * Every reference this application writes is an identifier, so anything else
+ * came from a store holding a record it did not write, and answering from it
+ * would be worse than refusing.
+ */
+export function stringReference(reference: JsonValue): string {
+  if (typeof reference !== 'string') {
+    throw new ValidationError('the stored idempotency reference is not an identifier', {
+      reference,
+    })
+  }
+  return reference
+}

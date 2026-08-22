@@ -1,9 +1,14 @@
 export type { ActorContext, UseCaseRequest } from './actor.js'
 export { recordActivity } from './activity.js'
 export type { AuthorizedProject } from './authorization.js'
-export { authorizeProject, loadProject, resolvePermissions } from './authorization.js'
+export {
+  assertCapability,
+  authorizeProject,
+  loadProject,
+  resolvePermissions,
+} from './authorization.js'
 export type { IdempotentOperation, IdempotentOutcome } from './idempotency.js'
-export { runIdempotently } from './idempotency.js'
+export { runIdempotently, stringReference } from './idempotency.js'
 export type { ApplicationDependencies } from './dependencies.js'
 export type {
   ActivityDescription,
@@ -22,3 +27,5 @@ export type {
   WorkspaceRef,
 } from './ports/workspace.js'
 export { sameWorkspace, toWorkspaceRef } from './ports/workspace.js'
+export type { CreateProjectCommand, ProjectCommand } from './use-cases/project.js'
+export { archiveProject, createProject, getProject, restoreProject } from './use-cases/project.js'

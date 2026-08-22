@@ -1,8 +1,10 @@
 import {
+  ForbiddenError,
   NotFoundError,
   assertPermission,
   effectivePermissions,
   memberRoles,
+  type Capability,
   type Permission,
   type PermissionContext,
   type ProjectId,
@@ -75,4 +77,23 @@ export async function authorizeProject(
   const authorized = await resolvePermissions(deps, actor, await loadProject(deps, projectId))
   assertPermission(contextFor(deps, authorized, authorized.roles), permission)
   return authorized
+}
+
+/**
+ * Refuses an action the installation itself does not provide.
+ *
+ * Separate from the permission matrix because it answers a different question:
+ * the matrix decides what a role may do inside a project, and this decides
+ * whether the feature exists here at all. Creating a project has no project to
+ * check a role against, so this is the only gate it has.
+ */
+export function assertCapability(
+  deps: Pick<ApplicationDependencies, 'capabilities'>,
+  capability: Capability,
+): void {
+  if (!deps.capabilities.has(capability)) {
+    throw new ForbiddenError(`this installation does not provide ${capability}`, {
+      requiredCapability: capability,
+    })
+  }
 }
