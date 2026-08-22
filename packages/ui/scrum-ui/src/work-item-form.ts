@@ -9,6 +9,7 @@ import {
   type WorkItemType,
 } from '@dsh-scrum/scrum-domain'
 import type { NewWorkItem } from './client.js'
+import { sameDraft, useDraftGuard } from './drafts.js'
 import type { MessageKey, Translate } from './messages.js'
 import { PRIORITIES, WORK_ITEM_TYPES, priorityLabel, typeLabel } from './vocabulary.js'
 
@@ -118,6 +119,9 @@ export interface WorkItemFormProps {
  */
 export function WorkItemForm(props: WorkItemFormProps): ReactElement {
   const [fields, setFields] = useState(props.initial)
+  // Against what it opened with, not against empty: the detail form starts
+  // full of the item's own values and has nothing unsaved until they move.
+  useDraftGuard(!sameDraft(fields, props.initial))
   const t = props.t
 
   function submit(event: FormEvent): void {
@@ -293,6 +297,7 @@ export interface CriteriaProps {
  */
 export function AcceptanceCriteria(props: CriteriaProps): ReactElement {
   const [draft, setDraft] = useState('')
+  useDraftGuard(draft !== '')
 
   function add(): void {
     const text = draft.trim()

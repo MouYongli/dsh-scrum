@@ -1,5 +1,6 @@
 import { createElement, useState, type ReactElement } from 'react'
 import type { Rank, WorkItem, WorkItemId } from '@dsh-scrum/scrum-domain'
+import { useDraftGuard } from './drafts.js'
 import type { Translate } from './messages.js'
 
 /**
@@ -154,6 +155,7 @@ export interface DependencyProps {
  */
 export function DependencyPicker(props: DependencyProps): ReactElement {
   const [pending, setPending] = useState('')
+  useDraftGuard(pending !== '')
   const titles = new Map(props.candidates.map((candidate) => [candidate.id, candidate.title]))
   const id = 'scrum-detail-dependency'
   return createElement(
@@ -245,6 +247,10 @@ export interface BlockProps {
  */
 export function BlockControl(props: BlockProps): ReactElement {
   const [reason, setReason] = useState(props.item.blockedReason ?? '')
+  // Against the item's own reason. An already blocked item opens with the box
+  // full, and calling that unsaved would make leaving impossible to answer:
+  // the question would come back however often it was dismissed.
+  useDraftGuard(reason !== (props.item.blockedReason ?? ''))
   const id = 'scrum-detail-block'
   const blocked = props.item.blockedReason !== null
   return createElement(

@@ -1,6 +1,7 @@
 import { createElement, useState, type FormEvent, type ReactElement } from 'react'
 import { toTimestamp, type Timestamp } from '@dsh-scrum/scrum-domain'
 import type { NewSprint } from './client.js'
+import { sameDraft, useDraftGuard } from './drafts.js'
 import type { Translate } from './messages.js'
 
 /** What the creation form holds: two calendar dates, as the browser spells them. */
@@ -62,6 +63,7 @@ export interface SprintFormProps {
  */
 export function SprintForm(props: SprintFormProps): ReactElement {
   const [fields, setFields] = useState(EMPTY_SPRINT_FIELDS)
+  useDraftGuard(!sameDraft(fields, EMPTY_SPRINT_FIELDS))
   const t = props.t
 
   function submit(event: FormEvent): void {

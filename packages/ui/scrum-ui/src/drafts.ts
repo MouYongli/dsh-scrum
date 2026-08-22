@@ -113,3 +113,16 @@ export function useDraftGuard(dirty: boolean): void {
   const registry = useContext(DraftsContext)
   useEffect(() => (dirty ? registry.hold() : undefined), [dirty, registry])
 }
+
+/**
+ * Whether a form's values still match the ones it opened with.
+ *
+ * The comparison is by value rather than by identity, so a parent that rebuilt
+ * an equal object on its way past does not turn an untouched form into unsaved
+ * work. Shallow, because every one of these forms holds a flat record of
+ * strings the user typed.
+ */
+export function sameDraft<T extends object>(fields: T, initial: T): boolean {
+  const keys = Object.keys(fields) as (keyof T)[]
+  return keys.every((key) => fields[key] === initial[key])
+}

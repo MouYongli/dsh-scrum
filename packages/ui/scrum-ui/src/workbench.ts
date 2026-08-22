@@ -16,7 +16,7 @@ import { createSprintController } from './sprint-controller.js'
 import { SprintScreen } from './sprint-view.js'
 import type { CreateProjectInput, ScrumClient } from './client.js'
 import { createWorkbenchController, type WorkbenchState } from './controller.js'
-import { DraftsProvider, NO_DRAFTS, type DraftRegistry } from './drafts.js'
+import { DraftsProvider, NO_DRAFTS, useDraftGuard, type DraftRegistry } from './drafts.js'
 import { createTranslate, type Translate } from './messages.js'
 import { pageFor } from './pages.js'
 
@@ -170,6 +170,7 @@ function ProjectWizard(props: WizardProps): ReactElement {
   const [name, setName] = useState('')
   const [key, setKey] = useState('')
   const [description, setDescription] = useState('')
+  useDraftGuard(name !== '' || key !== '' || description !== '')
 
   function submit(event: FormEvent): void {
     event.preventDefault()
