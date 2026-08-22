@@ -82,7 +82,7 @@ const WORK_ITEM_ID = {
 }
 
 /**
- * Builds the writing tools against one session's view of the host.
+ * Builds the writing tools against the current user's workspace view.
  *
  * Nothing here decides what is allowed. The host answers that on every call,
  * so an argument the model crafts cannot reach past it — there is no project

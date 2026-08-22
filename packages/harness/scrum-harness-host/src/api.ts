@@ -30,16 +30,13 @@ import {
   readSprintProgress,
   startSprint,
   updateWorkItem,
-  resolveSessionAuthorization,
+  resolveProjectAuthorization,
   restoreProject,
   setAcceptanceCriterion,
-  setSessionAccess,
   setWorkItemDependency,
   setWorkItemParent,
   unbindWorkspace,
-  type AccessMode,
-  type SessionAccess,
-  type SessionAuthorization,
+  type ProjectAuthorization,
   type BlockWorkItemCommand,
   type CloseSprintCommand,
   type ConfigureProjectCommand,
@@ -144,13 +141,8 @@ export interface ScrumHostApi {
   detach(): Promise<WorkspaceBinding | null>
   archive(): Promise<StoredProject>
   restore(): Promise<StoredProject>
-  /**
-   * What the open session may do right now. Nothing is cached: lowering the
-   * mode, archiving the project or losing the binding takes effect on the next
-   * call rather than when something remembers to refresh.
-   */
-  session(): Promise<SessionAuthorization>
-  setSessionAccess(mode: AccessMode): Promise<SessionAccess>
+  /** What the current user may do in the bound project, independent of a conversation. */
+  authorization(): Promise<ProjectAuthorization>
   backlog(filter?: WorkItemFilter): Promise<readonly WorkItem[]>
   workItem(id: WorkItemId): Promise<WorkItem>
   sprints(): Promise<readonly Sprint[]>
@@ -248,19 +240,6 @@ export function createHostApi(harness: HarnessContext, runtime: ScrumRuntime): S
     return (await requireBoundProject(request, harness)).project.project.id
   }
 
-  /** The open session, refusing when there is none to decide about. */
-  function sessionRefOf(request: HostRequestContext): {
-    harnessInstanceId: string
-    sessionId: string
-  } {
-    if (request.session === null) {
-      throw new ValidationError('no Harness session is open in this workspace', {
-        workspaceId: request.workspace.id,
-      })
-    }
-    return { harnessInstanceId: harness.instanceId, sessionId: request.session.id }
-  }
-
   return {
     version: HOST_API_VERSION,
 
@@ -314,19 +293,11 @@ export function createHostApi(harness: HarnessContext, runtime: ScrumRuntime): S
       })
     },
 
-    async session(): Promise<SessionAuthorization> {
+    async authorization(): Promise<ProjectAuthorization> {
       const request = await resolveRequest(harness, runtime)
-      return await resolveSessionAuthorization(request.deps, {
+      return await resolveProjectAuthorization(request.deps, {
         actor: request.actor,
-        command: { ...sessionRefOf(request), projectId: await boundProjectId(request) },
-      })
-    },
-
-    async setSessionAccess(mode: AccessMode): Promise<SessionAccess> {
-      const request = await resolveRequest(harness, runtime)
-      return await setSessionAccess(request.deps, {
-        actor: request.actor,
-        command: { ...sessionRefOf(request), projectId: await boundProjectId(request), mode },
+        command: { projectId: await boundProjectId(request) },
       })
     },
 

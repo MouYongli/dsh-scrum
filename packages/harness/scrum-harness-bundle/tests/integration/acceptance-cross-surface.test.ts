@@ -1,12 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { ACCESS_MODE } from '@dsh-scrum/scrum-application'
-import {
-  HIGH_IMPACT_TOOLS,
-  READ_TOOL_NAMES,
-  WRITE_TOOL_NAMES,
-  confirmationFor,
-  visibleTools,
-} from '@dsh-scrum/scrum-agent-tools'
+import { HIGH_IMPACT_TOOLS, WRITE_TOOL_NAMES, confirmationFor } from '@dsh-scrum/scrum-agent-tools'
 import {
   ERROR_CODE,
   WORK_ITEM_STATUS,
@@ -21,7 +14,7 @@ import { installation, type Installation } from '../support/installation.js'
 
 // The two surfaces over one workspace. The screens go through the client
 // interface they were built against; the agent goes through the tool-facing
-// API with a session mode. Both land on the same use cases and the same files,
+// API with the same user identity. Both land on the same use cases and the same files,
 // which is the property this suite exists to prove.
 
 let app: Installation
@@ -50,14 +43,12 @@ describe('what one surface writes, the other reads', () => {
     await backlog.load()
     await backlog.create({ type: WORK_ITEM_TYPE.story, title: '结算对账' })
 
-    await app.host.setSessionAccess(ACCESS_MODE.read)
     const seen = await app.agent().backlog()
 
     expect(seen.map((item) => item.title)).toEqual(['结算对账'])
   })
 
   it('shows the screen what the agent just wrote', async () => {
-    await app.host.setSessionAccess(ACCESS_MODE.write)
     await app.agent().createWorkItem({ type: WORK_ITEM_TYPE.task, title: '导出差异报表' })
 
     const backlog = createBacklogController(clientOver(app.host))
@@ -69,7 +60,6 @@ describe('what one surface writes, the other reads', () => {
 
 describe('when both surfaces write the same item', () => {
   it('refuses the one working from the older read, and says so as a conflict', async () => {
-    await app.host.setSessionAccess(ACCESS_MODE.write)
     const created = await app.host.createWorkItem({
       type: WORK_ITEM_TYPE.story,
       title: '结算对账',
@@ -99,7 +89,6 @@ describe('when both surfaces write the same item', () => {
   })
 
   it('reports the same refusal to the agent, with both revisions', async () => {
-    await app.host.setSessionAccess(ACCESS_MODE.write)
     const created = await app.host.createWorkItem({ type: WORK_ITEM_TYPE.task, title: '对账' })
     await app.host.updateWorkItem({
       workItemId: created.id,
@@ -120,53 +109,6 @@ describe('when both surfaces write the same item', () => {
   })
 })
 
-describe('what the session lets the agent see', () => {
-  it('shows nothing at all while the user has it off', async () => {
-    await app.host.setSessionAccess(ACCESS_MODE.off)
-
-    expect(visibleTools(ACCESS_MODE.off)).toEqual([])
-    expect(await codeOf(async () => await app.agent().backlog())).toBe(ERROR_CODE.forbidden)
-  })
-
-  it('shows the reading tools on read, and refuses a write through the same door', async () => {
-    await app.host.setSessionAccess(ACCESS_MODE.read)
-
-    expect(visibleTools(ACCESS_MODE.read)).toEqual(READ_TOOL_NAMES)
-    expect(await app.agent().backlog()).toEqual([])
-    expect(
-      await codeOf(
-        async () =>
-          await app.agent().createWorkItem({ type: WORK_ITEM_TYPE.task, title: '不该写进去' }),
-      ),
-    ).toBe(ERROR_CODE.forbidden)
-  })
-
-  it('takes effect on the next call, without the session restarting', async () => {
-    await app.host.setSessionAccess(ACCESS_MODE.read)
-    const agent = app.agent()
-
-    expect(
-      await codeOf(
-        async () => await agent.createWorkItem({ type: WORK_ITEM_TYPE.task, title: 'x' }),
-      ),
-    ).toBe(ERROR_CODE.forbidden)
-
-    await app.host.setSessionAccess(ACCESS_MODE.write)
-
-    // The same agent object, no reconstruction: the session is resolved per
-    // call, so lowering or raising the mode lands on the very next one.
-    expect((await agent.createWorkItem({ type: WORK_ITEM_TYPE.task, title: 'x' })).title).toBe('x')
-  })
-
-  it('keeps two sessions apart, so one conversation cannot borrow another', async () => {
-    await app.host.setSessionAccess(ACCESS_MODE.write)
-
-    expect(await codeOf(async () => await app.agent('session_other').backlog())).toBe(
-      ERROR_CODE.forbidden,
-    )
-  })
-})
-
 describe('the high impact actions', () => {
   it('are the ones a person has to agree to before the agent runs them', () => {
     for (const tool of HIGH_IMPACT_TOOLS) {
@@ -181,7 +123,6 @@ describe('the high impact actions', () => {
   })
 
   it('still run once agreed, and land in the same workspace the screen reads', async () => {
-    await app.host.setSessionAccess(ACCESS_MODE.write)
     const sprint = await app.agent().createSprint({
       name: '第一个 Sprint',
       startDate: toTimestamp('2026-09-01T00:00:00.000Z'),
@@ -204,7 +145,6 @@ describe('the high impact actions', () => {
   })
 
   it('records who did it and in which conversation', async () => {
-    await app.host.setSessionAccess(ACCESS_MODE.write)
     const created = await app.agent().createWorkItem({
       type: WORK_ITEM_TYPE.story,
       title: 'agent 建的',

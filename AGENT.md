@@ -53,8 +53,8 @@
 - 跨插件协作使用 Slot 或 Cordis Service，不得导入其他插件的内部 React 组件。
 - 每个包的 `exports` 必须包含 `"./package.json"`；缺失时 Harness Loader 会静默跳过插件。
 - 对外可安装单元只有 `scrum-harness-bundle`；Profile patch 只写它的包名，Host 和 Client 由 Bundle re-export，patch 写工作区内部包名会让整个 Shell 启动失败。
-- Scrum Tool 只在允许访问 Scrum 的 Session 或 Agent Scope 中可见。
-- Agent 必须使用当前用户身份，并同时接受 Capability、角色、Session Access 和操作策略约束。
+- Scrum Tool 只在绑定了 Scrum Project 且当前用户拥有相应权限的 Workspace 或 Agent Scope 中可见。
+- Agent 必须使用当前用户身份，并同时接受 Capability、角色、Project Policy、Project 状态和操作策略约束；Session 只能作为审计来源，不能参与授权。
 - 高风险 Tool 必须请求确认并写入 Activity。
 - UI 隐藏操作入口不能替代 Host 或远程服务的权限检查。
 - 产品界面文案使用中文；代码、类型和代码注释使用英文。

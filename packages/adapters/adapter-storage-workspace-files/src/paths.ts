@@ -22,7 +22,6 @@ export interface WorkspaceLayout {
   readonly sprints: string
   readonly comments: string
   readonly activities: string
-  readonly sessions: string
   /**
    * Where this workspace records which project it is attached to, per Harness
    * installation. The project itself says what it is; the binding also has to
@@ -51,7 +50,6 @@ export function workspaceLayout(workspaceRoot: string): WorkspaceLayout {
     sprints: join(scrum, 'sprints'),
     comments: join(scrum, 'comments'),
     activities: join(scrum, 'activities'),
-    sessions: join(scrum, 'sessions'),
     bindings: join(scrum, 'bindings'),
     idempotency: join(scrum, 'idempotency'),
     pendingOperations: join(scrum, 'operations', 'pending'),
@@ -69,7 +67,6 @@ export function layoutDirectories(layout: WorkspaceLayout): readonly string[] {
     layout.sprints,
     layout.comments,
     layout.activities,
-    layout.sessions,
     layout.bindings,
     layout.idempotency,
     layout.pendingOperations,

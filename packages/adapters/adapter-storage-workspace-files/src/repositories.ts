@@ -3,7 +3,7 @@ import type { WriteCoordinator } from './coordinator.js'
 import { workspaceLayout } from './paths.js'
 import { memberRepository, projectRepository, type StoredEdition } from './repository-project.js'
 import { sprintRepository, transactionPort, workItemRepository } from './repository-entities.js'
-import { bindingRepository, idempotencyStore, sessionRepository } from './repository-local.js'
+import { bindingRepository, idempotencyStore } from './repository-local.js'
 
 /**
  * The application's storage ports over one workspace directory.
@@ -21,14 +21,7 @@ export interface WorkspaceRepositoriesInput {
 
 export type WorkspaceRepositories = Pick<
   ApplicationDependencies,
-  | 'projects'
-  | 'workItems'
-  | 'sprints'
-  | 'transactions'
-  | 'members'
-  | 'bindings'
-  | 'sessions'
-  | 'idempotency'
+  'projects' | 'workItems' | 'sprints' | 'transactions' | 'members' | 'bindings' | 'idempotency'
 >
 
 export function createWorkspaceRepositories(
@@ -45,7 +38,6 @@ export function createWorkspaceRepositories(
     transactions: transactionPort(layout, run),
     members: memberRepository(root),
     bindings: bindingRepository(layout, run),
-    sessions: sessionRepository(layout, run),
     idempotency: idempotencyStore(layout, run),
   }
 }

@@ -20,7 +20,7 @@ Teams 和 Enterprise 的服务端、商业身份、服务端存储、同步、�
 ## 核心原则
 
 - 一个 Harness Workspace 可以包含多个 Session，并绑定零个或一个 Scrum Project。
-- 每个 Session 独立选择 Scrum Access：Off、Read 或 Write。
+- Workspace 下的 Session 和 Agent 自动继承当前用户在绑定 Scrum Project 中的有效权限。
 - Scrum Store 是业务状态的权威来源，Session Log 只保存对话、工具调用和必要引用。
 - 用户、Agent 和 UI 操作同一份权威数据。
 - 高风险操作需要确认，并发写入必须检测冲突。

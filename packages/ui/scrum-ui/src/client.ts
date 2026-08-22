@@ -1,6 +1,6 @@
-import type { AccessMode, SessionView } from './session.js'
 import type {
   AcceptanceCriterion,
+  Permission,
   Priority,
   Rank,
   Revision,
@@ -13,6 +13,11 @@ import type {
   WorkItemStatus,
   WorkItemType,
 } from '@dsh-scrum/scrum-domain'
+
+export interface AuthorizationView {
+  readonly permissions: readonly Permission[]
+  readonly projectArchived: boolean
+}
 
 /**
  * What the interface needs from whatever is behind it.
@@ -166,14 +171,8 @@ export interface CloseSprint extends SprintRef {
 }
 
 export interface ScrumClient {
-  /**
-   * What the open Harness session may do right now, resolved on the call.
-   * Nothing is cached: lowering the mode, archiving the project or losing the
-   * binding has to show up on the next read rather than when something
-   * remembers to refresh.
-   */
-  session(): Promise<SessionView>
-  setSessionAccess(mode: AccessMode): Promise<SessionView>
+  /** What the current user may do in the bound project, resolved on every call. */
+  authorization(): Promise<AuthorizationView>
   entry(): Promise<EntryView>
   createProject(input: CreateProjectInput): Promise<ProjectView>
   backlog(query?: BacklogQuery): Promise<readonly WorkItem[]>

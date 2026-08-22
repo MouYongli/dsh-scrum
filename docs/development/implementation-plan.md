@@ -150,17 +150,17 @@
 - T-1.4.1b：通过版本化 Host API 暴露 Application 用例，禁止 Client 读文件（commit）。
 - T-1.4.1c：覆盖未选择、未绑定、已绑定、归档和失效绑定状态（commit）。
 
-#### F-1.4.2 Session Scrum Access（PR）
+#### F-1.4.2 Workspace 继承授权（PR）
 
-- T-1.4.2a：实现 Off/Read/Write Context 的本地持久化（commit）。
-- T-1.4.2b：实现 Capability ∩ Role ∩ Session ∩ Policy 的最终权限计算（commit）。
-- T-1.4.2c：覆盖默认 Off、绑定变化和项目归档时的降级测试（commit）。
+- T-1.4.2a：按 Workspace Binding 和当前用户解析 Project 权限（commit）。
+- T-1.4.2b：实现 Capability ∩ Role ∩ Project Policy ∩ Project 状态的最终权限计算（commit）。
+- T-1.4.2c：覆盖无 Session、绑定变化和项目归档时的降级测试（commit）。
 
 #### F-1.4.3 只读 Agent Tools（PR）
 
 - T-1.4.3a：实现 project、backlog、sprint、work-item 查询工具（commit）。
 - T-1.4.3b：按 Agent Scope 注册/移除工具并限制返回载荷（commit）。
-- T-1.4.3c：覆盖 Off 不可见、Read 可见和身份传播测试（commit）。
+- T-1.4.3c：覆盖 Permission 控制可见性和身份传播测试（commit）。
 
 #### F-1.4.4 写入 Agent Tools 与确认（PR）
 
@@ -194,11 +194,11 @@
 - T-1.5.3c：实现启动/关闭确认和未完成事项处置界面（commit）。
 - T-1.5.3d：实现基础进度展示并覆盖键盘操作与冲突场景（commit）。
 
-#### F-1.5.4 Session Access 控件（PR）
+#### F-1.5.4 有效权限展示（PR）
 
-- T-1.5.4a：实现 Off/Read/Write 选择器和当前状态反馈（commit）。
-- T-1.5.4b：实现角色/归档/绑定变化导致的权限降级提示（commit）。
-- T-1.5.4c：覆盖刷新恢复和多 Session 相互隔离测试（commit）。
+- T-1.5.4a：展示当前用户的角色和有效权限（commit）。
+- T-1.5.4b：实现角色、归档和绑定变化导致的权限提示（commit）。
+- T-1.5.4c：覆盖刷新恢复和同 Workspace 多 Session 权限一致性测试（commit）。
 
 ### E-1.6 Community 组合与验收
 

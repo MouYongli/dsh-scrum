@@ -20,14 +20,10 @@ import {
   type WorkItemId,
 } from '@dsh-scrum/scrum-domain'
 import {
-  ACCESS_MODE,
   filterWorkItems,
-  setSessionAccess,
-  type AccessMode,
   type ApplicationDependencies,
   type AtomicWrites,
   type NewProject,
-  type SessionAccess,
   type StoredProject,
   type WorkItemFilter,
   type WorkspaceBinding,
@@ -59,7 +55,6 @@ export interface Store {
   readonly projects: Map<ProjectId, StoredProject>
   readonly owners: Map<ProjectId, ProjectMember>
   readonly bindings: Map<string, WorkspaceBinding>
-  readonly sessions: Map<string, SessionAccess>
   readonly workItems: Map<WorkItemId, WorkItem>
   readonly sprints: Map<string, Sprint>
   /** Every identity a use case acted as, so a test can see whose call it was. */
@@ -79,7 +74,6 @@ export function store(): Store {
     projects: new Map(),
     owners: new Map(),
     bindings: new Map(),
-    sessions: new Map(),
     workItems: new Map(),
     sprints: new Map(),
     actors: [],
@@ -135,13 +129,6 @@ function dependencies(state: Store): ApplicationDependencies {
       },
       remove: async (workspace) => {
         state.bindings.delete(key(workspace))
-      },
-    },
-    sessions: {
-      find: async (instanceId: string, sessionId: string) =>
-        state.sessions.get(`${instanceId}/${sessionId}`) ?? null,
-      save: async (access: SessionAccess) => {
-        state.sessions.set(`${access.harnessInstanceId}/${access.sessionId}`, access)
       },
     },
     workItems: {
@@ -219,10 +206,9 @@ function runtime(state: Store): ScrumRuntime {
   }
 }
 
-/** A bound project whose creator is a member, with the session set as asked. */
+/** A bound project whose creator is a member. */
 export async function boundHost(
   state: Store,
-  mode: AccessMode = ACCESS_MODE.read,
 ): Promise<{ api: ScrumAgentApi; projectId: ProjectId }> {
   const context = harness()
   const host = createHostApi(context, runtime(state))
@@ -240,17 +226,6 @@ export async function boundHost(
     project: created.project,
     config: createDefaultProjectConfig(created.project.id, NOW),
   })
-  if (mode !== ACCESS_MODE.off) {
-    await setSessionAccess(dependencies(state), {
-      actor: { identityId: IDENTITY, source: 'ui', sessionId: SESSION_ID },
-      command: {
-        harnessInstanceId: 'dsh_local_1',
-        sessionId: SESSION_ID,
-        projectId: created.project.id,
-        mode,
-      },
-    })
-  }
   state.actors.length = 0
   state.activity.length = 0
   return {

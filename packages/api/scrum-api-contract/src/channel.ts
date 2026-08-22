@@ -32,8 +32,7 @@ export const SCRUM_CHANNEL = '/scrum'
  * browser must not be able to make either.
  */
 export const SCRUM_ENDPOINT = {
-  session: 'session',
-  setSessionAccess: 'session.access',
+  authorization: 'authorization',
   entry: 'entry',
   createProject: 'project.create',
   backlog: 'backlog',
@@ -150,8 +149,7 @@ const empty = z.object({})
  * the other side of the wire true.
  */
 export const SCRUM_INPUT = {
-  [SCRUM_ENDPOINT.session]: empty,
-  [SCRUM_ENDPOINT.setSessionAccess]: z.object({ mode: z.enum(['off', 'read', 'write']) }),
+  [SCRUM_ENDPOINT.authorization]: empty,
   [SCRUM_ENDPOINT.entry]: empty,
   [SCRUM_ENDPOINT.createProject]: z.object({
     key: projectKey,

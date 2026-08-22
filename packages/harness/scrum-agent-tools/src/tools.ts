@@ -62,7 +62,7 @@ const LIMIT_PARAMETER = {
 }
 
 /**
- * Builds the read-only tools against one session's view of the host.
+ * Builds the read-only tools against the current user's workspace view.
  *
  * Every call goes through that view, so the acting identity is the one the
  * host resolved and a tool has no way to name another. There is no parameter

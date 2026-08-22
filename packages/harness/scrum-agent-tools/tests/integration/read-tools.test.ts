@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   WORK_ITEM_TYPE,
+  PERMISSION,
   createSprint,
   createWorkItem,
   formatSprintId,
@@ -9,7 +10,6 @@ import {
   toRank,
   type ProjectId,
 } from '@dsh-scrum/scrum-domain'
-import { ACCESS_MODE } from '@dsh-scrum/scrum-application'
 import {
   MAX_LIMIT,
   READ_TOOL,
@@ -56,17 +56,18 @@ function seedItems(state: Store, projectId: ProjectId, count: number): void {
 }
 
 describe('tool visibility', () => {
-  it('shows an off session nothing at all', () => {
-    expect(visibleTools(ACCESS_MODE.off)).toEqual([])
+  it('shows a user with no project permissions nothing at all', () => {
+    expect(visibleTools(new Set())).toEqual([])
   })
 
-  it('shows a read session every read tool', () => {
-    expect([...visibleTools(ACCESS_MODE.read)]).toEqual([...READ_TOOL_NAMES])
+  it('shows a reader every read tool', () => {
+    const permissions = new Set([PERMISSION.projectView, PERMISSION.backlogView])
+    expect([...visibleTools(permissions)]).toEqual([...READ_TOOL_NAMES])
   })
 
-  it('registers nothing for an off session and everything for a read one', async () => {
+  it('registers only tools allowed by the current user permissions', async () => {
     const state = store()
-    const { api } = await boundHost(state, ACCESS_MODE.off)
+    const { api } = await boundHost(state)
 
     const registered: string[] = []
     const registry = {
@@ -78,11 +79,15 @@ describe('tool visibility', () => {
       },
     }
 
-    const off = registerScrumTools(registry, api, ACCESS_MODE.off)
-    expect(off.names).toEqual([])
+    const none = registerScrumTools(registry, api, new Set())
+    expect(none.names).toEqual([])
     expect(registered).toEqual([])
 
-    const reading = registerScrumTools(registry, api, ACCESS_MODE.read)
+    const reading = registerScrumTools(
+      registry,
+      api,
+      new Set([PERMISSION.projectView, PERMISSION.backlogView]),
+    )
     expect(registered).toHaveLength(READ_TOOL_NAMES.length)
 
     reading.dispose()
@@ -91,16 +96,17 @@ describe('tool visibility', () => {
 })
 
 describe('the read tools', () => {
-  it('refuse every call from an off session', async () => {
+  it('refuse every call after the current user loses project membership', async () => {
     const state = store()
-    const { api } = await boundHost(state, ACCESS_MODE.off)
+    const { api } = await boundHost(state)
+    state.owners.clear()
 
     const error = await call(api, READ_TOOL.getProject).catch((caught: unknown) => caught)
 
     expect((error as { code?: string }).code).toBe('FORBIDDEN')
   })
 
-  it('read the project a read session is allowed to see', async () => {
+  it('read the project the current user is allowed to see', async () => {
     const state = store()
     const { api } = await boundHost(state)
 

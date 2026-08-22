@@ -6,7 +6,6 @@ import {
   readActivity,
   workspaceLayout,
 } from '@dsh-scrum/adapter-storage-workspace-files'
-import { ACCESS_MODE } from '@dsh-scrum/scrum-application'
 import { WORK_ITEM_TYPE, toProjectKey, toTimestamp } from '@dsh-scrum/scrum-domain'
 import { installation, type Installation } from '../support/installation.js'
 
@@ -43,7 +42,6 @@ async function storedFiles(): Promise<readonly { path: string; text: string }[]>
 
 async function fullRun(): Promise<void> {
   await app.host.initialise({ key: toProjectKey('SCR'), name: 'shop-service' })
-  await app.host.setSessionAccess(ACCESS_MODE.write)
   const item = await app.agent().createWorkItem({ type: WORK_ITEM_TYPE.story, title: '结算对账' })
   const sprint = await app.host.createSprint({
     name: '第一个 Sprint',

@@ -55,18 +55,13 @@ export type EntryPayload =
     }
 
 /**
- * What the host answered about the calling session.
+ * What the host answered about the current user in the bound project.
  *
- * `granted` is what the actor's roles and the edition allow in the project;
- * `permissions` is what survives after the session mode and the project state
- * narrow it. Both travel, because the difference between them is the entire
- * explanation of why a chosen mode is not the one in force, and a client that
- * received only the result could report that a control does nothing without
- * being able to say why.
+ * Permissions are resolved from the current principal, capabilities, project
+ * policy and project state. A conversation may be recorded as provenance but
+ * never narrows this result.
  */
-export interface SessionPayload {
-  readonly mode: 'off' | 'read' | 'write'
-  readonly granted: readonly Permission[]
+export interface AuthorizationPayload {
   readonly permissions: readonly Permission[]
   readonly projectArchived: boolean
 }
@@ -88,7 +83,7 @@ export function payloadSchema<Payload>(): z.ZodType<Payload> {
 
 export const entryPayloadSchema = payloadSchema<EntryPayload>()
 export const projectPayloadSchema = payloadSchema<ProjectPayload>()
-export const sessionPayloadSchema = payloadSchema<SessionPayload>()
+export const authorizationPayloadSchema = payloadSchema<AuthorizationPayload>()
 export const workItemPayloadSchema = payloadSchema<WorkItem>()
 export const workItemsPayloadSchema = payloadSchema<readonly WorkItem[]>()
 export const sprintPayloadSchema = payloadSchema<Sprint>()

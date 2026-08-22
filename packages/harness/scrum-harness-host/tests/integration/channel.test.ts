@@ -102,14 +102,13 @@ describe('the payload', () => {
     expect(response).toMatchObject({ data: { key: 'SCR', name: 'shop-service' } })
   })
 
-  it('spells the two permission sets as arrays, which sets do not survive JSON as', async () => {
+  it('spells effective permissions as an array, which sets do not survive JSON as', async () => {
     const store = new MemoryStore()
     await project(store)
 
-    const response = await call(store, SCRUM_ENDPOINT.session, {})
-    const data = (response as { data: { granted: unknown; permissions: unknown } }).data
+    const response = await call(store, SCRUM_ENDPOINT.authorization, {})
+    const data = (response as { data: { permissions: unknown } }).data
 
-    expect(Array.isArray(data.granted)).toBe(true)
     expect(Array.isArray(data.permissions)).toBe(true)
   })
 })

@@ -1,6 +1,6 @@
 import { Service, type Context } from '@deepseek-ai/cordis'
 import { registerScrumConfirmation } from './confirmation.js'
-import { ACCESS_MODE, type AccessMode } from '@dsh-scrum/scrum-application'
+import { PERMISSION, type Permission } from '@dsh-scrum/scrum-domain'
 import type { ScrumAgentApi } from '@dsh-scrum/scrum-harness-host'
 import { READ_TOOL_NAMES, createReadTools, type ReadToolName } from './tools.js'
 import { WRITE_TOOL_NAMES, createWriteTools, type WriteToolName } from './write-tools.js'
@@ -9,19 +9,31 @@ import { WRITE_TOOL_NAMES, createWriteTools, type WriteToolName } from './write-
 export const SCRUM_TOOLS_SERVICE = 'scrumTools'
 
 /**
- * What a session may see.
- *
- * An `off` session sees nothing rather than seeing tools that refuse. A model
- * shown a tool it may not use will try it, be told no, and try again in
- * another shape; a model not shown it never spends a turn on it. This is also
- * the difference between the user's Scrum switch being off and the plugin
- * looking broken.
+ * What the current user's effective project permissions allow a model to see.
+ * A model not shown a forbidden tool never spends a turn trying it.
  */
-export function visibleTools(mode: AccessMode): readonly (ReadToolName | WriteToolName)[] {
-  if (mode === ACCESS_MODE.off) {
-    return []
-  }
-  return mode === ACCESS_MODE.write ? [...READ_TOOL_NAMES, ...WRITE_TOOL_NAMES] : READ_TOOL_NAMES
+const REQUIRED_PERMISSION: Readonly<Record<ReadToolName | WriteToolName, Permission>> = {
+  scrum_get_project: PERMISSION.projectView,
+  scrum_list_backlog: PERMISSION.backlogView,
+  scrum_get_sprint: PERMISSION.projectView,
+  scrum_get_work_item: PERMISSION.backlogView,
+  scrum_create_work_item: PERMISSION.workItemWrite,
+  scrum_update_work_item: PERMISSION.workItemWrite,
+  scrum_move_work_item: PERMISSION.workItemUpdateOwnStatus,
+  scrum_block_work_item: PERMISSION.workItemSetBlocked,
+  scrum_create_sprint: PERMISSION.sprintCreate,
+  scrum_start_sprint: PERMISSION.sprintTransition,
+  scrum_close_sprint: PERMISSION.sprintTransition,
+  scrum_delete_work_item: PERMISSION.workItemWrite,
+  scrum_change_project_settings: PERMISSION.projectConfigure,
+}
+
+export function visibleTools(
+  permissions: ReadonlySet<Permission>,
+): readonly (ReadToolName | WriteToolName)[] {
+  return [...READ_TOOL_NAMES, ...WRITE_TOOL_NAMES].filter((name) =>
+    permissions.has(REQUIRED_PERMISSION[name]),
+  )
 }
 
 /**
@@ -34,26 +46,26 @@ export interface ToolRegistry {
   register(definition: { readonly name: string }): () => void
 }
 
-/** A registration that can be taken back when the session's access changes. */
+/** A registration that can be taken back when effective permissions change. */
 export interface ScrumToolRegistration {
   readonly names: readonly string[]
   dispose(): void
 }
 
 /**
- * Registers the tools one session may currently use.
+ * Registers the tools the current user may use in this workspace.
  *
  * The mode is read once, here, and the registration is disposed and rebuilt
  * when it changes. Registering everything and refusing inside each tool would
  * be simpler and wrong: the model would see a capability it does not have,
- * and the tool descriptions themselves leak what the session was not given.
+ * and the tool descriptions themselves leak capabilities the user was not given.
  */
 export function registerScrumTools(
   registry: ToolRegistry,
   api: ScrumAgentApi,
-  mode: AccessMode,
+  permissions: ReadonlySet<Permission>,
 ): ScrumToolRegistration {
-  const visible = new Set<string>(visibleTools(mode))
+  const visible = new Set<string>(visibleTools(permissions))
   const disposers = [...createReadTools(api), ...createWriteTools(api)]
     .filter((definition) => visible.has(definition.name))
     .map((definition) => ({ name: definition.name, dispose: registry.register(definition) }))
@@ -68,10 +80,10 @@ export function registerScrumTools(
 }
 
 /**
- * Host-side service that keeps one session's tools in step with its access.
+ * Host-side service that keeps each agent scope's tools in step with project access.
  *
- * It holds no permission logic of its own. What a session may do is the host's
- * answer, asked again on every change; this only decides what is visible.
+ * It holds no permission logic of its own; it only projects a resolved
+ * permission set into tool visibility.
  */
 export class ScrumToolsService extends Service {
   private registrations = new Map<string, ScrumToolRegistration>()
@@ -80,15 +92,15 @@ export class ScrumToolsService extends Service {
     super(ctx, SCRUM_TOOLS_SERVICE)
   }
 
-  /** Brings one session's registration in line with its current access mode. */
+  /** Brings one agent scope's registration in line with current permissions. */
   sync(
     sessionId: string,
     registry: ToolRegistry,
     api: ScrumAgentApi,
-    mode: AccessMode,
+    permissions: ReadonlySet<Permission>,
   ): readonly string[] {
     this.registrations.get(sessionId)?.dispose()
-    const registration = registerScrumTools(registry, api, mode)
+    const registration = registerScrumTools(registry, api, permissions)
     if (registration.names.length === 0) {
       this.registrations.delete(sessionId)
       return []
@@ -97,7 +109,7 @@ export class ScrumToolsService extends Service {
     return registration.names
   }
 
-  /** Names a session currently sees, which is what a test and a UI both ask. */
+  /** Names the tools one agent scope currently sees. */
   visible(sessionId: string): readonly string[] {
     return this.registrations.get(sessionId)?.names ?? []
   }

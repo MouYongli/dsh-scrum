@@ -20,16 +20,6 @@ export { ACTIVITY_SOURCE, ACTIVITY_SOURCES, toActivitySource } from './ports/act
 export type { IdempotencyKey, IdempotencyRecord, IdempotencyStore } from './ports/idempotency.js'
 export { toIdempotencyKey } from './ports/idempotency.js'
 export type { MemberRepository } from './ports/members.js'
-export type { SessionAccessRepository } from './ports/sessions.js'
-export type { AccessMode, CreateSessionAccessInput, SessionAccess } from './session-access.js'
-export {
-  ACCESS_MODE,
-  ACCESS_MODES,
-  createSessionAccess,
-  sessionPermissions,
-  setAccessMode,
-  toAccessMode,
-} from './session-access.js'
 export type { SprintRepository } from './ports/sprints.js'
 export type { SprintProgress, StatusTotals } from './sprint-progress.js'
 export { sprintProgress } from './sprint-progress.js'
@@ -115,13 +105,7 @@ export {
   updateSprint,
 } from './use-cases/sprint.js'
 export type {
-  ResolveSessionCommand,
-  SessionAuthorization,
-  SessionRef,
-  SetSessionAccessCommand,
-} from './use-cases/session.js'
-export {
-  readSessionAccess,
-  resolveSessionAuthorization,
-  setSessionAccess,
-} from './use-cases/session.js'
+  ProjectAuthorization,
+  ResolveProjectAuthorizationCommand,
+} from './use-cases/access.js'
+export { resolveProjectAuthorization } from './use-cases/access.js'

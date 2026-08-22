@@ -123,9 +123,9 @@ Adapter 本身属于 #54，#51 起 UI 只依赖 `ScrumClient` 接口。
 
 `registerScrumConfirmation(ctx)` 会看到该 Context 里所有工具调用（对非 Scrum 工具一律返回 `allow`，行为上无害）。更整洁的做法是注册到 Scrum 的 Agent Scope，但那要等 #54 组合层显示出这个 scope 在哪。
 
-### ~~A17. `sessions/<instance>/<session>.json` 还没有 Adapter~~ — 已完成（#54）
+### ~~A17. `sessions/<instance>/<session>.json` 还没有 Adapter~~ — 已由 #97 废弃
 
-落在 `.scrum/sessions/<instance-digest>/<session-digest>.json`。两段路径都是摘要：`.scrum/` 常被提交，而 Session id 可能泄露这段对话是关于什么的。
+该 Adapter 曾由 #54 实现；#97 将 Scrum 授权从 Session 解耦后删除该持久化。Session ID 只保留为可选 Activity 来源。
 
 ---
 
@@ -179,8 +179,8 @@ Adapter 本身属于 #54，#51 起 UI 只依赖 `ScrumClient` 接口。
 - **B44. 两个页签各自持有 Controller，且只在显示时挂载**（#52）。隐藏页签继续刷新既费磁盘，又会在切回来时展示一份早于最近一次写入的列表。
 - **B45. 生效模式从权限集合反推，不读存储的 mode**（#53）。存的是「请求」，权限集合才是「答复」；显示请求会让用户以为有写权限，直到 Agent 被拒。
 - **B46. 降级必须点名原因（归档／角色／绑定）**（#53）。这三件事都不是「再选一次模式」能撤销的，不说清楚，用户只会反复点一个看起来能用的控件。
-- **B47. `AccessMode` 词表在 `scrum-ui` 里另declare，靠 workspace 测试锁死一致**（#53）。UI 不依赖 application；两个结构相同的 union TypeScript 永远不会发现它们分叉，所以用测试兜住 —— 与 E1 的 `ACTIVITY_SOURCE` 同一手法。
-- **B48. Session 模式不在页面上留副本**（#53）。它归 Host 按 (instance, session) 保存，刷新读回存储值，两个会话天然互不影响 —— 不需要在浏览器侧再发明一层。
+- **B47. `AccessMode` 词表已由 #97 删除**。Scrum 权限改为 Workspace 继承当前用户的 Project 有效权限。
+- **B48. Session 模式已由 #97 删除**。Session ID 只作为可选 Activity 来源，不参与授权或持久化 Scrum Access。
 - **B49. Community 的身份来自数据，不来自安装**（#54）。Workspace 里已有项目就用 `project.createdBy`，没有才新铸一个。按 Harness instance id 派生更简单但是错的：重装 Harness 会换一个身份，把用户锁在自己建的项目外面。
 - **B50. Tenant 由 Edition 提供，不由调用方传**（#54）。`ScrumRuntime` 多了 `tenant(workspace)`，`InitialiseWorkspaceCommand` 去掉了 `tenantId`。能指定 tenant 的客户端就能把项目建进别人的 tenant 里。Community 每个 Workspace 一个个人 Tenant，同样是「有项目就读回来，没有才铸」。
 - **B51. 唯一成员在存储层内存合成，不落文件**（#54）。项目已经记了是谁建的；成员文件是同一个问题的第二个答案，手工修过一次就会不一致。合成的成员只对那一个身份成立，别人一律不是成员 —— 这才让权限检查还是检查。
