@@ -40,5 +40,16 @@ export type { WorkbenchController, WorkbenchState } from './controller.js'
 export { createWorkbenchController } from './controller.js'
 export type { BacklogActions, BacklogProps } from './backlog-view.js'
 export { BacklogScreen } from './backlog-view.js'
+export type { CriteriaProps, WorkItemFields, WorkItemFormProps } from './work-item-form.js'
+export {
+  AcceptanceCriteria,
+  EMPTY_FIELDS,
+  WorkItemForm,
+  fieldsOf,
+  toDetailChanges,
+  toEstimate,
+  toLabels,
+  toNewWorkItem,
+} from './work-item-form.js'
 export type { ConnectedWorkbenchProps, WorkbenchProps } from './workbench.js'
 export { ConnectedWorkbench, Workbench, toCreateInput } from './workbench.js'
