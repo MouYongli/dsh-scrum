@@ -28,6 +28,12 @@
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",
+    "@dsh-scrum/adapter-storage-workspace-files": "workspace:*",
+    "@dsh-scrum/edition-community": "workspace:*",
+    "@dsh-scrum/scrum-agent-tools": "workspace:*",
+    "@dsh-scrum/scrum-application": "workspace:*",
+    "@dsh-scrum/scrum-domain": "workspace:*",
+    "@dsh-scrum/scrum-ui": "workspace:*",
     "tsdown": "^0.22.14"
   },
   "dsh": {

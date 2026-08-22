@@ -2,7 +2,7 @@
 
 面向 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的 Scrum 项目管理插件，让用户和 Agent 在同一个 Workspace 中共同维护 Product Backlog、Sprint、看板、工作项和基础度量。
 
-项目处于工程基线阶段：monorepo、契约骨架和 Harness 集成探针已经就绪，Scrum 业务功能尚未实现，也还没有可发布构建。
+Community MVP 的领域、存储、用例、Harness Host、Agent Tools 和界面已经实现并有测试覆盖；浏览器与 Host 之间的调用通道尚未接通，因此界面还读不到数据。边界见[已知限制](docs/product/known-limitations.md)，上手见[快速开始](docs/product/quick-start.md)。
 
 ## 产品概览
 
@@ -77,10 +77,12 @@ npx --yes @deepseek-ai/dsh@0.1.0-rc.8 \
 cd ~/你的代码项目 && npx @deepseek-ai/dsh web
 ```
 
-挂载后 Sidebar 底部会出现 Scrum 入口，但它目前只是打通链路的最小入口，尚无 Scrum 功能。完整循环、构建、探针与边界说明见[本地开发循环](docs/development/local-development.md)。
+挂载后 Sidebar 底部会出现 Scrum 入口，工作台可以打开，但浏览器与 Host 之间的调用通道尚未接通，因此还读不到数据。完整循环、构建、探针与边界说明见[本地开发循环](docs/development/local-development.md)，产品侧边界见[已知限制](docs/product/known-limitations.md)。
 
 ## 文档
 
+- [快速开始](docs/product/quick-start.md)：安装、建项目、排 Backlog、跑一个 Sprint，以及让 Agent 参与。
+- [已知限制](docs/product/known-limitations.md)：本版仍然存在的边界，以及每一条为什么没解决。
 - [Scrum 产品设计](docs/product/scrum.md)：Scrum 概念、角色、产品功能、使用流程和首版范围。
 - [版本设计](docs/product/editions.md)：Community、Teams 与 Enterprise 的定位、能力和授权差异。
 - [Scrum 术语表](docs/product/glossary.md)：产品文档和界面使用的统一术语。
@@ -90,6 +92,7 @@ cd ~/你的代码项目 && npx @deepseek-ai/dsh web
 - [架构决策记录](docs/development/adr/README.md)：已生效的工具链、依赖和格式决策及其理由。
 - [本地开发循环](docs/development/local-development.md)：提交前的检查、构建，以及把插件挂进 Harness 跑起来。
 - [Harness 兼容矩阵](docs/development/harness-compatibility.md)：支持的 Harness 版本范围、依赖方式与升级检查项。
+- [发布检查表](docs/development/release-checklist.md)：发布候选版本前逐条执行的检查与需要留存的证据。
 - [Git 与 GitHub 协作规范](docs/development/git-workflow.md)：Issue、分支、Commit 和 PR 的命名、内容与合并流程。
 
 仓库内编码 Agent 的实现约束见 [Agent Guide](AGENT.md)。

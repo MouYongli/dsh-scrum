@@ -124,9 +124,15 @@ pnpm watch        # tsdown --watch，持续重建 dist/client.js
 
 ## 6. 当前边界
 
-浏览器侧已经打通：挂载后 Sidebar 底部（Settings 旁边）会出现 Scrum 入口，侧栏折叠时退化为图标。但那只是一个证明链路可用的最小入口，**点击还没有任何行为**——Backlog、看板、工作项详情都还没实现。
+浏览器侧已经打通：挂载后 Sidebar 底部（Settings 旁边）会出现 Scrum 入口，侧栏折叠时退化为图标，点开是工作台。Backlog、Sprint 看板、工作项详情和会话权限控件都已实现。
 
-Scrum 业务数据同样还不存在：Host 半边尚未读写 Workspace 的 `.scrum/`，所以启动目录换来换去都不会产生数据。
+**但工作台还读不到数据**：浏览器与 Harness Host 之间的调用通道尚未接通，界面会报「此 Shell 没有把 Scrum 接到工作区」。原因和两条可能的解法见[已知限制](../product/known-limitations.md)第 1 条。
+
+Host 半边本身是可用的：`.scrum/` 的读写、用例、Agent Tools 和权限都已实现，并由 `packages/harness/scrum-harness-bundle` 的验收用例端到端覆盖：
+
+```bash
+pnpm exec vitest run packages/harness/scrum-harness-bundle
+```
 
 ## 7. 与安装探针的分工
 
