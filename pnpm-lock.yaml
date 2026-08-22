@@ -154,6 +154,9 @@ importers:
       '@dsh-scrum/edition-community':
         specifier: workspace:*
         version: link:../../editions/edition-community
+      '@dsh-scrum/scrum-api-contract':
+        specifier: workspace:*
+        version: link:../../api/scrum-api-contract
       '@dsh-scrum/scrum-harness-client':
         specifier: workspace:*
         version: link:../scrum-harness-client
@@ -164,6 +167,15 @@ importers:
       '@deepseek-ai/cordis':
         specifier: ^4.0.1
         version: 4.0.1(@deepseek-ai/cordis-plugin-include@1.0.6)(@deepseek-ai/cordis-plugin-loader@1.0.2)
+      '@deepseek-ai/dsh-anonymous-user-id':
+        specifier: 0.1.0-rc.8
+        version: 0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-brand@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-home-paths@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1)))(@deepseek-ai/dsh-invariants@0.1.0-rc.8(@deepseek-ai/cordis@4.0.1))
+      '@deepseek-ai/dsh-client-connection':
+        specifier: 0.1.0-rc.8
+        version: 0.1.0-rc.8(fe206655156830a934a8c1ad4c553629)
+      '@deepseek-ai/dsh-workspace':
+        specifier: 0.1.0-rc.8
+        version: 0.1.0-rc.8(b22e0d48f5e81af272cd56aac64d0d48)
       '@dsh-scrum/adapter-storage-workspace-files':
         specifier: workspace:*
         version: link:../../adapters/adapter-storage-workspace-files
@@ -185,6 +197,12 @@ importers:
 
   packages/harness/scrum-harness-client:
     dependencies:
+      '@dsh-scrum/scrum-api-contract':
+        specifier: workspace:*
+        version: link:../../api/scrum-api-contract
+      '@dsh-scrum/scrum-domain':
+        specifier: workspace:*
+        version: link:../../core/scrum-domain
       '@dsh-scrum/scrum-ui':
         specifier: workspace:*
         version: link:../../ui/scrum-ui
@@ -222,6 +240,9 @@ importers:
       '@deepseek-ai/dsh-base':
         specifier: ^0.1.0-rc.7
         version: 0.1.0-rc.8(cef995db88774ca95ffd35d083bcd900)
+      '@dsh-scrum/scrum-api-contract':
+        specifier: workspace:*
+        version: link:../../api/scrum-api-contract
       '@dsh-scrum/scrum-application':
         specifier: workspace:*
         version: link:../../core/scrum-application
