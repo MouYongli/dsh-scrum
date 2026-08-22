@@ -17,6 +17,16 @@ export type {
 export { disconnectedClient } from './disconnected.js'
 export type { ScrumFailure } from './failure.js'
 export { toFailure } from './failure.js'
+export type {
+  BacklogEmptiness,
+  BacklogGroup,
+  BacklogGrouping,
+  BacklogPage,
+  BacklogRow,
+  GroupLabel,
+  GroupTotals,
+} from './backlog.js'
+export { BACKLOG_GROUPING, backlogPage } from './backlog.js'
 export { PRIORITIES, WORK_ITEM_TYPES, priorityLabel, typeLabel } from './vocabulary.js'
 export type { Locale, MessageKey, Translate } from './messages.js'
 export { MESSAGE_KEYS, SCRUM_MESSAGES, SCRUM_NAMESPACE, createTranslate } from './messages.js'
