@@ -31,7 +31,8 @@ export interface WorkbenchProps {
   readonly state: WorkbenchState
   readonly t?: Translate | undefined
   readonly onCreate?: ((input: CreateProjectInput) => void) | undefined
-  readonly onClose?: (() => void) | undefined
+  /** Back to the conversation. Absent leaves the surface with no way out. */
+  readonly onExit?: (() => void) | undefined
   /**
    * What a project surface shows once a workspace is attached to one. Handed
    * in rather than built here, so this component stays renderable against any
@@ -46,7 +47,12 @@ export function Workbench(props: WorkbenchProps): ReactElement {
     'section',
     {
       'data-scrum-workbench': true,
-      role: 'dialog',
+      // A region rather than a dialog: Scrum is one of the shell's two working
+      // modes, so the sidebar beside it stays live and is meant to be used.
+      // `dialog` without `aria-modal` would announce an interruption that the
+      // surface does not actually impose.
+      role: 'region',
+      tabIndex: -1,
       'aria-label': t('workbench.title'),
       'aria-busy': props.state.kind === 'loading',
     },
@@ -54,12 +60,12 @@ export function Workbench(props: WorkbenchProps): ReactElement {
       'header',
       null,
       createElement('h1', null, t('workbench.title')),
-      props.onClose === undefined
+      props.onExit === undefined
         ? null
         : createElement(
             'button',
-            { type: 'button', onClick: props.onClose, 'data-scrum-close': true },
-            t('workbench.close'),
+            { type: 'button', onClick: props.onExit, 'data-scrum-back': true },
+            t('workbench.back'),
           ),
     ),
     body(props, t),
@@ -374,7 +380,7 @@ function surfaceFor(
 export interface ConnectedWorkbenchProps {
   readonly client: ScrumClient
   readonly t?: Translate | undefined
-  readonly onClose?: (() => void) | undefined
+  readonly onExit?: (() => void) | undefined
 }
 
 /**
@@ -402,7 +408,7 @@ export function ConnectedWorkbench(props: ConnectedWorkbenchProps): ReactElement
   return createElement(Workbench, {
     state,
     t: props.t,
-    onClose: props.onClose,
+    onExit: props.onExit,
     onCreate: (input) => void controller.create(input),
     surface:
       state.kind === 'ready' && (state.entry.state === 'bound' || state.entry.state === 'archived')

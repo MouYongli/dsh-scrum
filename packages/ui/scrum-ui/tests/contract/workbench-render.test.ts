@@ -13,8 +13,8 @@ const WORKSPACE = { id: 'ws_1', name: 'shop-service' }
 const PROJECT = { id: 'prj_1', key: 'SCR', name: 'shop-service', description: '' }
 const t = createTranslate()
 
-function render(state: WorkbenchState, onClose?: () => void): string {
-  return renderToStaticMarkup(createElement(Workbench, { state, onClose }))
+function render(state: WorkbenchState, onExit?: () => void): string {
+  return renderToStaticMarkup(createElement(Workbench, { state, onExit }))
 }
 
 function ready(entry: EntryView, creating = false): WorkbenchState {
@@ -25,13 +25,19 @@ describe('the workbench frame', () => {
   it('names itself for a screen reader', () => {
     const markup = render(ready({ state: 'no-workspace' }))
 
-    expect(markup).toContain('role="dialog"')
+    expect(markup).toContain('role="region"')
     expect(markup).toContain(`aria-label="${t('workbench.title')}"`)
   })
 
-  it('shows a close control only when there is somewhere to close to', () => {
-    expect(render(ready({ state: 'no-workspace' }), () => {})).toContain('data-scrum-close')
-    expect(render(ready({ state: 'no-workspace' }))).not.toContain('data-scrum-close')
+  it('offers the way back only when there is somewhere to go back to', () => {
+    expect(render(ready({ state: 'no-workspace' }), () => {})).toContain('data-scrum-back')
+    expect(render(ready({ state: 'no-workspace' }))).not.toContain('data-scrum-back')
+  })
+
+  it('says where the way back leads, rather than that it dismisses something', () => {
+    // Scrum is a mode beside the conversation, so the control names the place
+    // it returns to; 「关闭」 would describe a popup the surface is not.
+    expect(render(ready({ state: 'no-workspace' }), () => {})).toContain(t('workbench.back'))
   })
 
   it('marks itself busy while it is still asking, and shows no page yet', () => {

@@ -397,7 +397,7 @@ function overlayComponent(
           background: SHELL_BACKGROUND,
         },
       },
-      createElement(ConnectedWorkbench, { client, onClose: () => store.leave() }),
+      createElement(ConnectedWorkbench, { client, onExit: store.leave }),
     )
   }
 }

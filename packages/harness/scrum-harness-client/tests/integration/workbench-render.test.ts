@@ -59,7 +59,7 @@ describe('the overlay', () => {
     const markup = render(overlay)
 
     expect(markup).toContain('data-scrum-overlay="scrum"')
-    expect(markup).toContain('role="dialog"')
+    expect(markup).toContain('role="region"')
   })
 
   it('paints itself from the shell palette, so the inherited text stays legible', () => {
