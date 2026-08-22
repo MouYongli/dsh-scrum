@@ -3,6 +3,8 @@ import {
   ConflictError,
   createDefaultProjectConfig,
   createOwnerMember,
+  formatSprintId,
+  formatWorkItemId,
   toIdentityId,
   toProjectKey,
   toTenantId,
@@ -61,6 +63,14 @@ export interface Store {
   readonly sprints: Map<string, Sprint>
   /** Every identity a use case acted as, so a test can see whose call it was. */
   readonly actors: IdentityId[]
+  /** Everything recorded, so a test can read the provenance back. */
+  readonly activity: {
+    action: string
+    actorId: string
+    source: string
+    sessionId: string | null
+    targetId: string
+  }[]
 }
 
 export function store(): Store {
@@ -72,6 +82,7 @@ export function store(): Store {
     workItems: new Map(),
     sprints: new Map(),
     actors: [],
+    activity: [],
   }
 }
 
@@ -142,7 +153,7 @@ function dependencies(state: Store): ApplicationDependencies {
           [...state.workItems.values()].filter((item) => item.projectId === projectId),
           filter,
         ),
-      nextIdentifier: async () => 'SCR-1' as WorkItemId,
+      nextIdentifier: async () => formatWorkItemId(toProjectKey('SCR'), state.workItems.size + 1),
       create: async (item: WorkItem) => {
         state.workItems.set(item.id, item)
       },
@@ -158,7 +169,7 @@ function dependencies(state: Store): ApplicationDependencies {
         state.sprints.get(`${projectId}/${id}`) ?? null,
       list: async (projectId: ProjectId) =>
         [...state.sprints.values()].filter((sprint) => sprint.projectId === projectId),
-      nextIdentifier: async () => 'sprint-1' as SprintId,
+      nextIdentifier: async () => formatSprintId(state.sprints.size + 1),
       create: async (sprint: Sprint) => {
         state.sprints.set(`${sprint.projectId}/${sprint.id}`, sprint)
       },
@@ -176,7 +187,17 @@ function dependencies(state: Store): ApplicationDependencies {
         }
       },
     },
-    activity: { record: async () => undefined },
+    activity: {
+      record: async (event) => {
+        state.activity.push({
+          action: event.action,
+          actorId: event.actorId,
+          source: event.source,
+          sessionId: event.sessionId,
+          targetId: event.targetId,
+        })
+      },
+    },
     idempotency: { find: async () => null, save: async () => undefined },
   }
 }
@@ -230,6 +251,7 @@ export async function boundHost(
     })
   }
   state.actors.length = 0
+  state.activity.length = 0
   return {
     api: createAgentApi(context, runtime(state), host, SESSION_ID),
     projectId: created.project.id,

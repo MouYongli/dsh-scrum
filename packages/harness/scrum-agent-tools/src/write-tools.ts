@@ -4,6 +4,7 @@ import {
   toRank,
   toRevision,
   toSprintId,
+  toTimestamp,
   toWorkItemId,
   toWorkItemStatus,
   toWorkItemType,
@@ -25,6 +26,7 @@ export const WRITE_TOOL = {
   updateWorkItem: 'scrum_update_work_item',
   moveWorkItem: 'scrum_move_work_item',
   blockWorkItem: 'scrum_block_work_item',
+  createSprint: 'scrum_create_sprint',
   startSprint: 'scrum_start_sprint',
   closeSprint: 'scrum_close_sprint',
   deleteWorkItem: 'scrum_delete_work_item',
@@ -228,6 +230,42 @@ export function createWriteTools(api: ScrumAgentApi): readonly ToolDefinition[] 
                   workItemId: toWorkItemId(args.workItemId),
                   expectedRevision: toRevision(args.expectedRevision),
                   reason: args.reason ?? null,
+                }),
+              ),
+            ),
+          ),
+        ),
+    }),
+
+    defineTool({
+      name: WRITE_TOOL.createSprint,
+      description:
+        'Plan a new sprint. It starts closed to work until somebody opens it with scrum_start_sprint.',
+      parameters: {
+        name: { type: 'string', description: 'What the sprint is called.', required: true },
+        goal: { type: 'string', description: 'What it sets out to deliver.' },
+        startDate: {
+          type: 'string',
+          description: 'When it is meant to start, as a UTC instant.',
+          required: true,
+        },
+        endDate: {
+          type: 'string',
+          description: 'When it is meant to end, as a UTC instant.',
+          required: true,
+        },
+      },
+      output: OUTPUT,
+      execute: async (args) =>
+        asJson(
+          await attemptWrite(async () =>
+            asJson(
+              sprintSummary(
+                await api.createSprint({
+                  name: args.name,
+                  ...(args.goal === undefined ? {} : { goal: args.goal }),
+                  startDate: toTimestamp(args.startDate),
+                  endDate: toTimestamp(args.endDate),
                 }),
               ),
             ),
