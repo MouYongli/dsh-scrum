@@ -2,6 +2,7 @@ import { Service, type Context } from '@deepseek-ai/cordis'
 import { ACCESS_MODE, type AccessMode } from '@dsh-scrum/scrum-application'
 import type { ScrumAgentApi } from '@dsh-scrum/scrum-harness-host'
 import { READ_TOOL_NAMES, createReadTools, type ReadToolName } from './tools.js'
+import { WRITE_TOOL_NAMES, createWriteTools, type WriteToolName } from './write-tools.js'
 
 /** Name the tools service is registered under on the Cordis context. */
 export const SCRUM_TOOLS_SERVICE = 'scrumTools'
@@ -15,8 +16,11 @@ export const SCRUM_TOOLS_SERVICE = 'scrumTools'
  * the difference between the user's Scrum switch being off and the plugin
  * looking broken.
  */
-export function visibleTools(mode: AccessMode): readonly ReadToolName[] {
-  return mode === ACCESS_MODE.off ? [] : READ_TOOL_NAMES
+export function visibleTools(mode: AccessMode): readonly (ReadToolName | WriteToolName)[] {
+  if (mode === ACCESS_MODE.off) {
+    return []
+  }
+  return mode === ACCESS_MODE.write ? [...READ_TOOL_NAMES, ...WRITE_TOOL_NAMES] : READ_TOOL_NAMES
 }
 
 /**
@@ -49,7 +53,7 @@ export function registerScrumTools(
   mode: AccessMode,
 ): ScrumToolRegistration {
   const visible = new Set<string>(visibleTools(mode))
-  const disposers = createReadTools(api)
+  const disposers = [...createReadTools(api), ...createWriteTools(api)]
     .filter((definition) => visible.has(definition.name))
     .map((definition) => ({ name: definition.name, dispose: registry.register(definition) }))
   return {
@@ -126,6 +130,16 @@ export function apply(ctx: Context): void {
 
 export type { ReadToolName } from './tools.js'
 export { READ_TOOL, READ_TOOL_NAMES, createReadTools } from './tools.js'
+export type { WriteToolName } from './write-tools.js'
+export {
+  HIGH_IMPACT_TOOLS,
+  WRITE_TOOL,
+  WRITE_TOOL_NAMES,
+  createWriteTools,
+  isHighImpactTool,
+} from './write-tools.js'
+export type { WriteOutcome } from './conflict.js'
+export { attemptWrite, conflictOutcome } from './conflict.js'
 export type { Page } from './payload.js'
 export { DEFAULT_LIMIT, MAX_LIMIT, page, requireLimit } from './payload.js'
 export type {
