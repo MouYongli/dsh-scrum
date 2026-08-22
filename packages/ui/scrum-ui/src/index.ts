@@ -40,6 +40,20 @@ export type { WorkbenchController, WorkbenchState } from './controller.js'
 export { createWorkbenchController } from './controller.js'
 export type { BacklogActions, BacklogProps } from './backlog-view.js'
 export { BacklogScreen } from './backlog-view.js'
+export type {
+  BlockProps,
+  DependencyProps,
+  OrderProps,
+  ParentProps,
+  RankTarget,
+} from './work-item-links.js'
+export {
+  BlockControl,
+  DependencyPicker,
+  OrderControls,
+  ParentPicker,
+  rankTargetFor,
+} from './work-item-links.js'
 export type { CriteriaProps, WorkItemFields, WorkItemFormProps } from './work-item-form.js'
 export {
   AcceptanceCriteria,
