@@ -1,4 +1,9 @@
 export type { ActorContext, UseCaseRequest } from './actor.js'
+export { recordActivity } from './activity.js'
+export type { AuthorizedProject } from './authorization.js'
+export { authorizeProject, loadProject, resolvePermissions } from './authorization.js'
+export type { IdempotentOperation, IdempotentOutcome } from './idempotency.js'
+export { runIdempotently } from './idempotency.js'
 export type { ApplicationDependencies } from './dependencies.js'
 export type {
   ActivityDescription,
