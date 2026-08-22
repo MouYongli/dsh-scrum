@@ -54,6 +54,24 @@ importers:
         specifier: ^4.1.11
         version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(@vitest/coverage-v8@4.1.11)(jsdom@28.1.0)(vite@8.2.2(@types/node@24.13.3)(yaml@2.9.0))
 
+  packages/adapters/adapter-audit-local:
+    dependencies:
+      '@dsh-scrum/adapter-storage-workspace-files':
+        specifier: workspace:*
+        version: link:../adapter-storage-workspace-files
+      '@dsh-scrum/scrum-application':
+        specifier: workspace:*
+        version: link:../../core/scrum-application
+      '@dsh-scrum/scrum-domain':
+        specifier: workspace:*
+        version: link:../../core/scrum-domain
+
+  packages/adapters/adapter-identity-personal:
+    dependencies:
+      '@dsh-scrum/scrum-domain':
+        specifier: workspace:*
+        version: link:../../core/scrum-domain
+
   packages/adapters/adapter-storage-workspace-files:
     dependencies:
       '@dsh-scrum/scrum-application':
