@@ -142,13 +142,16 @@ describe('when the shell changes session', () => {
     const store = createScrumModeStore({ initial: 'scrum' })
     const sessions = mounted(store)
 
-    expect(sessions.listeners()).toBe(1)
+    expect(sessions.listeners()).toBeGreaterThan(0)
     act(() => {
       roots.splice(0).forEach((root) => {
         root.unmount()
       })
     })
 
+    // All of them: the overlay reads this list for the exit and again for the
+    // workspace it keys the workbench by, and a shell that outlives the plugin
+    // must not be left holding either.
     expect(sessions.listeners()).toBe(0)
   })
 

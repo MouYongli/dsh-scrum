@@ -14,6 +14,14 @@ export interface SessionListSnapshot {
   readonly phase?: string | undefined
 }
 
+export interface WorkspaceListSnapshot {
+  readonly items: readonly {
+    readonly workspaceId: string
+    readonly sessionIds: readonly string[]
+  }[]
+  readonly recentWorkspaceId?: string | undefined
+}
+
 /** The `sessions.list` face the plugin reads, driven by hand. */
 export interface SessionsStub {
   readonly list: {
@@ -45,6 +53,37 @@ export function sessionsStub(initial: SessionListSnapshot = { phase: 'ready' }):
       }
     },
     listeners: () => listeners.size,
+  }
+}
+
+/** The `workspaces.list` face, driven the same way. */
+export interface WorkspacesStub {
+  readonly list: {
+    getSnapshot: () => WorkspaceListSnapshot
+    subscribe: (listener: () => void) => () => void
+  }
+  readonly publish: (next: WorkspaceListSnapshot) => void
+}
+
+export function workspacesStub(initial: WorkspaceListSnapshot = { items: [] }): WorkspacesStub {
+  let snapshot = initial
+  const listeners = new Set<() => void>()
+  return {
+    list: {
+      getSnapshot: () => snapshot,
+      subscribe: (listener) => {
+        listeners.add(listener)
+        return () => {
+          listeners.delete(listener)
+        }
+      },
+    },
+    publish: (next) => {
+      snapshot = next
+      for (const listener of [...listeners]) {
+        listener()
+      }
+    },
   }
 }
 

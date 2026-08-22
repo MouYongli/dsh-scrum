@@ -319,6 +319,7 @@ interface ShellServices {
         }[]
         readonly recentWorkspaceId?: string | undefined
       }
+      subscribe(listener: () => void): () => void
     }
   }
   readonly sessions?: {
@@ -330,6 +331,63 @@ interface ShellServices {
       subscribe(listener: () => void): () => void
     }
   }
+}
+
+/**
+ * Which workspace and session the window is showing, read on every call.
+ *
+ * The workspace is the one accounting for the open session rather than a
+ * selection of its own: that is what the sidebar highlights, and reading it
+ * from the session means the two can never disagree. With no session open the
+ * most recent workspace is the answer, which is the one the shell would
+ * connect a new session to.
+ */
+function readScope(shell: ShellServices): ScrumScope {
+  const sessionId = shell.sessions?.list.getSnapshot().current ?? null
+  const workspaces = shell.workspaces?.list.getSnapshot()
+  const owning = workspaces?.items.find(
+    (workspace) => sessionId !== null && workspace.sessionIds.includes(sessionId),
+  )
+  return {
+    workspaceId: owning?.workspaceId ?? workspaces?.recentWorkspaceId ?? null,
+    sessionId,
+  }
+}
+
+/**
+ * The workspace the workbench is showing, as something to key it by.
+ *
+ * A Scrum project belongs to a workspace, so a workbench still showing the
+ * previous one's backlog after the shell moved would be showing another
+ * project's work. Remounting is the whole of the reload: the surface loads
+ * once per mount and holds nothing worth carrying across a workspace it no
+ * longer belongs to.
+ *
+ * Both lists are watched because the answer is derived from both — which
+ * workspace accounts for the open session — and either can move without the
+ * other. In a shell where changing workspace always opens a session, the
+ * session exit gets there first and this is the belt: it earns its keep the
+ * moment the shell can change workspace without changing session.
+ */
+function useWorkspaceKey(shell: ShellServices): string {
+  const [key, setKey] = useState(() => readScope(shell).workspaceId ?? '')
+
+  useEffect(() => {
+    function read(): void {
+      setKey(readScope(shell).workspaceId ?? '')
+    }
+    // Again here: the services may have answered differently between the
+    // first render and the commit that subscribed to them.
+    read()
+    const stops = [shell.workspaces?.list.subscribe(read), shell.sessions?.list.subscribe(read)]
+    return () => {
+      for (const stop of stops) {
+        stop?.()
+      }
+    }
+  }, [shell])
+
+  return key
 }
 
 /**
@@ -438,6 +496,7 @@ function overlayComponent(
     // Escape answers whatever is on screen: the question when one is up, the
     // workbench otherwise. A key that did nothing while the question was
     // showing would read as the workbench having stopped listening.
+    const workspace = useWorkspaceKey(shell)
     const escape = useCallback(() => {
       if (store.leaving()) {
         store.resume()
@@ -473,6 +532,9 @@ function overlayComponent(
         },
       },
       createElement(ConnectedWorkbench, {
+        // Identity, not decoration: a new workspace is a new project, and the
+        // surface reloads by being mounted again rather than by being told.
+        key: workspace,
         client,
         drafts,
         leaving,
@@ -481,27 +543,6 @@ function overlayComponent(
         onDiscard: store.discard,
       }),
     )
-  }
-}
-
-/**
- * Which workspace and session the window is showing, read on every call.
- *
- * The workspace is the one accounting for the open session rather than a
- * selection of its own: that is what the sidebar highlights, and reading it
- * from the session means the two can never disagree. With no session open the
- * most recent workspace is the answer, which is the one the shell would
- * connect a new session to.
- */
-function readScope(shell: ShellServices): ScrumScope {
-  const sessionId = shell.sessions?.list.getSnapshot().current ?? null
-  const workspaces = shell.workspaces?.list.getSnapshot()
-  const owning = workspaces?.items.find(
-    (workspace) => sessionId !== null && workspace.sessionIds.includes(sessionId),
-  )
-  return {
-    workspaceId: owning?.workspaceId ?? workspaces?.recentWorkspaceId ?? null,
-    sessionId,
   }
 }
 
