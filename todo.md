@@ -92,11 +92,24 @@ Community 一个 Workspace 一个项目，目录本身就是作用域，撞不�
 `deleteWorkItem` 当前用 `workItem.write`。删除是不可逆动作，按矩阵的粒度它更该有自己一行。#48/#49 的 Agent Tool 会把它标成高风险操作，那时必须有明确答案。
 
 
-### A14. Harness Workspace / Session 服务的宿主端形状未验证
+### A14. Harness 宿主端没有「当前 Workspace / 当前 Session」这回事 — #54 有新发现
 
-`scrum-harness-host` 定义了 `HarnessContext` Port（`instanceId` / `currentWorkspace()` / `currentSession()`），但**从 Harness 的类型声明里读不到宿主端 `workspaces` / `sessions` 服务的确切形状**，所以真正的 Adapter 没写。#54 组合时必须对着跑起来的 Harness 验证一次。
+#54 把已安装的 Harness 包翻了一遍，结论比原来的「形状未验证」更硬：
+
+- 宿主端 `ctx.sessions` 是 `@deepseek-ai/dsh-session` 的 `SessionStore`，它是**全部 Session 的仓库**，没有「当前」这个概念 —— 「当前」是每次请求/每个 fiber 的事实。
+- Workspace 只在 `@deepseek-ai/dsh-host-apiproxy` 的 `WorkspaceApi` 里以 RPC 方法出现（`list` / `create` / …），对应的宿主端实体包 `@deepseek-ai/dsh-workspace` **不在当前依赖树里**。
+
+也就是说 `HarnessContext.currentWorkspace()` / `currentSession()` 这两个方法，在宿主进程里没有可以照抄的来源。**知道答案的是浏览器和发起调用的那个 Agent Session。**
+
+所以要么：(a) 由调用方把 workspace/session 传进来，Host 再对着 Workspace 注册表校验；(b) 让 Bundle 依赖 `@deepseek-ai/dsh-workspace`，并确认它确实导出一个宿主端服务。**这需要对着跑起来的 Harness 验证，我在这里做不到。** #54 因此把 `harness` 留成必须由外部提供的配置项，插件照常加载、Sidebar 照常出现，任何调用都会明确报「没有组合 Harness context」。
 
 同理，Session 生命周期事件怎么观察（用来在访问模式变化时增删工具注册）也没验证。
+
+### A18. 删掉最新的工作项后，它的编号会被重新发放
+
+`nextIdentifier` 扫描现有文件取最大值加一，所以删掉 `SCR-7` 之后下一个还是 `SCR-7`。工作项编号会出现在 Activity 记录、commit message 和对话里，重发等于让那些引用指向另一件事。
+
+不修的理由：修它需要一个持久化的高水位标记，而那是持久化格式决定，不是实现细节；而且计数器是「第二个答案」，它和文件不一致的那一次恰好是最需要它的那一次。当前行为有测试钉住（`repository-entities.test.ts`），改它必须是有意的。
 
 ### ~~A15. 浏览器到宿主的调用通道没定~~ — 已定（#51 调研，落地在 #54）
 
@@ -110,9 +123,9 @@ Adapter 本身属于 #54，#51 起 UI 只依赖 `ScrumClient` 接口。
 
 `registerScrumConfirmation(ctx)` 会看到该 Context 里所有工具调用（对非 Scrum 工具一律返回 `allow`，行为上无害）。更整洁的做法是注册到 Scrum 的 Agent Scope，但那要等 #54 组合层显示出这个 scope 在哪。
 
-### A17. `sessions/<instance>/<session>.json` 还没有 Adapter
+### ~~A17. `sessions/<instance>/<session>.json` 还没有 Adapter~~ — 已完成（#54）
 
-Schema 和 Port 都定了（#47），Community 的落盘实现属于 #54。
+落在 `.scrum/sessions/<instance-digest>/<session-digest>.json`。两段路径都是摘要：`.scrum/` 常被提交，而 Session id 可能泄露这段对话是关于什么的。
 
 ---
 
@@ -168,6 +181,12 @@ Schema 和 Port 都定了（#47），Community 的落盘实现属于 #54。
 - **B46. 降级必须点名原因（归档／角色／绑定）**（#53）。这三件事都不是「再选一次模式」能撤销的，不说清楚，用户只会反复点一个看起来能用的控件。
 - **B47. `AccessMode` 词表在 `scrum-ui` 里另declare，靠 workspace 测试锁死一致**（#53）。UI 不依赖 application；两个结构相同的 union TypeScript 永远不会发现它们分叉，所以用测试兜住 —— 与 E1 的 `ACTIVITY_SOURCE` 同一手法。
 - **B48. Session 模式不在页面上留副本**（#53）。它归 Host 按 (instance, session) 保存，刷新读回存储值，两个会话天然互不影响 —— 不需要在浏览器侧再发明一层。
+- **B49. Community 的身份来自数据，不来自安装**（#54）。Workspace 里已有项目就用 `project.createdBy`，没有才新铸一个。按 Harness instance id 派生更简单但是错的：重装 Harness 会换一个身份，把用户锁在自己建的项目外面。
+- **B50. Tenant 由 Edition 提供，不由调用方传**（#54）。`ScrumRuntime` 多了 `tenant(workspace)`，`InitialiseWorkspaceCommand` 去掉了 `tenantId`。能指定 tenant 的客户端就能把项目建进别人的 tenant 里。Community 每个 Workspace 一个个人 Tenant，同样是「有项目就读回来，没有才铸」。
+- **B51. 唯一成员在存储层内存合成，不落文件**（#54）。项目已经记了是谁建的；成员文件是同一个问题的第二个答案，手工修过一次就会不一致。合成的成员只对那一个身份成立，别人一律不是成员 —— 这才让权限检查还是检查。
+- **B52. 绑定和幂等记录各自新增一个 `.scrum/` 目录，文件名用摘要**（#54）。绑定里只有 pathFingerprint 不可派生，而没有它「这已经不是同一个目录了」就永远不会触发。文件名不写 instance id 或幂等键的原文，因为 `.scrum/` 常被提交。
+- **B53. 建项目不走写协调器**（#54）。锁本身在 `.scrum/` 里，而这就是创建它的那次调用；`project.json` 用独占创建，第二个初始化者输在文件系统上而不是输在还不存在的锁上。
+- **B54. Community 没有 realtime 发布器**（#54）。Application 根本没声明这个 Port —— 没有任何东西消费实时事件，发布是 Teams 能力、由远程服务提供。为一张架构图发明一个没人调用的 no-op Port，不如不发明。
 
 ---
 
