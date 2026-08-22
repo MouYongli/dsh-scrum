@@ -1,2 +1,19 @@
-// Placeholder entry point. Use cases and ports land once the domain core is stable.
-export {}
+export type { ActorContext, UseCaseRequest } from './actor.js'
+export type { ApplicationDependencies } from './dependencies.js'
+export type {
+  ActivityDescription,
+  ActivityEvent,
+  ActivityRecorder,
+  ActivitySource,
+} from './ports/activity.js'
+export { ACTIVITY_SOURCE, ACTIVITY_SOURCES, toActivitySource } from './ports/activity.js'
+export type { IdempotencyKey, IdempotencyRecord, IdempotencyStore } from './ports/idempotency.js'
+export { toIdempotencyKey } from './ports/idempotency.js'
+export type { MemberRepository } from './ports/members.js'
+export type { NewProject, ProjectRepository, StoredProject } from './ports/projects.js'
+export type {
+  WorkspaceBinding,
+  WorkspaceBindingRepository,
+  WorkspaceRef,
+} from './ports/workspace.js'
+export { sameWorkspace, toWorkspaceRef } from './ports/workspace.js'
