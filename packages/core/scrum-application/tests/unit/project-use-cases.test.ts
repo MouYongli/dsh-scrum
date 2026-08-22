@@ -7,10 +7,12 @@ import {
   createProjectMember,
   toProjectKey,
   toTenantId,
+  toRevision,
   toTimestamp,
 } from '@dsh-scrum/scrum-domain'
 import {
   archiveProject,
+  configureProject,
   createProject,
   getProject,
   restoreProject,
@@ -231,5 +233,83 @@ describe('archiveProject', () => {
     )
 
     expect(error.code).toBe('NOT_FOUND')
+  })
+})
+
+describe('configureProject', () => {
+  async function owned(deps: TestDependencies): Promise<StoredProject> {
+    const stored = await seed(deps)
+    deps.members.add(deps.projects.owners.get(stored.project.id)!)
+    return stored
+  }
+
+  it('changes the settings and advances the configuration revision', async () => {
+    const deps = dependencies()
+    const stored = await owned(deps)
+
+    const configured = await configureProject(deps, {
+      actor: actor(),
+      command: {
+        projectId: stored.project.id,
+        expectedRevision: stored.config.revision,
+        changes: { sprintLengthInDays: 3, definitionOfDone: ['reviewed'] },
+      },
+    })
+
+    expect(configured.config.sprintLengthInDays).toBe(3)
+    expect(configured.config.definitionOfDone).toEqual(['reviewed'])
+    expect(configured.config.revision).toBe(stored.config.revision + 1)
+    expect(deps.activity.events.at(-1)).toMatchObject({
+      action: 'project.configure',
+      targetType: 'projectConfig',
+    })
+  })
+
+  it('names the configuration when the caller is out of date', async () => {
+    const deps = dependencies()
+    const stored = await owned(deps)
+
+    const error = await caught(
+      configureProject(deps, {
+        actor: actor(),
+        command: {
+          projectId: stored.project.id,
+          expectedRevision: toRevision(stored.config.revision + 2),
+          changes: { sprintLengthInDays: 3 },
+        },
+      }),
+    )
+
+    expect(error.code).toBe('CONFLICT')
+    expect((error as { details: Record<string, unknown> }).details['entityType']).toBe(
+      'projectConfig',
+    )
+  })
+
+  it('refuses a role that may not configure the project', async () => {
+    const deps = dependencies()
+    const stored = await seed(deps)
+    deps.members.add(
+      createProjectMember({
+        ids: testIds(),
+        projectId: stored.project.id,
+        identityId: OTHER_ID,
+        roles: [PROJECT_ROLE.developer],
+        now: NOW,
+      }),
+    )
+
+    const error = await caught(
+      configureProject(deps, {
+        actor: actor({ identityId: OTHER_ID }),
+        command: {
+          projectId: stored.project.id,
+          expectedRevision: stored.config.revision,
+          changes: { sprintLengthInDays: 3 },
+        },
+      }),
+    )
+
+    expect(error.code).toBe('FORBIDDEN')
   })
 })

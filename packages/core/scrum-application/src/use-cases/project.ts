@@ -1,5 +1,6 @@
 import {
   CAPABILITY,
+  ConflictError,
   PERMISSION,
   archiveProject as archiveProjectEntity,
   createDefaultProjectConfig,
@@ -7,9 +8,12 @@ import {
   createProject as createProjectEntity,
   restoreProject as restoreProjectEntity,
   toProjectId,
+  updateProjectConfig,
   type Project,
   type ProjectId,
+  type ProjectConfigChanges,
   type ProjectKey,
+  type Revision,
   type TenantId,
   type Timestamp,
 } from '@dsh-scrum/scrum-domain'
@@ -92,6 +96,48 @@ export async function createProject(
 
 export interface ProjectCommand {
   readonly projectId: ProjectId
+}
+
+export interface ConfigureProjectCommand extends ProjectCommand {
+  readonly expectedRevision: Revision
+  readonly changes: ProjectConfigChanges
+}
+
+/**
+ * Changes the project's settings.
+ *
+ * The workflow statuses are not among them: a custom workflow changes what
+ * every stored status means and needs a migration rather than an edit, which
+ * is why the domain leaves them out of the change set entirely.
+ */
+export async function configureProject(
+  deps: Dependencies,
+  request: UseCaseRequest<ConfigureProjectCommand>,
+): Promise<StoredProject> {
+  const { actor, command } = request
+  const authorized = await authorizeProject(
+    deps,
+    actor,
+    command.projectId,
+    PERMISSION.projectConfigure,
+  )
+  if (authorized.config.revision !== command.expectedRevision) {
+    throw new ConflictError(
+      'the project configuration changed since it was read',
+      command.expectedRevision,
+      authorized.config.revision,
+      { entityType: 'projectConfig', entityId: authorized.project.id },
+    )
+  }
+  const config = updateProjectConfig(authorized.config, command.changes, deps.clock.now())
+  await deps.projects.saveConfig(config, authorized.config.revision)
+  await recordActivity(deps, actor, {
+    action: 'project.configure',
+    targetType: 'projectConfig',
+    targetId: authorized.project.id,
+    revision: config.revision,
+  })
+  return { project: authorized.project, config }
 }
 
 /**

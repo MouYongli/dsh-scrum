@@ -48,8 +48,18 @@ export type {
   WorkspaceRef,
 } from './ports/workspace.js'
 export { toWorkspaceRef } from './ports/workspace.js'
-export type { CreateProjectCommand, ProjectCommand } from './use-cases/project.js'
-export { archiveProject, createProject, getProject, restoreProject } from './use-cases/project.js'
+export type {
+  ConfigureProjectCommand,
+  CreateProjectCommand,
+  ProjectCommand,
+} from './use-cases/project.js'
+export {
+  archiveProject,
+  configureProject,
+  createProject,
+  getProject,
+  restoreProject,
+} from './use-cases/project.js'
 export type { BindWorkspaceCommand, ResolvedBinding } from './use-cases/workspace.js'
 export { bindWorkspace, resolveWorkspaceBinding, unbindWorkspace } from './use-cases/workspace.js'
 export type {

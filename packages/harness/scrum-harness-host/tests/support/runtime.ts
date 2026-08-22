@@ -79,6 +79,13 @@ export function dependencies(store: MemoryStore): ApplicationDependencies {
         }
         store.projects.set(project.id, { ...current, project })
       },
+      saveConfig: async (config, expected: Revision) => {
+        const current = store.projects.get(config.projectId)
+        if (current === undefined || current.config.revision !== expected) {
+          throw new ConflictError('the configuration changed since it was read', expected, 0, {})
+        }
+        store.projects.set(config.projectId, { ...current, config })
+      },
     },
     members: {
       find: async (projectId: ProjectId, identityId: IdentityId) => {

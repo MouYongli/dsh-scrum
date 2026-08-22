@@ -101,6 +101,13 @@ function dependencies(state: Store): ApplicationDependencies {
         }
         state.projects.set(project.id, { ...current, project })
       },
+      saveConfig: async (config, expected: Revision) => {
+        const current = state.projects.get(config.projectId)
+        if (current === undefined || current.config.revision !== expected) {
+          throw new ConflictError('the configuration changed since it was read', expected, 0, {})
+        }
+        state.projects.set(config.projectId, { ...current, config })
+      },
     },
     members: {
       find: async (projectId: ProjectId, identityId: IdentityId) => {

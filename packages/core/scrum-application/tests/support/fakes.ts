@@ -9,6 +9,7 @@ import {
   type IdGenerator,
   type IdentityId,
   type ProjectId,
+  type ProjectConfig,
   type ProjectMember,
   type Project,
   type Revision,
@@ -100,6 +101,19 @@ export class FakeProjectRepository {
       )
     }
     this.stored.set(project.id, { ...current, project })
+  }
+
+  async saveConfig(config: ProjectConfig, expected: Revision): Promise<void> {
+    const current = this.stored.get(config.projectId)
+    if (current === undefined || current.config.revision !== expected) {
+      throw new ConflictError(
+        'the project configuration changed since it was read',
+        expected,
+        current?.config.revision ?? 0,
+        {},
+      )
+    }
+    this.stored.set(config.projectId, { ...current, config })
   }
 }
 
