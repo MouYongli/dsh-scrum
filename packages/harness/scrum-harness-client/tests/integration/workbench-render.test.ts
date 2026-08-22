@@ -45,11 +45,11 @@ describe('the sidebar entry', () => {
 })
 
 describe('the overlay', () => {
-  it('keeps the selector position while changing the title for project binding state', () => {
+  it('keeps one project-management title whenever a workspace is selected', () => {
     expect(topbarMessage(null, 'ws-1')).toBe('topbar.bound')
     expect(
       topbarMessage({ state: 'unbound', workspace: { id: 'ws-1', name: 'YouTube_DSH' } }, 'ws-1'),
-    ).toBe('topbar.projectUnbound')
+    ).toBe('topbar.bound')
     expect(topbarMessage(null, null)).toBe('topbar.unbound')
   })
 
