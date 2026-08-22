@@ -1,16 +1,22 @@
 export type {
   BacklogQuery,
   BlockWorkItem,
+  CloseSprint,
   CreateProjectInput,
   DependWorkItem,
+  Disposition,
   EditWorkItem,
   EntryView,
+  MoveWorkItemStatus,
+  NewSprint,
   NewWorkItem,
   ParentWorkItem,
+  PlanSprint,
   ProjectView,
   RankWorkItem,
   ScrumClient,
   SetCriterion,
+  SprintRef,
   WorkItemRef,
   WorkspaceView,
 } from './client.js'
@@ -27,9 +33,29 @@ export type {
   GroupTotals,
 } from './backlog.js'
 export { BACKLOG_GROUPING, backlogPage } from './backlog.js'
+export type { BoardCard, BoardColumn, BoardView } from './board.js'
+export { boardView, moveTargets } from './board.js'
+export type { BoardActions, BoardProps } from './board-view.js'
+export { Board } from './board-view.js'
 export type { BacklogController, BacklogState } from './backlog-controller.js'
 export { DEFAULT_BACKLOG_QUERY, createBacklogController } from './backlog-controller.js'
-export { PRIORITIES, WORK_ITEM_TYPES, priorityLabel, typeLabel } from './vocabulary.js'
+export type { SprintConfirmation, SprintController, SprintState } from './sprint-controller.js'
+export { createSprintController, defaultSprint } from './sprint-controller.js'
+export type { SprintFields, SprintFormProps } from './sprint-form.js'
+export { EMPTY_SPRINT_FIELDS, SprintForm, toDay, toNewSprint, toSprintDate } from './sprint-form.js'
+export type { ConfirmProps, Decisions } from './sprint-confirm.js'
+export { SprintConfirmDialog, carryTargets, toDispositions } from './sprint-confirm.js'
+export type { SprintActions, SprintProps } from './sprint-view.js'
+export { SprintScreen } from './sprint-view.js'
+export {
+  BOARD_COLUMNS,
+  PRIORITIES,
+  WORK_ITEM_TYPES,
+  priorityLabel,
+  sprintStatusLabel,
+  statusLabel,
+  typeLabel,
+} from './vocabulary.js'
 export type { Locale, MessageKey, Translate } from './messages.js'
 export { MESSAGE_KEYS, SCRUM_MESSAGES, SCRUM_NAMESPACE, createTranslate } from './messages.js'
 export type { PageView } from './pages.js'
@@ -54,6 +80,8 @@ export {
   ParentPicker,
   rankTargetFor,
 } from './work-item-links.js'
+export type { WorkItemDetailActions, WorkItemDetailProps } from './work-item-detail.js'
+export { WorkItemDetail } from './work-item-detail.js'
 export type { CriteriaProps, WorkItemFields, WorkItemFormProps } from './work-item-form.js'
 export {
   AcceptanceCriteria,

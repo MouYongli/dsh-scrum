@@ -1,16 +1,21 @@
 import {
   INITIAL_REVISION,
   PRIORITY,
+  SPRINT_STATUS,
   WORK_ITEM_STATUS,
   WORK_ITEM_TYPE,
   toIdentityId,
   toProjectId,
   toRank,
+  toSprintId,
   toTimestamp,
   toWorkItemId,
   type AcceptanceCriterion,
   type Priority,
+  type Revision,
+  type Sprint,
   type SprintId,
+  type SprintStatus,
   type WorkItem,
   type WorkItemId,
   type WorkItemStatus,
@@ -45,6 +50,37 @@ export interface ItemOverrides {
 
 export function itemId(sequence: number): WorkItemId {
   return toWorkItemId(`SCR-${sequence}`)
+}
+
+export interface SprintOverrides {
+  readonly name?: string
+  readonly goal?: string
+  readonly status?: SprintStatus
+  readonly revision?: Revision
+}
+
+export function sprintId(sequence: number): SprintId {
+  return toSprintId(`sprint-${sequence}`)
+}
+
+export function sprint(sequence: number, overrides: SprintOverrides = {}): Sprint {
+  return {
+    schemaVersion: 1 as Sprint['schemaVersion'],
+    revision: overrides.revision ?? INITIAL_REVISION,
+    createdAt: NOW,
+    updatedAt: NOW,
+    id: sprintId(sequence),
+    projectId: PROJECT,
+    name: overrides.name ?? `第 ${sequence} 个 Sprint`,
+    goal: overrides.goal ?? '',
+    status: overrides.status ?? SPRINT_STATUS.planned,
+    startDate: NOW,
+    endDate: toTimestamp('2026-03-15T09:00:00.000Z'),
+    startedAt: null,
+    closedAt: null,
+    resultSummary: '',
+    createdBy: REPORTER,
+  }
 }
 
 export function item(sequence: number, overrides: ItemOverrides = {}): WorkItem {
