@@ -1,5 +1,7 @@
 import {
+  toIdentityId,
   toPriority,
+  toProjectKey,
   toRank,
   toRevision,
   toSprintId,
@@ -90,6 +92,8 @@ const timestamp = domain(toTimestamp, 'a timestamp')
 const priority = domain(toPriority, 'a priority')
 const workItemType = domain(toWorkItemType, 'a work item type')
 const workItemStatus = domain(toWorkItemStatus, 'a work item status')
+const projectKey = domain(toProjectKey, 'a project key')
+const identityId = domain(toIdentityId, 'an identity id')
 
 /**
  * Which workspace and session the caller is looking at.
@@ -128,7 +132,7 @@ const detailChanges = z.object({
   description: z.string().optional(),
   type: workItemType.optional(),
   priority: priority.optional(),
-  assigneeId: z.string().nullable().optional(),
+  assigneeId: identityId.nullable().optional(),
   estimate: z.number().nullable().optional(),
   labels: z.array(z.string()).optional(),
   acceptanceCriteria: z.array(acceptanceCriterion).optional(),
@@ -150,7 +154,7 @@ export const SCRUM_INPUT = {
   [SCRUM_ENDPOINT.setSessionAccess]: z.object({ mode: z.enum(['off', 'read', 'write']) }),
   [SCRUM_ENDPOINT.entry]: empty,
   [SCRUM_ENDPOINT.createProject]: z.object({
-    key: z.string(),
+    key: projectKey,
     name: z.string(),
     description: z.string().optional(),
   }),

@@ -31,7 +31,8 @@
   "dependencies": {
     "semver": "^7.8.5",
     "@dsh-scrum/scrum-application": "workspace:*",
-    "@dsh-scrum/scrum-domain": "workspace:*"
+    "@dsh-scrum/scrum-domain": "workspace:*",
+    "@dsh-scrum/scrum-api-contract": "workspace:*"
   },
   "peerDependenciesMeta": {
     "@deepseek-ai/dsh-base": {

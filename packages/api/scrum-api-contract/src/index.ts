@@ -15,6 +15,17 @@ export {
   scrumCallSchema,
   scrumScopeSchema,
 } from './channel.js'
+export type { EntryPayload, ProjectPayload, SessionPayload, WorkspacePayload } from './results.js'
+export {
+  entryPayloadSchema,
+  payloadSchema,
+  projectPayloadSchema,
+  sessionPayloadSchema,
+  sprintPayloadSchema,
+  sprintsPayloadSchema,
+  workItemPayloadSchema,
+  workItemsPayloadSchema,
+} from './results.js'
 export type { ApiErrorResponse, ApiRequest, ApiResponse, ApiSuccessResponse } from './envelope.js'
 export {
   createRequest,
