@@ -79,7 +79,7 @@ describe('going back with unsaved work', () => {
   it('asks nothing of someone who was only reading', () => {
     const view = shell()
 
-    view.click('[data-scrum-back]')
+    view.escape()
 
     expect(view.store.mode()).toBe('conversation')
     expect(view.question()).toBeNull()
@@ -91,7 +91,7 @@ describe('going back with unsaved work', () => {
       view.drafts.hold()
     })
 
-    view.click('[data-scrum-back]')
+    view.escape()
 
     expect(view.question()?.textContent).toContain(t('leave.title'))
     expect(view.host.querySelector('[data-scrum-workbench]')).not.toBeNull()
@@ -102,7 +102,7 @@ describe('going back with unsaved work', () => {
     act(() => {
       view.drafts.hold()
     })
-    view.click('[data-scrum-back]')
+    view.escape()
 
     view.click('[data-scrum-leave-discard]')
 
@@ -114,7 +114,7 @@ describe('going back with unsaved work', () => {
     act(() => {
       view.drafts.hold()
     })
-    view.click('[data-scrum-back]')
+    view.escape()
 
     view.click('[data-scrum-leave-resume]')
 
@@ -127,7 +127,7 @@ describe('going back with unsaved work', () => {
     act(() => {
       view.drafts.hold()
     })
-    view.click('[data-scrum-back]')
+    view.escape()
 
     view.escape()
 
@@ -173,7 +173,7 @@ describe('going back with unsaved work', () => {
     act(() => {
       release = view.drafts.hold()
     })
-    view.click('[data-scrum-back]')
+    view.escape()
 
     act(() => {
       release()

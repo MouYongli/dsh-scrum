@@ -32,7 +32,10 @@ function counting(): { readonly client: ScrumClient; readonly entries: () => num
   return { client: { ...inner, entry }, entries: () => entry.mock.calls.length }
 }
 
-function shell(current: string, items: { workspaceId: string; sessionIds: string[] }[]) {
+function shell(
+  current: string,
+  items: { workspaceId: string; sessionIds: string[]; title?: string }[],
+) {
   const store = createScrumModeStore({ initial: 'scrum' })
   const sessions = sessionsStub({ phase: 'ready', current })
   const workspaces = workspacesStub({ items })
@@ -44,7 +47,7 @@ function shell(current: string, items: { workspaceId: string; sessionIds: string
   act(() => {
     root.render(createElement(overlay))
   })
-  return { store, sessions, workspaces, entries }
+  return { store, sessions, workspaces, entries, host }
 }
 
 describe('when the workspace behind the workbench changes', () => {
@@ -72,7 +75,7 @@ describe('when the workspace behind the workbench changes', () => {
     expect(view.entries()).toBe(before)
   })
 
-  it('falls back to the most recent workspace while no session is open', () => {
+  it('does not borrow the recent workspace for an unaccounted conversation', () => {
     const view = shell('session-a', [{ workspaceId: 'ws-1', sessionIds: ['session-a'] }])
     const before = view.entries()
 
@@ -81,5 +84,37 @@ describe('when the workspace behind the workbench changes', () => {
     })
 
     expect(view.entries()).toBe(before + 1)
+    expect((view.host.querySelector('#scrum-workspace') as HTMLSelectElement).value).toBe('')
+    expect(view.host.textContent).toContain('当前未绑定工作区，请选择工作区')
+  })
+
+  it('switches from the title bar and keeps Scrum open', () => {
+    const view = shell('session-a', [
+      { workspaceId: 'ws-1', title: '商城', sessionIds: ['session-a'] },
+      { workspaceId: 'ws-2', title: '支付', sessionIds: [] },
+    ])
+    const picker = view.host.querySelector('#scrum-workspace') as HTMLSelectElement
+
+    expect(picker.value).toBe('ws-1')
+    expect(view.host.textContent).toContain('Scrum 项目管理：')
+    expect(view.host.textContent).toContain('商城')
+
+    act(() => {
+      picker.value = 'ws-2'
+      picker.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+    expect(view.workspaces.started()).toEqual(['ws-2'])
+
+    act(() => {
+      view.workspaces.publish({
+        items: [
+          { workspaceId: 'ws-1', title: '商城', sessionIds: ['session-a'] },
+          { workspaceId: 'ws-2', title: '支付', sessionIds: ['session-b'] },
+        ],
+      })
+      view.sessions.publish({ phase: 'ready', current: 'session-b' })
+    })
+
+    expect(view.store.mode()).toBe('scrum')
   })
 })

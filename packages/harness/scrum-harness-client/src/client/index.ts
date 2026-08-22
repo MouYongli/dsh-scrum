@@ -17,6 +17,7 @@ import {
   useState,
   useSyncExternalStore,
   type ReactElement,
+  type MutableRefObject,
 } from 'react'
 import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
 // Pulls in the slot map augmentations that declare the two slots used here.
@@ -36,6 +37,7 @@ import {
   type ShellMode,
 } from '@dsh-scrum/scrum-ui'
 import { createTransportClient, type RpcCall } from './transport.js'
+import { SCRUM_STYLES } from './styles.js'
 
 export const name = 'scrum-harness-client'
 
@@ -52,6 +54,9 @@ export const inject = ['slots', 'connection', 'workspaces', 'sessions']
 
 /** Identifier the sidebar and the overlay address these registrations by. */
 const ENTRY_ID = 'scrum'
+
+const EMPTY_WORKSPACE_SNAPSHOT = { items: [], recentWorkspaceId: undefined } as const
+const EMPTY_SESSION_SNAPSHOT = { current: undefined, phase: undefined } as const
 
 /**
  * Configuration the composing edition supplies.
@@ -316,11 +321,14 @@ interface ShellServices {
         readonly items: readonly {
           readonly workspaceId: string
           readonly sessionIds: readonly string[]
+          readonly title?: string | undefined
+          readonly path?: string | undefined
         }[]
         readonly recentWorkspaceId?: string | undefined
       }
       subscribe(listener: () => void): () => void
     }
+    startSession(workspaceId?: string): void
   }
   readonly sessions?: {
     readonly list: {
@@ -349,7 +357,8 @@ function readScope(shell: ShellServices): ScrumScope {
     (workspace) => sessionId !== null && workspace.sessionIds.includes(sessionId),
   )
   return {
-    workspaceId: owning?.workspaceId ?? workspaces?.recentWorkspaceId ?? null,
+    workspaceId:
+      sessionId === null ? (workspaces?.recentWorkspaceId ?? null) : (owning?.workspaceId ?? null),
     sessionId,
   }
 }
@@ -410,7 +419,11 @@ function useWorkspaceKey(shell: ShellServices): string {
  * What it cannot see: re-picking the session that is already current moves
  * nothing, so the workbench stays. The contract offers nothing finer.
  */
-function useSessionExit(shell: ShellServices, store: ScrumModeStore): void {
+function useSessionExit(
+  shell: ShellServices,
+  store: ScrumModeStore,
+  switchingTo: MutableRefObject<string | null>,
+): void {
   useEffect(() => {
     const list = shell.sessions?.list
     if (list === undefined) {
@@ -432,9 +445,94 @@ function useSessionExit(shell: ShellServices, store: ScrumModeStore): void {
       if (!moved || startup) {
         return
       }
+      const target = switchingTo.current
+      if (target !== null) {
+        switchingTo.current = null
+        const selectedWorkspace = shell.workspaces?.list
+          .getSnapshot()
+          .items.find((workspace) => workspace.sessionIds.includes(now.current ?? ''))?.workspaceId
+        if (selectedWorkspace === target) {
+          return
+        }
+      }
       store.leave()
     })
-  }, [shell, store])
+  }, [shell, store, switchingTo])
+}
+
+function WorkspaceHeader(props: {
+  readonly shell: ShellServices
+  readonly switchingTo: MutableRefObject<string | null>
+  readonly drafts: DraftRegistry
+}): ReactElement {
+  const source = props.shell.workspaces?.list
+  const snapshot = useSyncExternalStore(
+    (listener) => source?.subscribe(listener) ?? (() => undefined),
+    () => source?.getSnapshot() ?? EMPTY_WORKSPACE_SNAPSHOT,
+    () => source?.getSnapshot() ?? EMPTY_WORKSPACE_SNAPSHOT,
+  )
+  const sessionSource = props.shell.sessions?.list
+  const session = useSyncExternalStore(
+    (listener) => sessionSource?.subscribe(listener) ?? (() => undefined),
+    () => sessionSource?.getSnapshot() ?? EMPTY_SESSION_SNAPSHOT,
+    () => sessionSource?.getSnapshot() ?? EMPTY_SESSION_SNAPSHOT,
+  )
+  const hasDraft = useSyncExternalStore(
+    props.drafts.subscribe,
+    props.drafts.held,
+    props.drafts.held,
+  )
+  const owning = snapshot.items.find(
+    (workspace) => session.current !== undefined && workspace.sessionIds.includes(session.current),
+  )
+  const current =
+    session.current === undefined
+      ? (snapshot.recentWorkspaceId ?? null)
+      : (owning?.workspaceId ?? null)
+  const empty = snapshot.items.length === 0
+  return createElement(
+    'header',
+    { 'data-scrum-topbar': true },
+    createElement(
+      'label',
+      { htmlFor: 'scrum-workspace' },
+      current === null ? '当前未绑定工作区，请选择工作区' : 'Scrum 项目管理：',
+    ),
+    createElement(
+      'select',
+      {
+        id: 'scrum-workspace',
+        value: current ?? '',
+        disabled: empty || hasDraft || props.shell.workspaces === undefined,
+        title: hasDraft ? '请先保存或取消正在编辑的内容，再切换工作区' : undefined,
+        'aria-label': 'Scrum 工作区',
+        onChange: (event: { target: { value: string } }) => {
+          const workspaceId = event.target.value
+          if (workspaceId === '' || workspaceId === current) {
+            return
+          }
+          props.switchingTo.current = workspaceId
+          props.shell.workspaces?.startSession(workspaceId)
+        },
+      },
+      current === null
+        ? createElement(
+            'option',
+            { value: '', disabled: true },
+            empty ? '没有可用的工作区' : '选择工作区',
+          )
+        : null,
+      snapshot.items.map((workspace) =>
+        createElement(
+          'option',
+          { key: workspace.workspaceId, value: workspace.workspaceId },
+          workspace.title ??
+            workspace.path?.split('/').filter(Boolean).at(-1) ??
+            workspace.workspaceId,
+        ),
+      ),
+    ),
+  )
 }
 
 /**
@@ -493,6 +591,7 @@ function overlayComponent(
     const leaving = useLeaving(store)
     const showing = mode === 'scrum'
     const sidebar = useSidebarInset(showing)
+    const switchingTo = useRef<string | null>(null)
     // Escape answers whatever is on screen: the question when one is up, the
     // workbench otherwise. A key that did nothing while the question was
     // showing would read as the workbench having stopped listening.
@@ -506,7 +605,7 @@ function overlayComponent(
     }, [])
     // Above the early return, and so still running in conversation mode: the
     // baseline it tracks has to be current when the user next enters Scrum.
-    useSessionExit(shell, store)
+    useSessionExit(shell, store, switchingTo)
     useEscape(showing, sidebar.element, escape)
     useModeFocus(mode, sidebar.element)
     if (!showing) {
@@ -531,12 +630,14 @@ function overlayComponent(
           background: SHELL_BACKGROUND,
         },
       },
+      createElement('style', { 'data-scrum-styles': true }, SCRUM_STYLES),
       createElement(ConnectedWorkbench, {
         // Identity, not decoration: a new workspace is a new project, and the
         // surface reloads by being mounted again rather than by being told.
         key: workspace,
         client,
         drafts,
+        header: createElement(WorkspaceHeader, { shell, switchingTo, drafts }),
         leaving,
         onExit: store.leave,
         onResume: store.resume,
