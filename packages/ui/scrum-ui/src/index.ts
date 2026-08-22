@@ -37,6 +37,8 @@ export type { BoardCard, BoardColumn, BoardView } from './board.js'
 export { boardView, moveTargets } from './board.js'
 export type { BacklogController, BacklogState } from './backlog-controller.js'
 export { DEFAULT_BACKLOG_QUERY, createBacklogController } from './backlog-controller.js'
+export type { SprintController, SprintState } from './sprint-controller.js'
+export { createSprintController, defaultSprint } from './sprint-controller.js'
 export {
   BOARD_COLUMNS,
   PRIORITIES,
