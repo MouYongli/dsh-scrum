@@ -7,14 +7,7 @@
   },
   "include": ["src/**/*"],
   "references": [
-    {
-      "path": "../scrum-harness-host"
-    },
-    {
-      "path": "../scrum-harness-client"
-    },
-    {
-      "path": "../../editions/edition-community"
-    }
+    { "path": "../../core/scrum-application" },
+    { "path": "../adapter-storage-workspace-files" }
   ]
 }

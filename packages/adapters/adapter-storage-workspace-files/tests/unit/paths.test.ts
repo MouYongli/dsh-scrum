@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   SCRUM_DIRECTORY,
   contains,
+  digestFileName,
   layoutDirectories,
   resolveInside,
   sprintFile,
@@ -37,6 +38,8 @@ describe('the workspace layout', () => {
       comments: join(scrum, 'comments'),
       activities: join(scrum, 'activities'),
       sessions: join(scrum, 'sessions'),
+      bindings: join(scrum, 'bindings'),
+      idempotency: join(scrum, 'idempotency'),
       pendingOperations: join(scrum, 'operations', 'pending'),
       attachments: join(scrum, 'attachments'),
       backups: join(scrum, 'backups'),
@@ -96,5 +99,17 @@ describe('resolving inside a directory', () => {
         ERROR_CODE.validation,
       )
     }
+  })
+})
+
+describe('a filename that stands for an opaque reference', () => {
+  it('is the same for the same reference and different for another', () => {
+    expect(digestFileName('dsh_local_1')).toBe(digestFileName('dsh_local_1'))
+    expect(digestFileName('dsh_local_1')).not.toBe(digestFileName('dsh_local_2'))
+  })
+
+  it('never spells the reference out, because .scrum is committed', () => {
+    expect(digestFileName('session_secret_name')).not.toContain('secret')
+    expect(digestFileName('x')).toMatch(/^[0-9a-f]{64}\.json$/)
   })
 })

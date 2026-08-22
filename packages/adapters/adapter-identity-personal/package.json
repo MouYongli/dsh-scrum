@@ -1,9 +1,9 @@
 {
-  "name": "@dsh-scrum/adapter-storage-workspace-files",
+  "name": "@dsh-scrum/adapter-identity-personal",
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Workspace JSON and JSONL storage for Community",
+  "description": "Implicit personal identity for Community",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -20,10 +20,6 @@
     "lint": "eslint src"
   },
   "dependencies": {
-    "@dsh-scrum/scrum-application": "workspace:*",
     "@dsh-scrum/scrum-domain": "workspace:*"
-  },
-  "devDependencies": {
-    "@types/node": "^24.13.3"
   }
 }

@@ -13,6 +13,18 @@
     },
     {
       "path": "../../core/scrum-application"
+    },
+    {
+      "path": "../../adapters/adapter-storage-workspace-files"
+    },
+    {
+      "path": "../../adapters/adapter-identity-personal"
+    },
+    {
+      "path": "../../adapters/adapter-audit-local"
+    },
+    {
+      "path": "../../harness/scrum-harness-host"
     }
   ]
 }

@@ -1,9 +1,9 @@
 {
-  "name": "@dsh-scrum/adapter-storage-workspace-files",
+  "name": "@dsh-scrum/edition-community",
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Workspace JSON and JSONL storage for Community",
+  "description": "Community composition of adapters and capabilities",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -20,8 +20,12 @@
     "lint": "eslint src"
   },
   "dependencies": {
+    "@dsh-scrum/adapter-audit-local": "workspace:*",
+    "@dsh-scrum/adapter-identity-personal": "workspace:*",
+    "@dsh-scrum/adapter-storage-workspace-files": "workspace:*",
     "@dsh-scrum/scrum-application": "workspace:*",
-    "@dsh-scrum/scrum-domain": "workspace:*"
+    "@dsh-scrum/scrum-domain": "workspace:*",
+    "@dsh-scrum/scrum-harness-host": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^24.13.3"

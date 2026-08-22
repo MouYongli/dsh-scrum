@@ -1,9 +1,9 @@
 {
-  "name": "@dsh-scrum/adapter-storage-workspace-files",
+  "name": "@dsh-scrum/adapter-audit-local",
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Workspace JSON and JSONL storage for Community",
+  "description": "Local activity recording for Community",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -20,10 +20,8 @@
     "lint": "eslint src"
   },
   "dependencies": {
+    "@dsh-scrum/adapter-storage-workspace-files": "workspace:*",
     "@dsh-scrum/scrum-application": "workspace:*",
     "@dsh-scrum/scrum-domain": "workspace:*"
-  },
-  "devDependencies": {
-    "@types/node": "^24.13.3"
   }
 }

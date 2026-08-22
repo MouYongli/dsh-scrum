@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { toProjectId, toProjectKey, toTenantId } from '@dsh-scrum/scrum-domain'
+import { toProjectId, toProjectKey } from '@dsh-scrum/scrum-domain'
 import { createHostApi, fingerprintWorkspacePath } from '@dsh-scrum/scrum-harness-host'
 import {
   MemoryStore,
@@ -11,8 +11,8 @@ import {
   type HarnessWorkspace,
 } from '../support/runtime.js'
 
+// No tenant: the edition supplies one, so a client cannot name it.
 const NEW_PROJECT = {
-  tenantId: toTenantId('tnt_01K00000000000000000000001'),
   key: toProjectKey('SCR'),
   name: 'shop-service',
 }
@@ -113,6 +113,7 @@ describe('the session behind a change', () => {
     const recorded: string[] = []
     const api = createHostApi(harness(WORKSPACE, session), {
       identity: runtime(store).identity,
+      tenant: runtime(store).tenant,
       forWorkspace: async (workspace) => {
         const deps = await runtime(store).forWorkspace(workspace)
         return {
@@ -137,6 +138,7 @@ describe('the session behind a change', () => {
     const recorded: string[] = []
     const api = createHostApi(harness(WORKSPACE, session), {
       identity: runtime(store).identity,
+      tenant: runtime(store).tenant,
       forWorkspace: async (workspace) => {
         const deps = await runtime(store).forWorkspace(workspace)
         return {

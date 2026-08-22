@@ -2,6 +2,7 @@ export type { WorkspaceLayout } from './paths.js'
 export {
   SCRUM_DIRECTORY,
   contains,
+  digestFileName,
   layoutDirectories,
   realPathInside,
   resolveInside,
@@ -53,13 +54,14 @@ export type { WriteCoordinator } from './coordinator.js'
 export { createWriteCoordinator } from './coordinator.js'
 export type { OperationSpec, OperationWrite, RecoveredOperation } from './journal.js'
 export { recoverOperations, runOperation } from './journal.js'
-export type { ActivityReadResult, ActivityRecord, ActivitySource } from './activity.js'
+export type { ActivityReadResult, ActivityRecord } from './activity.js'
 export {
-  ACTIVITY_SOURCE,
   activityFile,
   activityMonth,
   appendActivity,
   listActivityMonths,
   readActivity,
-  toActivitySource,
 } from './activity.js'
+export type { StoredEdition } from './repository-project.js'
+export type { WorkspaceRepositories, WorkspaceRepositoriesInput } from './repositories.js'
+export { createWorkspaceRepositories } from './repositories.js'

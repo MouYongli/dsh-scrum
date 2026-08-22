@@ -45,6 +45,7 @@ import {
 // A host wired to an in-memory store, only as complete as the read tools
 // need. The real store arrives with the edition bundle.
 
+const TENANT = toTenantId('tnt_01K00000000000000000000001')
 export const IDENTITY = toIdentityId('idt_01K00000000000000000000001')
 export const NOW = toTimestamp('2026-08-22T09:00:00.000Z')
 export const SESSION_ID = 'session_1'
@@ -211,7 +212,11 @@ export function harness(): HarnessContext {
 }
 
 function runtime(state: Store): ScrumRuntime {
-  return { identity: async () => IDENTITY, forWorkspace: async () => dependencies(state) }
+  return {
+    identity: async () => IDENTITY,
+    tenant: async () => TENANT,
+    forWorkspace: async () => dependencies(state),
+  }
 }
 
 /** A bound project whose creator is a member, with the session set as asked. */
@@ -221,11 +226,7 @@ export async function boundHost(
 ): Promise<{ api: ScrumAgentApi; projectId: ProjectId }> {
   const context = harness()
   const host = createHostApi(context, runtime(state))
-  const created = await host.initialise({
-    tenantId: toTenantId('tnt_01K00000000000000000000001'),
-    key: toProjectKey('SCR'),
-    name: 'shop-service',
-  })
+  const created = await host.initialise({ key: toProjectKey('SCR'), name: 'shop-service' })
   state.owners.set(
     created.project.id,
     createOwnerMember({

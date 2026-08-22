@@ -39,6 +39,7 @@
     }
   },
   "dependencies": {
+    "@dsh-scrum/edition-community": "workspace:*",
     "@dsh-scrum/scrum-harness-client": "workspace:*",
     "@dsh-scrum/scrum-harness-host": "workspace:*"
   }

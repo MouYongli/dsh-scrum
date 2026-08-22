@@ -54,15 +54,33 @@ importers:
         specifier: ^4.1.11
         version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(@vitest/coverage-v8@4.1.11)(jsdom@28.1.0)(vite@8.2.2(@types/node@24.13.3)(yaml@2.9.0))
 
-  packages/adapters/adapter-storage-workspace-files:
+  packages/adapters/adapter-audit-local:
+    dependencies:
+      '@dsh-scrum/adapter-storage-workspace-files':
+        specifier: workspace:*
+        version: link:../adapter-storage-workspace-files
+      '@dsh-scrum/scrum-application':
+        specifier: workspace:*
+        version: link:../../core/scrum-application
+      '@dsh-scrum/scrum-domain':
+        specifier: workspace:*
+        version: link:../../core/scrum-domain
+
+  packages/adapters/adapter-identity-personal:
     dependencies:
       '@dsh-scrum/scrum-domain':
         specifier: workspace:*
         version: link:../../core/scrum-domain
-    devDependencies:
+
+  packages/adapters/adapter-storage-workspace-files:
+    dependencies:
       '@dsh-scrum/scrum-application':
         specifier: workspace:*
         version: link:../../core/scrum-application
+      '@dsh-scrum/scrum-domain':
+        specifier: workspace:*
+        version: link:../../core/scrum-domain
+    devDependencies:
       '@types/node':
         specifier: ^24.13.3
         version: 24.13.3
@@ -83,6 +101,31 @@ importers:
         version: link:../scrum-domain
 
   packages/core/scrum-domain: {}
+
+  packages/editions/edition-community:
+    dependencies:
+      '@dsh-scrum/adapter-audit-local':
+        specifier: workspace:*
+        version: link:../../adapters/adapter-audit-local
+      '@dsh-scrum/adapter-identity-personal':
+        specifier: workspace:*
+        version: link:../../adapters/adapter-identity-personal
+      '@dsh-scrum/adapter-storage-workspace-files':
+        specifier: workspace:*
+        version: link:../../adapters/adapter-storage-workspace-files
+      '@dsh-scrum/scrum-application':
+        specifier: workspace:*
+        version: link:../../core/scrum-application
+      '@dsh-scrum/scrum-domain':
+        specifier: workspace:*
+        version: link:../../core/scrum-domain
+      '@dsh-scrum/scrum-harness-host':
+        specifier: workspace:*
+        version: link:../../harness/scrum-harness-host
+    devDependencies:
+      '@types/node':
+        specifier: ^24.13.3
+        version: 24.13.3
 
   packages/harness/scrum-agent-tools:
     dependencies:
@@ -108,6 +151,9 @@ importers:
 
   packages/harness/scrum-harness-bundle:
     dependencies:
+      '@dsh-scrum/edition-community':
+        specifier: workspace:*
+        version: link:../../editions/edition-community
       '@dsh-scrum/scrum-harness-client':
         specifier: workspace:*
         version: link:../scrum-harness-client

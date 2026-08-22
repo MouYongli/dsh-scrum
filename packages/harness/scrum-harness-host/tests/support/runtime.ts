@@ -3,6 +3,7 @@ import {
   ConflictError,
   createOwnerMember,
   toIdentityId,
+  toTenantId,
   toTimestamp,
   type Clock,
   type IdGenerator,
@@ -34,6 +35,7 @@ export type { HarnessSession, HarnessWorkspace }
 // keeps this package free of a filesystem it must not reach for anyway.
 
 export const IDENTITY = toIdentityId('idt_01K00000000000000000000001')
+export const TENANT = toTenantId('tnt_01K00000000000000000000001')
 export const NOW = toTimestamp('2026-08-22T09:00:00.000Z')
 
 export const WORKSPACE: HarnessWorkspace = {
@@ -132,6 +134,7 @@ function notComposed(what: string): never {
 export function runtime(store: MemoryStore): ScrumRuntime {
   return {
     identity: async () => IDENTITY,
+    tenant: async () => TENANT,
     forWorkspace: async () => dependencies(store),
   }
 }
