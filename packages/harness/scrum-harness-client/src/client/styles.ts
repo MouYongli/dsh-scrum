@@ -97,6 +97,7 @@ export const SCRUM_STYLES = String.raw`
 [data-scrum-overlay] input[type="radio"] { accent-color: var(--scrum-accent); }
 
 [data-scrum-workbench] {
+  position: relative;
   width: 100%;
   min-height: 100%;
   margin: 0 auto;
@@ -111,7 +112,7 @@ export const SCRUM_STYLES = String.raw`
   margin-bottom: 28px;
 }
 
-[data-scrum-topbar] {
+[data-scrum-workbench] > [data-scrum-topbar] {
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -132,7 +133,7 @@ export const SCRUM_STYLES = String.raw`
 
 [data-scrum-topbar] select {
   width: auto;
-  max-width: min(420px, 55vw);
+  max-width: min(240px, 25vw);
   min-height: 32px;
   padding: 4px 28px 4px 8px;
   border: 0;
@@ -155,10 +156,15 @@ export const SCRUM_STYLES = String.raw`
 }
 
 [data-scrum-runtime] {
+  position: absolute;
+  top: 12px;
+  right: 28px;
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
   gap: 4px 10px;
-  margin: 8px 28px 0;
+  min-height: 32px;
+  margin: 0;
   color: var(--scrum-muted);
   font-size: 12px;
 }
@@ -208,15 +214,16 @@ export const SCRUM_STYLES = String.raw`
   font-weight: 650;
 }
 
-[data-scrum-surface] { margin-top: 0; }
+[data-scrum-surface] { margin-top: 0; padding-top: 4px; }
 [data-scrum-surface] > nav {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: 36px;
   width: 100%;
-  min-height: 35px;
+  height: 28px;
+  min-height: 28px;
   margin-bottom: 0;
-  padding: 4px 28px 0;
+  padding: 0 28px;
   border: 0;
   border-bottom: 1px solid var(--dsw-alias-border-l2, var(--scrum-border));
   border-radius: 0;
@@ -569,8 +576,8 @@ export const SCRUM_STYLES = String.raw`
 }
 
 @media (max-width: 620px) {
-  [data-scrum-topbar] { padding-right: 20px; }
-  [data-scrum-topbar] select { min-width: 0; max-width: calc(100vw - 190px); }
+  [data-scrum-workbench] > [data-scrum-topbar] { padding-right: 20px; }
+  [data-scrum-topbar] select { min-width: 0; max-width: 120px; }
   [data-scrum-toolbar],
   [data-scrum-wizard],
   [data-scrum-item-form],

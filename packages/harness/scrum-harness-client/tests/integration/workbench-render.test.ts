@@ -85,6 +85,22 @@ describe('the overlay', () => {
     expect(markup).not.toContain('#fff')
   })
 
+  it('aligns the shared topbar with the conversation banner', () => {
+    const store = createScrumModeStore()
+    const overlay = registrations(store).get('shell.overlay')!
+    store.enter()
+
+    const markup = render(overlay)
+
+    expect(markup).toContain('[data-scrum-workbench] &gt; [data-scrum-topbar]')
+    expect(markup).toContain('justify-content: flex-start')
+    expect(markup).toContain('padding: 12px 28px 0 20px')
+    expect(markup).toContain('position: absolute')
+    expect(markup).toContain('top: 12px')
+    expect(markup).toContain('right: 28px')
+    expect(markup).toContain('height: 28px')
+  })
+
   it('says it is not connected when nothing composed a client', () => {
     const store = createScrumModeStore()
     const overlay = registrations(store).get('shell.overlay')!
