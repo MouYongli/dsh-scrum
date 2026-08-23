@@ -295,6 +295,81 @@ export const SCRUM_STYLES = String.raw`
 [data-scrum-home] > h3 { margin-top: 24px; font-size: 15px; }
 [data-scrum-home] > p { max-width: 680px; color: var(--scrum-muted); white-space: pre-wrap; }
 
+[data-scrum-dashboard] {
+  display: grid;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+[data-scrum-dashboard] > section {
+  padding: 18px;
+  border: 1px solid var(--scrum-border);
+  border-radius: var(--scrum-radius);
+  background: var(--scrum-panel);
+}
+
+[data-scrum-dashboard] h3 { font-size: 15px; margin-bottom: 10px; }
+[data-scrum-dashboard] h4 { font-size: 14px; }
+
+[data-scrum-sprint-totals],
+[data-scrum-burndown] dl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 22px;
+  margin-top: 8px;
+}
+[data-scrum-sprint-totals] dt,
+[data-scrum-burndown] dt { color: var(--scrum-muted); }
+[data-scrum-sprint-totals] dd,
+[data-scrum-burndown] dd { margin: 0 0 0 6px; font-variant-numeric: tabular-nums; }
+
+/* The bar is the burndown: a filled length for what is left, and a marker
+   where an even spread would have it by now. */
+[data-scrum-burndown-bar] {
+  position: relative;
+  height: 10px;
+  margin: 14px 0 10px;
+  border-radius: 999px;
+  background: var(--scrum-panel-subtle);
+  overflow: hidden;
+}
+[data-scrum-burndown-remaining] {
+  display: block;
+  height: 100%;
+  background: var(--scrum-accent);
+}
+[data-scrum-burndown-ideal] {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--scrum-warning);
+}
+[data-scrum-burndown-note] { color: var(--scrum-muted); font-size: 12px; }
+[data-scrum-scope-change] { color: var(--scrum-warning); }
+
+[data-scrum-signal] {
+  padding: 12px 0;
+  border-top: 1px solid var(--scrum-border);
+}
+[data-scrum-signal]:first-child { border-top: 0; padding-top: 0; }
+[data-scrum-signal] > p { color: var(--scrum-muted); font-size: 12px; margin-bottom: 6px; }
+[data-scrum-signal] li,
+[data-scrum-activity] li {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  padding: 5px 0;
+}
+[data-scrum-signal] [data-scrum-meta],
+[data-scrum-activity-at],
+[data-scrum-activity-action] {
+  color: var(--scrum-muted);
+  font-size: 12px;
+}
+[data-scrum-activity-at] { font-variant-numeric: tabular-nums; }
+[data-scrum-activity-problems] { color: var(--scrum-warning); }
+
 [data-scrum-project-form] {
   display: grid;
   gap: 14px;

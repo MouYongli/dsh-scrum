@@ -50,6 +50,24 @@ export type {
 } from './backlog.js'
 export { BACKLOG_GROUPING, backlogPage } from './backlog.js'
 export type { BoardCard, BoardColumn, BoardView } from './board.js'
+export type {
+  BurndownView,
+  DashboardInput,
+  DashboardSignal,
+  DashboardView,
+  SignalGroup,
+} from './dashboard.js'
+export type { DashboardController, DashboardState } from './dashboard-controller.js'
+export { ACTIVITY_WINDOW, createDashboardController } from './dashboard-controller.js'
+export type { DashboardActions, DashboardProps } from './dashboard-view.js'
+export { DashboardScreen } from './dashboard-view.js'
+export {
+  DASHBOARD_SIGNAL,
+  DASHBOARD_SIGNALS,
+  burndown,
+  currentSprint,
+  dashboardView,
+} from './dashboard.js'
 export { boardView, moveTargets } from './board.js'
 export type { BoardActions, BoardProps } from './board-view.js'
 export { Board } from './board-view.js'
