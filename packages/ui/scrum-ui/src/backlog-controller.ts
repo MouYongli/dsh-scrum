@@ -1,5 +1,6 @@
 import type { WorkItem, WorkItemId } from '@dsh-scrum/scrum-domain'
 import { backlogPage, BACKLOG_GROUPING, type BacklogGrouping, type BacklogPage } from './backlog.js'
+import type { SprintId } from '@dsh-scrum/scrum-domain'
 import type {
   BacklogQuery,
   BlockWorkItem,
@@ -10,6 +11,7 @@ import type {
   RankWorkItem,
   ScrumClient,
   SetCriterion,
+  WorkItemRef,
 } from './client.js'
 import { toFailure, type ScrumFailure } from './failure.js'
 import { UNPLANNED } from './work-item-filter.js'
@@ -64,6 +66,7 @@ export interface BacklogController {
   readonly setParent: (command: ParentWorkItem) => Promise<void>
   readonly setDependency: (command: DependWorkItem) => Promise<void>
   readonly block: (command: BlockWorkItem) => Promise<void>
+  readonly plan: (item: WorkItemRef, sprintId: SprintId | null) => Promise<void>
 }
 
 /**
@@ -202,6 +205,11 @@ export function createBacklogController(
     },
     block: async (command: BlockWorkItem) => {
       await write(async () => await client.blockWorkItem(command))
+    },
+    // One item at a time, because the backlog plans one row at a time. The
+    // endpoint takes a list and the work item list uses it that way.
+    plan: async (item: WorkItemRef, sprintId: SprintId | null) => {
+      await write(async () => await client.planSprint({ sprintId, items: [item] }))
     },
   }
 }

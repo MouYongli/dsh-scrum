@@ -855,4 +855,32 @@ export const SCRUM_STYLES = String.raw`
 [data-scrum-timeline-unscheduled] p { color: var(--scrum-muted); font-size: 12px; }
 [data-scrum-timeline="no-sprints"] p,
 [data-scrum-timeline-empty] { color: var(--scrum-muted); }
+
+[data-scrum-definition-of-ready] {
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  border: 1px dashed var(--scrum-border);
+  border-radius: var(--scrum-radius);
+}
+[data-scrum-definition-of-ready] p { color: var(--scrum-muted); font-size: 12px; margin: 4px 0 8px; }
+[data-scrum-definition-of-ready] li { padding: 2px 0; }
+[data-scrum-definition-of-ready] li::before { content: '□ '; color: var(--scrum-muted); }
+
+[data-scrum-readiness] {
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+[data-scrum-readiness="ready"] {
+  color: var(--scrum-accent-strong);
+  background: color-mix(in srgb, var(--scrum-accent) 12%, transparent);
+}
+[data-scrum-readiness="incomplete"] {
+  color: var(--scrum-warning);
+  background: color-mix(in srgb, var(--scrum-warning) 12%, transparent);
+}
+
+[data-scrum-plan-field] { display: inline-flex; align-items: center; gap: 6px; }
+[data-scrum-plan-field] label { font-size: 12px; }
+[data-scrum-plan-empty] { color: var(--scrum-muted); font-size: 12px; }
 `
