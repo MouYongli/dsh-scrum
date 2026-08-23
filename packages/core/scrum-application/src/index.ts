@@ -45,6 +45,8 @@ export type {
   WorkspaceRef,
 } from './ports/workspace.js'
 export { toWorkspaceRef } from './ports/workspace.js'
+export type { RecentActivityCommand } from './use-cases/activity.js'
+export { recentActivity } from './use-cases/activity.js'
 export type {
   ConfigureProjectCommand,
   CreateProjectCommand,
