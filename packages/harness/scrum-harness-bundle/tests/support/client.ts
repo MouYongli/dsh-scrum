@@ -81,6 +81,7 @@ export function clientOver(host: ScrumHostApi): ScrumClient {
     },
     blockWorkItem: async (command) => await host.blockWorkItem(command),
     moveWorkItemStatus: async (command) => await host.moveWorkItemStatus(command),
+    resolveWorkItem: async (command) => await host.resolveWorkItem(command),
     sprints: async () => await host.sprints(),
     createSprint: async (input) => await host.createSprint(input),
     planSprint: async (command) => await host.planSprint(command),

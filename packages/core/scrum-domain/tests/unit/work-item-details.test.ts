@@ -116,6 +116,19 @@ describe('the fields a type carries', () => {
     expectRejects(() => toWorkItemDetails(WORK_ITEM_TYPE.bug, []), 'an array of details')
   })
 
+  it('refuses details tagged with another type, and takes a matching tag', () => {
+    // A caller carrying details across a boundary tags them, because an edit
+    // can leave the type alone and only the far side knows what it is. A tag
+    // that disagrees would otherwise cost every field beside it, in silence.
+    expectRejects(
+      () => toWorkItemDetails(WORK_ITEM_TYPE.epic, { type: 'bug', severity: 'blocker' }),
+      'bug details handed over as an epic',
+    )
+    expect(toWorkItemDetails(WORK_ITEM_TYPE.epic, { type: 'epic', color: '#fff' })).toEqual({
+      color: '#fff',
+    })
+  })
+
   it('ignores a key the type does not carry', () => {
     // Only a caller confusing two types sends one, and the API contract parses
     // strictly long before anything reaches the domain.

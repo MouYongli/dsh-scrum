@@ -7,9 +7,13 @@ import {
   type Revision,
   type SprintId,
   type WorkItem,
+  type WorkItemCategory,
   type WorkItemId,
+  type WorkItemLevel,
+  type WorkItemResolution,
   type WorkItemStatus,
   type WorkItemType,
+  workItemRequiresParent,
 } from '@dsh-scrum/scrum-domain'
 
 /**
@@ -24,6 +28,11 @@ import {
 export interface WorkItemFilter {
   readonly statuses?: readonly WorkItemStatus[] | undefined
   readonly types?: readonly WorkItemType[] | undefined
+  readonly levels?: readonly WorkItemLevel[] | undefined
+  /** Matches an item classified as one of these. Unclassified matches none. */
+  readonly categories?: readonly WorkItemCategory[] | undefined
+  /** Only finished items carry one, so this narrows to finished work. */
+  readonly resolutions?: readonly WorkItemResolution[] | undefined
   readonly priorities?: readonly Priority[] | undefined
   readonly sprintId?: SprintId | null | undefined
   readonly assigneeId?: IdentityId | null | undefined
@@ -43,13 +52,29 @@ function matchesOptional<Value>(expected: Value | undefined, actual: Value): boo
   return expected === undefined || expected === actual
 }
 
-export function matchesWorkItemFilter(item: WorkItem, filter: WorkItemFilter): boolean {
+/**
+ * Whether one item matches, given the sprint it counts as being in.
+ *
+ * The sprint is passed in because a level 3 item holds none of its own: the
+ * one item this can see is not enough to answer where it sits, so the caller
+ * that can see the whole set resolves it. Every other field is the item's own.
+ */
+export function matchesWorkItemFilter(
+  item: WorkItem,
+  filter: WorkItemFilter,
+  sprintId: SprintId | null = item.sprintId,
+): boolean {
   const text = filter.text?.trim().toLowerCase()
   return (
     includesOrEmpty(filter.statuses, item.status) &&
     includesOrEmpty(filter.types, item.type) &&
+    includesOrEmpty(filter.levels, item.level) &&
+    (filter.categories === undefined ||
+      (item.category !== null && filter.categories.includes(item.category))) &&
+    (filter.resolutions === undefined ||
+      (item.resolution !== null && filter.resolutions.includes(item.resolution))) &&
     includesOrEmpty(filter.priorities, item.priority) &&
-    matchesOptional(filter.sprintId, item.sprintId) &&
+    matchesOptional(filter.sprintId, sprintId) &&
     matchesOptional(filter.assigneeId, item.assigneeId) &&
     matchesOptional(filter.parentId, item.parentId) &&
     matchesOptional(filter.blocked, isWorkItemBlocked(item)) &&
@@ -70,9 +95,30 @@ export function filterWorkItems(
   items: Iterable<WorkItem>,
   filter: WorkItemFilter,
 ): readonly WorkItem[] {
-  return [...items]
-    .filter((item) => matchesWorkItemFilter(item, filter))
+  const all = [...items]
+  const byId = new Map(all.map((item) => [item.id, item]))
+  return all
+    .filter((item) => matchesWorkItemFilter(item, filter, effectiveSprintOf(item, byId)))
     .sort((left, right) => compareRanks(left.rank, right.rank))
+}
+
+/**
+ * The sprint an item counts as being in.
+ *
+ * A level 3 item reads its parent's, so asking for a sprint's contents returns
+ * the subtasks of the items planned into it. A parent outside the loaded set
+ * leaves the child unplaced rather than guessed at — the alternative is
+ * reporting a subtask as being in the backlog because its parent was filtered
+ * out of the same query.
+ */
+function effectiveSprintOf(
+  item: WorkItem,
+  byId: ReadonlyMap<WorkItemId, WorkItem>,
+): SprintId | null {
+  if (!workItemRequiresParent(item.level) || item.parentId === null) {
+    return item.sprintId
+  }
+  return byId.get(item.parentId)?.sprintId ?? null
 }
 
 export interface WorkItemRepository {

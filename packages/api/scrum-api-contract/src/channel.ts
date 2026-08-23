@@ -1,4 +1,6 @@
 import {
+  WORK_ITEM_TYPE,
+  toBugSeverity,
   toIdentityId,
   toPriority,
   toProjectKey,
@@ -6,7 +8,9 @@ import {
   toRevision,
   toSprintId,
   toTimestamp,
+  toWorkItemCategory,
   toWorkItemId,
+  toWorkItemResolution,
   toWorkItemStatus,
   toWorkItemType,
   type ScrumError,
@@ -48,6 +52,7 @@ export const SCRUM_ENDPOINT = {
   setWorkItemDependency: 'workItem.dependency',
   blockWorkItem: 'workItem.block',
   moveWorkItemStatus: 'workItem.status',
+  resolveWorkItem: 'workItem.resolution',
   sprints: 'sprint.list',
   createSprint: 'sprint.create',
   planSprint: 'sprint.plan',
@@ -94,7 +99,10 @@ const rank = domain(toRank, 'a rank')
 const timestamp = domain(toTimestamp, 'a timestamp')
 const priority = domain(toPriority, 'a priority')
 const workItemType = domain(toWorkItemType, 'a work item type')
+const workItemCategory = domain(toWorkItemCategory, 'a work category')
+const bugSeverity = domain(toBugSeverity, 'a bug severity')
 const workItemStatus = domain(toWorkItemStatus, 'a work item status')
+const workItemResolution = domain(toWorkItemResolution, 'a work item resolution')
 const projectKey = domain(toProjectKey, 'a project key')
 const identityId = domain(toIdentityId, 'an identity id')
 
@@ -120,6 +128,43 @@ const acceptanceCriterion = z.object({
   satisfied: z.boolean(),
 })
 
+/**
+ * The fields a type carries, one shape per type.
+ *
+ * Tagged with the type it describes, and strict about everything else. The tag
+ * travels to the domain, which refuses details describing a type other than
+ * the one they were handed with — an edit can leave the type alone, and only
+ * the layer holding the stored item knows what that type is.
+ *
+ * Strict, because a key no shape owns can only come from a caller confusing
+ * two types, and this is where it is still holding the field it meant.
+ */
+const typeDetails = z.discriminatedUnion('type', [
+  z.object({ type: z.literal(WORK_ITEM_TYPE.epic), color: z.string().optional() }).strict(),
+  z.object({ type: z.literal(WORK_ITEM_TYPE.story) }).strict(),
+  z
+    .object({
+      type: z.literal(WORK_ITEM_TYPE.task),
+      timebox: z.int().nullable().optional(),
+      outcome: z.string().optional(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal(WORK_ITEM_TYPE.bug),
+      severity: bugSeverity.nullable().optional(),
+      stepsToReproduce: z.string().optional(),
+      expected: z.string().optional(),
+      actual: z.string().optional(),
+      environment: z.string().optional(),
+      affectedVersion: z.string().optional(),
+      isRegression: z.boolean().optional(),
+      rootCause: z.string().optional(),
+    })
+    .strict(),
+  z.object({ type: z.literal(WORK_ITEM_TYPE.subtask) }).strict(),
+])
+
 const workItemRef = {
   workItemId,
   expectedRevision: revision,
@@ -134,6 +179,8 @@ const detailChanges = z.object({
   title: z.string().optional(),
   description: z.string().optional(),
   type: workItemType.optional(),
+  category: workItemCategory.nullable().optional(),
+  typeDetails: typeDetails.optional(),
   priority: priority.optional(),
   assigneeId: identityId.nullable().optional(),
   estimate: z.number().nullable().optional(),
@@ -173,6 +220,9 @@ export const SCRUM_INPUT = {
   [SCRUM_ENDPOINT.backlog]: z.object({
     text: z.string().optional(),
     types: z.array(workItemType).optional(),
+    levels: z.array(z.union([z.literal(1), z.literal(2), z.literal(3)])).optional(),
+    categories: z.array(workItemCategory).optional(),
+    resolutions: z.array(workItemResolution).optional(),
     priorities: z.array(priority).optional(),
     labels: z.array(z.string()).optional(),
     blocked: z.boolean().optional(),
@@ -184,6 +234,9 @@ export const SCRUM_INPUT = {
     type: workItemType,
     title: z.string(),
     description: z.string().optional(),
+    category: workItemCategory.nullable().optional(),
+    typeDetails: typeDetails.optional(),
+    parentId: workItemId.nullable().optional(),
     priority: priority.optional(),
     labels: z.array(z.string()).optional(),
     acceptanceCriteria: z.array(acceptanceCriterion).optional(),
@@ -209,7 +262,15 @@ export const SCRUM_INPUT = {
     linked: z.boolean(),
   }),
   [SCRUM_ENDPOINT.blockWorkItem]: z.object({ ...workItemRef, reason: z.string().nullable() }),
-  [SCRUM_ENDPOINT.moveWorkItemStatus]: z.object({ ...workItemRef, status: workItemStatus }),
+  [SCRUM_ENDPOINT.moveWorkItemStatus]: z.object({
+    ...workItemRef,
+    status: workItemStatus,
+    resolution: workItemResolution.optional(),
+  }),
+  [SCRUM_ENDPOINT.resolveWorkItem]: z.object({
+    ...workItemRef,
+    resolution: workItemResolution,
+  }),
   [SCRUM_ENDPOINT.sprints]: empty,
   [SCRUM_ENDPOINT.createSprint]: z.object({
     name: z.string(),

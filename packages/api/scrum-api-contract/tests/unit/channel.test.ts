@@ -78,6 +78,47 @@ describe('the endpoint inputs', () => {
     expect(result.success).toBe(false)
   })
 
+  it('parses the category, the parent and the details a type carries', () => {
+    const result = SCRUM_INPUT[SCRUM_ENDPOINT.createWorkItem].safeParse({
+      type: 'bug',
+      title: '保存后页面白屏',
+      category: 'defect',
+      parentId: 'SCR-1',
+      typeDetails: { type: 'bug', severity: 'blocker', isRegression: true },
+    })
+
+    expect(result.success).toBe(true)
+  })
+
+  it('refuses details carrying a field the type does not own', () => {
+    // Strict on purpose: a key no shape owns can only come from a caller
+    // confusing two types, and this is where it still holds what it meant.
+    const result = SCRUM_INPUT[SCRUM_ENDPOINT.createWorkItem].safeParse({
+      type: 'epic',
+      title: 'x',
+      typeDetails: { type: 'epic', severity: 'blocker' },
+    })
+
+    expect(result.success).toBe(false)
+  })
+
+  it('refuses a category and a severity no rule knows', () => {
+    expect(
+      SCRUM_INPUT[SCRUM_ENDPOINT.createWorkItem].safeParse({
+        type: 'task',
+        title: 'x',
+        category: 'chore',
+      }).success,
+    ).toBe(false)
+    expect(
+      SCRUM_INPUT[SCRUM_ENDPOINT.createWorkItem].safeParse({
+        type: 'bug',
+        title: 'x',
+        typeDetails: { type: 'bug', severity: 'catastrophic' },
+      }).success,
+    ).toBe(false)
+  })
+
   it('refuses a priority no rule knows', () => {
     const result = SCRUM_INPUT[SCRUM_ENDPOINT.createWorkItem].safeParse({
       type: 'task',
@@ -86,6 +127,31 @@ describe('the endpoint inputs', () => {
     })
 
     expect(result.success).toBe(false)
+  })
+
+  it('parses an outcome on the way to done, and on its own', () => {
+    expect(
+      SCRUM_INPUT[SCRUM_ENDPOINT.moveWorkItemStatus].safeParse({
+        workItemId: 'SCR-1',
+        expectedRevision: 1,
+        status: 'done',
+        resolution: 'wont_fix',
+      }).success,
+    ).toBe(true)
+    expect(
+      SCRUM_INPUT[SCRUM_ENDPOINT.resolveWorkItem].safeParse({
+        workItemId: 'SCR-1',
+        expectedRevision: 1,
+        resolution: 'duplicate',
+      }).success,
+    ).toBe(true)
+    expect(
+      SCRUM_INPUT[SCRUM_ENDPOINT.resolveWorkItem].safeParse({
+        workItemId: 'SCR-1',
+        expectedRevision: 1,
+        resolution: 'shipped',
+      }).success,
+    ).toBe(false)
   })
 
   it('refuses a board column that is not a status', () => {

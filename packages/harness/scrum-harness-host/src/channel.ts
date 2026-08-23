@@ -145,6 +145,8 @@ async function dispatch(api: ScrumHostApi, call: Dispatchable): Promise<unknown>
       return api.blockWorkItem(call.input)
     case SCRUM_ENDPOINT.moveWorkItemStatus:
       return api.moveWorkItemStatus(call.input)
+    case SCRUM_ENDPOINT.resolveWorkItem:
+      return api.resolveWorkItem(call.input)
     case SCRUM_ENDPOINT.sprints:
       return api.sprints()
     case SCRUM_ENDPOINT.createSprint:

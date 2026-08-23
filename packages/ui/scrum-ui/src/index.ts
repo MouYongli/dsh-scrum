@@ -17,6 +17,7 @@ export type {
   RuntimeContextView,
   RemoteOfferView,
   RemoteProfileView,
+  ResolveWorkItem,
   RankWorkItem,
   ScrumClient,
   SetCriterion,

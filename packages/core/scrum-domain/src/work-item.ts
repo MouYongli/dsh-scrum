@@ -174,7 +174,13 @@ export interface CreateWorkItemInput {
    */
   readonly parentId?: WorkItemId | null | undefined
   readonly category?: WorkItemCategory | null | undefined
-  readonly typeDetails?: WorkItemDetails | undefined
+  /**
+   * Normalised by `toWorkItemDetails` against the type, which is where every
+   * field is defaulted and checked. Deliberately untyped: the alternative is a
+   * second, all-optional copy of five shapes, and it would be the copy that
+   * stops recognising a field the first one gained.
+   */
+  readonly typeDetails?: unknown
   readonly title: string
   readonly description?: string | undefined
   readonly priority?: Priority | undefined
@@ -232,7 +238,8 @@ export interface WorkItemDetailChanges {
   readonly description?: string | undefined
   readonly type?: WorkItemType | undefined
   readonly category?: WorkItemCategory | null | undefined
-  readonly typeDetails?: WorkItemDetails | undefined
+  /** As on creation: normalised against the resulting type. */
+  readonly typeDetails?: unknown
   readonly priority?: Priority | undefined
   readonly assigneeId?: IdentityId | null | undefined
   readonly estimate?: number | null | undefined
@@ -289,11 +296,7 @@ export function updateWorkItemDetails(
  * nothing about an epic — and keeping whatever happened to be there would
  * leave an item describing work it is no longer about.
  */
-function nextTypeDetails(
-  item: WorkItem,
-  type: WorkItemType,
-  changed: WorkItemDetails | undefined,
-): WorkItemDetails {
+function nextTypeDetails(item: WorkItem, type: WorkItemType, changed: unknown): WorkItemDetails {
   if (changed !== undefined) {
     return toWorkItemDetails(type, changed)
   }

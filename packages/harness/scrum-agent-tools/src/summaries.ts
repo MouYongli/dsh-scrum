@@ -38,8 +38,12 @@ export function projectSummary(project: Project, config: ProjectConfig): Project
 export interface WorkItemSummary {
   readonly id: string
   readonly type: string
+  readonly level: number
+  readonly category: string | null
   readonly title: string
   readonly status: string
+  /** Only a finished item has one, which is how a report tells done apart. */
+  readonly resolution: string | null
   readonly priority: string
   readonly assigneeId: string | null
   readonly estimate: number | null
@@ -53,8 +57,11 @@ export function workItemSummary(item: WorkItem): WorkItemSummary {
   return {
     id: item.id,
     type: item.type,
+    level: item.level,
+    category: item.category,
     title: item.title,
     status: item.status,
+    resolution: item.resolution,
     priority: item.priority,
     assigneeId: item.assigneeId,
     estimate: item.estimate,
@@ -70,6 +77,8 @@ export interface WorkItemDetail extends WorkItemSummary {
   readonly dependsOn: readonly string[]
   readonly labels: readonly string[]
   readonly acceptanceCriteria: readonly { readonly text: string; readonly satisfied: boolean }[]
+  /** The fields this item's type carries, empty for a story and a subtask. */
+  readonly typeDetails: Readonly<Record<string, unknown>>
 }
 
 export function workItemDetail(item: WorkItem): WorkItemDetail {
@@ -80,6 +89,7 @@ export function workItemDetail(item: WorkItem): WorkItemDetail {
     dependsOn: [...item.dependsOn],
     labels: [...item.labels],
     acceptanceCriteria: item.acceptanceCriteria.map((criterion) => ({ ...criterion })),
+    typeDetails: { ...item.typeDetails },
   }
 }
 

@@ -10,7 +10,10 @@ import type {
   Timestamp,
   WorkItem,
   WorkItemDetailChanges,
+  WorkItemCategory,
   WorkItemId,
+  WorkItemLevel,
+  WorkItemResolution,
   WorkItemStatus,
   WorkItemType,
   Edition,
@@ -114,6 +117,9 @@ export interface UpdateProjectInput {
 export interface BacklogQuery {
   readonly text?: string | undefined
   readonly types?: readonly WorkItemType[] | undefined
+  readonly levels?: readonly WorkItemLevel[] | undefined
+  readonly categories?: readonly WorkItemCategory[] | undefined
+  readonly resolutions?: readonly WorkItemResolution[] | undefined
   readonly priorities?: readonly Priority[] | undefined
   readonly labels?: readonly string[] | undefined
   readonly blocked?: boolean | undefined
@@ -172,6 +178,13 @@ export interface BlockWorkItem extends WorkItemRef {
 
 export interface MoveWorkItemStatus extends WorkItemRef {
   readonly status: WorkItemStatus
+  /** How the work ended, named while finishing it. Defaults to done. */
+  readonly resolution?: WorkItemResolution | undefined
+}
+
+/** Restating how a finished item ended, without moving it across the board. */
+export interface ResolveWorkItem extends WorkItemRef {
+  readonly resolution: WorkItemResolution
 }
 
 /**
@@ -228,6 +241,7 @@ export interface ScrumClient {
   setWorkItemDependency(command: DependWorkItem): Promise<WorkItem>
   blockWorkItem(command: BlockWorkItem): Promise<WorkItem>
   moveWorkItemStatus(command: MoveWorkItemStatus): Promise<WorkItem>
+  resolveWorkItem(command: ResolveWorkItem): Promise<WorkItem>
   sprints(): Promise<readonly Sprint[]>
   createSprint(input: NewSprint): Promise<Sprint>
   planSprint(command: PlanSprint): Promise<readonly WorkItem[]>

@@ -4,6 +4,8 @@ import {
   NotFoundError,
   PERMISSION,
   ValidationError,
+  assertWorkItemParent,
+  assertWorkItemTypeChange,
   createWorkItem as createWorkItemEntity,
   rankBetween,
   setAcceptanceCriterionSatisfied,
@@ -15,9 +17,11 @@ import {
   type Rank,
   type Revision,
   type WorkItem,
+  type WorkItemCategory,
   type WorkItemDetailChanges,
   type WorkItemId,
   type WorkItemType,
+  workItemLevel,
 } from '@dsh-scrum/scrum-domain'
 import type { ActorContext, UseCaseRequest } from '../actor.js'
 import { recordActivity } from '../activity.js'
@@ -38,6 +42,11 @@ export interface CreateWorkItemCommand {
   readonly type: WorkItemType
   readonly title: string
   readonly description?: string | undefined
+  readonly category?: WorkItemCategory | null | undefined
+  /** Checked against the type by the domain's normaliser. */
+  readonly typeDetails?: unknown
+  /** Required for a subtask, which is created under the item it breaks down. */
+  readonly parentId?: WorkItemId | null | undefined
   readonly priority?: Priority | undefined
   readonly labels?: readonly string[] | undefined
   readonly acceptanceCriteria?: readonly AcceptanceCriterion[] | undefined
@@ -60,6 +69,7 @@ export async function createWorkItem(
   const { actor, command } = request
   await authorizeProject(deps, actor, command.projectId, PERMISSION.workItemWrite)
   const rank = await rankFor(deps, command.projectId, command.after)
+  await assertParentAccepts(deps, command)
 
   for (let attempt = 1; ; attempt += 1) {
     const item = createWorkItemEntity({
@@ -104,6 +114,28 @@ async function rankFor(
     throw new ValidationError('the item to insert after is not in this project', { after })
   }
   return rankBetween(after, existing[index + 1]?.rank ?? null)
+}
+
+/**
+ * Checks the parent a new item names before anything is written.
+ *
+ * The domain settles whether a parent had to be named at all, which it can do
+ * without reading anything. Whether the one named can hold this item is the
+ * level rule, and that needs the parent itself — so it is asked here, where
+ * the store is reachable, and refused before an identifier is spent.
+ */
+async function assertParentAccepts(
+  deps: Pick<Dependencies, 'workItems'>,
+  command: CreateWorkItemCommand,
+): Promise<void> {
+  if (command.parentId === undefined || command.parentId === null) {
+    return
+  }
+  const parent = await deps.workItems.find(command.projectId, command.parentId)
+  if (parent === null) {
+    throw new ValidationError('the parent does not exist', { workItemId: command.parentId })
+  }
+  assertWorkItemParent(workItemLevel(command.type), parent)
 }
 
 export interface WorkItemCommand {
@@ -164,6 +196,16 @@ export async function updateWorkItem(
   }
   const current = await requireWorkItem(deps, command.projectId, command.workItemId)
   assertExpectedRevision(current, command.expectedRevision)
+  if (command.changes.type !== undefined && command.changes.type !== current.type) {
+    // A change that stays on one level touches nothing structural. One that
+    // crosses a level moves the item within the tree, and the domain cannot
+    // read the parent and children it would have to leave one level away.
+    assertWorkItemTypeChange(
+      current,
+      command.changes.type,
+      await deps.workItems.list(command.projectId, {}),
+    )
+  }
   const updated = updateWorkItemDetails(current, command.changes, deps.clock.now())
   await deps.workItems.save(updated, current.revision)
   await report(deps, actor, 'workItem.update', updated)
