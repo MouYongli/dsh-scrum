@@ -69,6 +69,8 @@ export {
   statusLabel,
   typeLabel,
 } from './vocabulary.js'
+export type { ListColumn, ListSort, SortDirection } from './list.js'
+export { DEFAULT_SORT, LIST_COLUMN, LIST_COLUMNS, nextSort, sortWorkItems } from './list.js'
 export type { WorkItemQuery } from './work-item-filter.js'
 export {
   ANY_SPRINT,
