@@ -69,6 +69,7 @@ describe('work item persistence contract', () => {
         'status',
         'title',
         'type',
+        'typeDetails',
         'updatedAt',
       ].sort(),
     )

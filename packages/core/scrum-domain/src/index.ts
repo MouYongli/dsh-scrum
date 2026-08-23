@@ -133,6 +133,15 @@ export type {
   WorkItemDetailChanges,
   WorkItemStatusMove,
 } from './work-item.js'
+export type {
+  BugDetails,
+  BugSeverity,
+  EmptyDetails,
+  EpicDetails,
+  TaskDetails,
+  WorkItemDetails,
+} from './work-item-details.js'
+export { BUG_SEVERITY, toBugSeverity, toWorkItemDetails } from './work-item-details.js'
 export type { WorkItemLevel, WorkItemType } from './work-item-type.js'
 export {
   WORK_ITEM_LEVEL,
@@ -144,8 +153,11 @@ export {
 } from './work-item-type.js'
 export {
   PRIORITY,
+  bugDetails,
   createWorkItem,
+  epicDetails,
   isWorkItemAccepted,
+  taskDetails,
   setAcceptanceCriterionSatisfied,
   toPriority,
   updateWorkItemDetails,

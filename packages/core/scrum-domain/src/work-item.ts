@@ -5,6 +5,14 @@ import type { Rank } from './rank.js'
 import { requireOptionalText, requireText } from './text.js'
 import type { WorkItemCategory } from './work-category.js'
 import {
+  toWorkItemDetails,
+  type BugDetails,
+  type EpicDetails,
+  type TaskDetails,
+  type WorkItemDetails,
+} from './work-item-details.js'
+import {
+  WORK_ITEM_TYPE,
   workItemLevel,
   workItemRequiresParent,
   type WorkItemLevel,
@@ -125,6 +133,34 @@ export interface WorkItem extends EntityMetadata {
   readonly blockedReason: string | null
   readonly labels: readonly string[]
   readonly acceptanceCriteria: readonly AcceptanceCriterion[]
+  /**
+   * The fields only this type carries, written under the same revision as the
+   * rest of the item. A table of its own would make one edit two writes and
+   * put the pair out of step whenever the second one failed.
+   */
+  readonly typeDetails: WorkItemDetails
+}
+
+/*
+ * Reading the details back.
+ *
+ * The union members are told apart by the item's own `type` rather than by a
+ * tag inside the details, so nothing has to keep two spellings of the same
+ * fact in agreement. The cast is confined to these three functions, and the
+ * constructors below are what make it true: details are always built for the
+ * type they sit beside, and a type change rebuilds them.
+ */
+
+export function epicDetails(item: WorkItem): EpicDetails | null {
+  return item.type === WORK_ITEM_TYPE.epic ? (item.typeDetails as EpicDetails) : null
+}
+
+export function taskDetails(item: WorkItem): TaskDetails | null {
+  return item.type === WORK_ITEM_TYPE.task ? (item.typeDetails as TaskDetails) : null
+}
+
+export function bugDetails(item: WorkItem): BugDetails | null {
+  return item.type === WORK_ITEM_TYPE.bug ? (item.typeDetails as BugDetails) : null
 }
 
 export interface CreateWorkItemInput {
@@ -138,6 +174,7 @@ export interface CreateWorkItemInput {
    */
   readonly parentId?: WorkItemId | null | undefined
   readonly category?: WorkItemCategory | null | undefined
+  readonly typeDetails?: WorkItemDetails | undefined
   readonly title: string
   readonly description?: string | undefined
   readonly priority?: Priority | undefined
@@ -186,6 +223,7 @@ export function createWorkItem(input: CreateWorkItemInput): WorkItem {
     blockedReason: null,
     labels: toLabels(input.labels ?? []),
     acceptanceCriteria: toAcceptanceCriteria(input.acceptanceCriteria ?? []),
+    typeDetails: toWorkItemDetails(input.type, input.typeDetails),
   }
 }
 
@@ -194,6 +232,7 @@ export interface WorkItemDetailChanges {
   readonly description?: string | undefined
   readonly type?: WorkItemType | undefined
   readonly category?: WorkItemCategory | null | undefined
+  readonly typeDetails?: WorkItemDetails | undefined
   readonly priority?: Priority | undefined
   readonly assigneeId?: IdentityId | null | undefined
   readonly estimate?: number | null | undefined
@@ -238,7 +277,27 @@ export function updateWorkItemDetails(
       changes.acceptanceCriteria === undefined
         ? item.acceptanceCriteria
         : toAcceptanceCriteria(changes.acceptanceCriteria),
+    typeDetails: nextTypeDetails(item, type, changes.typeDetails),
   }
+}
+
+/**
+ * The details after an edit.
+ *
+ * A type change replaces them rather than carrying fields across. The two
+ * types share no field that means the same thing — a bug's severity says
+ * nothing about an epic — and keeping whatever happened to be there would
+ * leave an item describing work it is no longer about.
+ */
+function nextTypeDetails(
+  item: WorkItem,
+  type: WorkItemType,
+  changed: WorkItemDetails | undefined,
+): WorkItemDetails {
+  if (changed !== undefined) {
+    return toWorkItemDetails(type, changed)
+  }
+  return type === item.type ? item.typeDetails : toWorkItemDetails(type)
 }
 
 /**
