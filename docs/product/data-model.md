@@ -255,59 +255,55 @@ Spike 用"Task 加 `category: spike`"表示，不单开一个类型。类型枚�
 
 ### 6.4 字段
 
-来源：[work-item.ts:82-100](../../packages/core/scrum-domain/src/work-item.ts#L82-L100)，长度上限来自同一文件顶部的常量。
+来源：[work-item.ts:105-142](../../packages/core/scrum-domain/src/work-item.ts#L105-L142)，长度上限来自同一文件顶部的常量。
 
 | 字段 | 类型 | 取值与约束 | 含义 |
 |---|---|---|---|
 | `id` | `WorkItemId` | 形如 `SCR-12`，项目内递增 | 工作项编号，本身即人类可读的 Key |
 | `projectId` | `ProjectId` | 必填 | 所属项目 |
-| `type` | 枚举 | `epic` \| `story` \| `task` \| `bug` | 工作项类型 |
+| `type` | 枚举 | `epic` \| `story` \| `task` \| `bug` \| `subtask` | 工作项类型 |
+| `level` | 1 \| 2 \| 3 | 由 `type` 唯一决定，仍然落盘 | 层级，见 6.2 |
+| `category` | 枚举或 `null` | 6.3 的八个取值；`null` 表示没有人分类过 | 工作类别，见 6.3 |
 | `title` | 字符串 | 去除首尾空白后 1 至 200 字符，不含控制字符 | 标题 |
 | `description` | 字符串 | 至多 20000 字符，**不允许换行**；空串表示未填 | 描述 |
 | `status` | 枚举 | `backlog` \| `todo` \| `in_progress` \| `review` \| `done`，创建时恒为 `backlog` | 当前状态 |
+| `resolution` | 枚举或 `null` | `done` \| `wont_fix` \| `duplicate` \| `cannot_reproduce`；未完成时恒为 `null`，完成时必有值 | 结束方式，见 6.7 |
 | `priority` | 枚举 | `low` \| `medium` \| `high` \| `critical`，默认 `medium` | 优先级 |
 | `assigneeId` | `IdentityId` 或 `null` | `null` 表示未指派 | 负责人 |
 | `reporterId` | `IdentityId` | 必填 | 创建人 |
-| `estimate` | 数字或 `null` | 0 至 1000，允许 0；`null` 表示未估算 | 估算值，单位由 `estimationMethod` 决定 |
-| `sprintId` | `SprintId` 或 `null` | `null` 表示在 Backlog 里 | 所属 Sprint。**这是 Sprint 归属的唯一来源** |
-| `parentId` | `WorkItemId` 或 `null` | 同项目，不得成环 | 父工作项 |
+| `estimate` | 数字或 `null` | 0 至 1000，允许 0；`null` 表示未估算；level 1 与 level 3 恒为 `null` | 估算值，单位由 `estimationMethod` 决定 |
+| `sprintId` | `SprintId` 或 `null` | `null` 表示在 Backlog 里；level 1 与 level 3 恒为 `null` | 所属 Sprint。**这是 Sprint 归属的唯一来源**，Subtask 是唯一的例外，见 6.2 |
+| `parentId` | `WorkItemId` 或 `null` | 同项目，父项必须正好高一级；Subtask 必填 | 父工作项，见 6.2 |
 | `dependsOn` | `WorkItemId` 列表 | 同项目，不得自依赖或成环；默认为空 | 依赖的工作项 |
 | `rank` | 字符串 | 数字与小写字母，不以 `0` 结尾，至多 64 字符 | Backlog 排序键，见 6.8 |
 | `blockedReason` | 字符串或 `null` | 至多 500 字符；`null` 表示未阻塞 | 阻塞原因，见 6.9 |
 | `labels` | 字符串列表 | 至多 20 个，每个至多 40 字符；自动转小写并去重 | 标签 |
 | `acceptanceCriteria` | 对象列表 | 至多 50 条 | 验收标准，见 6.6 |
+| `typeDetails` | 对象 | 只含当前 `type` 的字段，改类型时按新类型重建 | 类型特有字段，见下表 |
 
 外加第 3 节的四个通用字段。
 
 `description` 不允许换行是实现现状（它走的是单行文本校验），项目描述则允许分段。
 
-### 6.5 已定稿、尚未实现的字段
+### 6.5 各类型自己的字段
 
-6.2 和 6.3 描述的层级与分类模型已在[系统架构](../development/architecture.md)第 7.5 节定稿，但当前代码还只有四个类型和一张平的类型枚举。以下字段属于该设计，读代码时不会看到：
-
-| 字段 | 取值 | 含义 |
-|---|---|---|
-| `type` 的第五个取值 | `subtask` | level 3 |
-| `level` | 1 \| 2 \| 3 | 由 `type` 唯一决定，仍然落盘，好让父子校验和聚合查询只依赖一个整数 |
-| `category` | `null` 或 6.3 的八个取值 | 这是哪一类工作。`null` 表示没有人分类过 |
-| `resolution` | `null` \| `done` \| `wont_fix` \| `duplicate` \| `cannot_reproduce` | 结束方式，见 6.7 |
-| `typeDetails` | 见下表 | 各类型自己的字段 |
-
-各类型的特有字段：
+`typeDetails` 里放的是只有某一个类型才有的字段。它跟着工作项写在同一个文件、同一个 `revision` 下，不单开一张表——单开就意味着一次编辑变成两次写入，而第二次失败时两边就对不上了。
 
 | type | 特有字段 |
 |---|---|
 | `epic` | `color`（在看板和时间轴上标识这个 Epic 的颜色） |
 | `story` | 无。验收标准是通用字段，任何类型都能写 |
-| `task` | 仅当 `category` 为 `spike`：`timebox`、`outcome` |
+| `task` | `timebox`（天数）与 `outcome`（结论），描述的是探针 |
 | `bug` | `severity`、`stepsToReproduce`、`expected`、`actual`、`environment`、`affectedVersion`、`isRegression`、`rootCause` |
 | `subtask` | 无 |
 
-Bug 的 `severity` 和通用的 `priority` 是两回事，所以分开存：严重度说的是这个缺陷本身造成多大影响，优先级说的是打算什么时候修。一个只影响少数用户、却卡住发布的缺陷，两者取值并不相同。
+Bug 的 `severity` 和通用的 `priority` 是两回事，所以分开存：严重度说的是这个缺陷本身造成多大影响，优先级说的是打算什么时候修。一个只影响少数用户、却卡住发布的缺陷，两者取值并不相同。取值是 `blocker`、`major`、`minor`、`trivial`，刻意避开优先级用的词——两个字段共用一套词表，读起来就像一个字段被拆成了两半。
 
-Spike 的 `outcome` 就是它的完成定义。探针交付的是结论而不是能用的功能，没有 `outcome` 就无法判断它做完没有；`timebox` 则保证它不会无限延长——一个没有时间盒的探针会一直"快有结论了"。
+Spike 的 `outcome` 就是它的完成定义。探针交付的是结论而不是能用的功能，没有 `outcome` 就无法判断它做完没有；`timebox` 则保证它不会无限延长——一个没有时间盒的探针会一直"快有结论了"。这两个字段对所有 Task 都存在，不只在 `category` 为 `spike` 时：[系统架构](../development/architecture.md)第 7.5 节把它们列在 spike 名下，说的是什么时候用得上，而不是什么时候文件里才有位置——否则先填类型还是先填类别就成了 Schema 的一部分。
 
-Definition of Ready 也按类型配置，不写死在领域层：Story 要求有验收标准和估算，Bug 要求有复现步骤，Task 要求说清楚产出。
+跨类型改类型时 `typeDetails` 按新类型重建，不做字段搬运：两个类型之间没有一个含义相同的字段，Bug 的严重度对 Epic 什么也没说，留着只会让这条事项描述着它已经不再是的工作。
+
+Definition of Ready 也按类型配置，不写死在领域层：Story 要求有验收标准和估算，Bug 要求有复现步骤，Task 要求说清楚产出。这一条尚未实现。
 
 ### 6.6 验收标准
 
@@ -339,7 +335,7 @@ Definition of Ready 也按类型配置，不写死在领域层：Story 要求有
 - 已经 `done` 的工作项拒绝移出 Sprint。它所在的 Sprint 就是"这件事在哪一轮交付"的记录，抹掉它等于改写 Sprint 报表读的历史；
 - 看板只显示 `todo`、`in_progress`、`review` 和 `done` 四列。`backlog` 不在看板上，因为在 Backlog 里就意味着不在这个 Sprint 里。
 
-**结束方式是另一个字段（尚未实现）。**"不修了""这是重复提交的""复现不出来"都不是流转位置，而是结束方式，所以它们不做成状态，而是记在 `resolution` 里：没到 `done` 的事项 `resolution` 恒为 `null`，到了 `done` 就必须有值，默认是 `done`。
+**结束方式是另一个字段。**"不修了""这是重复提交的""复现不出来"都不是流转位置，而是结束方式，所以它们不做成状态，而是记在 `resolution` 里：没到 `done` 的事项 `resolution` 恒为 `null`，到了 `done` 就必须有值，默认是 `done`。
 
 如果把它们做成状态，看板上就要为每一种各开一列，而且每个类型都得有一套自己的状态机——Bug 需要"无法复现"，Story 不需要。分开之后，五个类型共用同一套状态机，报表再按 `resolution` 区分真正完成的和其他终态。
 
@@ -459,7 +455,9 @@ Sprint 进度（每列有多少条、合计多少估算、完成了多少、还�
 
 这份记录不违反 7.4："成员关系不存在 Sprint 里"说的是**现在谁属于这个 Sprint**，而基线记的是**启动那一刻是谁**。前者会变，后者不会；正因为后者不跟着变，它才有用。两者不可能互相矛盾，因为它们回答的不是同一个问题。
 
-> 承诺基线与每日剩余记录已在[系统架构](../development/architecture.md)第 7.6 节定稿，当前代码尚未实现，`sprints/<id>.json` 里也还没有对应内容。
+基线写在 `.scrum/sprint-progress/<sprint-id>.jsonl` 里，只追加，一个 Sprint 一个文件。它不放进 `sprints/<id>.json`，因为那样又会变成"Sprint 里存着一份工作项列表"。
+
+> 每日剩余量尚未实现。这个版本里没有任何东西会定时跑，所以那条曲线只会在有人碰巧打开页面的日子上有点，中间是断的；范围变化只靠基线就已经能算，先做能用的那一半。
 
 ## 8. 谁能改什么：角色与权限
 
@@ -561,6 +559,8 @@ Community 把权威数据直接放在绑定 Workspace 的 `.scrum/` 目录里，
 │  └─ SCR-1.jsonl        每行一条不可变的评论事件
 ├─ activities/
 │  └─ 2026-08.jsonl      按月拆分的操作记录
+├─ sprint-progress/
+│  └─ sprint-1.jsonl     Sprint 启动时的承诺基线，见 7.6
 ├─ bindings/             这个 Workspace 挂在哪个项目上，按 Harness 安装分别记录
 ├─ idempotency/          已完成操作的记忆，按调用方给的 key
 ├─ operations/
@@ -606,9 +606,12 @@ Community 把权威数据直接放在绑定 Workspace 的 `.scrum/` 目录里，
   "id": "SCR-12",
   "projectId": "prj_01K9ZQ8N7X4G2M6R0V3B5D7F9H",
   "type": "story",
+  "level": 2,
+  "category": "feature",
   "title": "用户使用优惠券",
   "description": "",
   "status": "in_progress",
+  "resolution": null,
   "priority": "medium",
   "assigneeId": null,
   "reporterId": "idt_01K9ZQ8N7X4G2M6R0V3B5D7F9H",
@@ -620,6 +623,7 @@ Community 把权威数据直接放在绑定 Workspace 的 `.scrum/` 目录里，
   "blockedReason": null,
   "labels": [],
   "acceptanceCriteria": [],
+  "typeDetails": {},
   "revision": 8,
   "createdAt": "2026-08-20T10:00:00.000Z",
   "updatedAt": "2026-08-20T12:00:00.000Z"
