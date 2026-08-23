@@ -12,13 +12,14 @@ import type {
   SetCriterion,
 } from './client.js'
 import { toFailure, type ScrumFailure } from './failure.js'
+import { UNPLANNED } from './work-item-filter.js'
 
 /**
  * The product backlog is the work nobody has planned yet, so that is what the
  * screen asks for. Widening to everything is a switch the user throws, not a
  * default that quietly turns the backlog into a list of all work items.
  */
-export const DEFAULT_BACKLOG_QUERY: BacklogQuery = { sprintId: null }
+export const DEFAULT_BACKLOG_QUERY: BacklogQuery = { sprintId: UNPLANNED }
 
 /**
  * What the backlog screen is showing.
@@ -76,6 +77,8 @@ function isNarrowed(query: BacklogQuery): boolean {
   return (
     (query.text ?? '') !== '' ||
     (query.types?.length ?? 0) > 0 ||
+    (query.categories?.length ?? 0) > 0 ||
+    (query.statuses?.length ?? 0) > 0 ||
     (query.priorities?.length ?? 0) > 0 ||
     (query.labels?.length ?? 0) > 0 ||
     query.blocked !== undefined

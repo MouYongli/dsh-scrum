@@ -69,6 +69,15 @@ export {
   statusLabel,
   typeLabel,
 } from './vocabulary.js'
+export type { WorkItemQuery } from './work-item-filter.js'
+export {
+  ANY_SPRINT,
+  EMPTY_QUERY,
+  UNPLANNED,
+  isNarrowed,
+  toBacklogQuery,
+  underEpic,
+} from './work-item-filter.js'
 export type { Locale, MessageKey, Translate } from './messages.js'
 export { MESSAGE_KEYS, SCRUM_MESSAGES, SCRUM_NAMESPACE, createTranslate } from './messages.js'
 export type { PageView } from './pages.js'
