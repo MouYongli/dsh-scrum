@@ -1,7 +1,13 @@
 // @vitest-environment jsdom
 import { createElement } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { PRIORITY, WORK_ITEM_TYPE, toRevision } from '@dsh-scrum/scrum-domain'
+import {
+  BUG_SEVERITY,
+  PRIORITY,
+  WORK_ITEM_CATEGORY,
+  WORK_ITEM_TYPE,
+  toRevision,
+} from '@dsh-scrum/scrum-domain'
 import { BACKLOG_GROUPING, BacklogScreen, backlogPage, createTranslate } from '@dsh-scrum/scrum-ui'
 import type { BacklogActions, BacklogState } from '@dsh-scrum/scrum-ui'
 import { mount, type Mounted } from '../support/dom.js'
@@ -124,19 +130,34 @@ describe('creating a work item', () => {
     const { mounted, handlers } = screen()
 
     mounted.click('[data-scrum-create-open]')
-    mounted.choose('#scrum-create-type', WORK_ITEM_TYPE.bug)
+    // The kind of work comes first and preselects the type, which is left
+    // alone here: filing a defect as a bug is exactly the suggestion.
+    mounted.choose('#scrum-create-category', WORK_ITEM_CATEGORY.defect)
     mounted.type('#scrum-create-title', '  结算对账  ')
     mounted.type('#scrum-create-description', '按天对账')
     mounted.choose('#scrum-create-priority', PRIORITY.critical)
     mounted.type('#scrum-create-labels', '结算, 对账')
+    mounted.choose('#scrum-create-severity', BUG_SEVERITY.blocker)
     mounted.submit('[data-scrum-item-form="scrum-create"]')
 
     expect(handlers.create).toHaveBeenCalledWith({
       type: WORK_ITEM_TYPE.bug,
+      category: WORK_ITEM_CATEGORY.defect,
       title: '结算对账',
       description: '按天对账',
       priority: PRIORITY.critical,
       labels: ['结算', '对账'],
+      typeDetails: {
+        type: WORK_ITEM_TYPE.bug,
+        severity: BUG_SEVERITY.blocker,
+        stepsToReproduce: '',
+        expected: '',
+        actual: '',
+        environment: '',
+        affectedVersion: '',
+        isRegression: false,
+        rootCause: '',
+      },
     })
     expect(mounted.container.querySelector('[data-scrum-item-form="scrum-create"]')).toBeNull()
   })
