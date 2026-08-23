@@ -141,6 +141,7 @@ export {
   toPriority,
   toWorkItemType,
   updateWorkItemDetails,
+  workItemRequiresParent,
 } from './work-item.js'
 export {
   assignWorkItemToSprint,
@@ -157,6 +158,8 @@ export type { WorkItemLookup, WorkItemReferences } from './work-item-graph.js'
 export {
   addWorkItemDependency,
   assertWorkItemDeletable,
+  assertWorkItemParent,
+  assertWorkItemTypeChange,
   removeWorkItemDependency,
   setWorkItemParent,
   workItemReferences,

@@ -66,6 +66,19 @@ export function workItemLevel(type: WorkItemType): WorkItemLevel {
   return WORK_ITEM_LEVEL[type]
 }
 
+const SUBTASK_LEVEL = 3
+
+/**
+ * Whether an item at this level is meaningless on its own.
+ *
+ * Only a level 3 item is. An epic tops the hierarchy and a level 2 item is
+ * deliverable by itself, but a subtask is a breakdown of something, so one
+ * with nothing above it names no work anybody agreed to do.
+ */
+export function workItemRequiresParent(level: WorkItemLevel): boolean {
+  return level === SUBTASK_LEVEL
+}
+
 const EPIC_LEVEL = 1
 
 /**
@@ -158,6 +171,12 @@ export interface CreateWorkItemInput {
   readonly id: WorkItemId
   readonly projectId: ProjectId
   readonly type: WorkItemType
+  /**
+   * Required for a subtask and optional above it. Whether the item named here
+   * really sits one level up is checked by the caller, which can read it;
+   * this only settles whether one had to be named at all.
+   */
+  readonly parentId?: WorkItemId | null | undefined
   readonly title: string
   readonly description?: string | undefined
   readonly priority?: Priority | undefined
@@ -174,6 +193,10 @@ export interface CreateWorkItemInput {
  * A new item always starts in the backlog and in no sprint. Planning it into
  * one is a separate, recorded act rather than something a creation call can do
  * in passing.
+ *
+ * The parent is the exception: a subtask is created under one. Attaching it in
+ * a second write would leave a subtask belonging to nothing on disk in between,
+ * which is the one shape the hierarchy does not admit.
  */
 export function createWorkItem(input: CreateWorkItemInput): WorkItem {
   return {
@@ -194,7 +217,7 @@ export function createWorkItem(input: CreateWorkItemInput): WorkItem {
     reporterId: input.reporterId,
     estimate: toLevelEstimate(input.type, toEstimate(input.estimate ?? null)),
     sprintId: null,
-    parentId: null,
+    parentId: toCreatedParent(input.type, input.parentId ?? null),
     dependsOn: [],
     rank: input.rank,
     blockedReason: null,
@@ -294,6 +317,13 @@ export function isWorkItemAccepted(item: WorkItem): boolean {
  * An estimate of zero is allowed: teams use it for work that is tracked but
  * costs nothing. A negative or fractional-to-the-point-of-noise value is not.
  */
+function toCreatedParent(type: WorkItemType, parentId: WorkItemId | null): WorkItemId | null {
+  if (parentId === null && workItemRequiresParent(workItemLevel(type))) {
+    throw new ValidationError('a subtask is created under the item it breaks down', { type })
+  }
+  return parentId
+}
+
 /**
  * Keeps an estimate off the two levels that do not carry one.
  *

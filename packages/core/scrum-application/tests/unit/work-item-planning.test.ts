@@ -3,6 +3,7 @@ import {
   PROJECT_ROLE,
   SPRINT_STATUS,
   WORK_ITEM_STATUS,
+  WORK_ITEM_TYPE,
   createSprint,
   formatSprintId,
   startSprint,
@@ -202,7 +203,7 @@ describe('links between items', () => {
   it('refuses a parent link that would close a loop', async () => {
     const deps = dependencies()
     const stored = await project(deps)
-    const parent = await item(deps, stored, { title: 'epic' })
+    const parent = await item(deps, stored, { title: 'epic', type: WORK_ITEM_TYPE.epic })
     const child = await item(deps, stored, { title: 'story' })
     const linked = await setWorkItemParent(deps, {
       actor: actor(),
@@ -265,7 +266,7 @@ describe('deleteWorkItem', () => {
   it('refuses while something still points at the item and says what', async () => {
     const deps = dependencies()
     const stored = await project(deps)
-    const parent = await item(deps, stored, { title: 'epic' })
+    const parent = await item(deps, stored, { title: 'epic', type: WORK_ITEM_TYPE.epic })
     const child = await item(deps, stored, { title: 'story' })
     await setWorkItemParent(deps, {
       actor: actor(),

@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { toProjectKey, type WorkItem } from '@dsh-scrum/scrum-domain'
+import {
+  WORK_ITEM_TYPE,
+  toProjectKey,
+  type WorkItem,
+  type WorkItemType,
+} from '@dsh-scrum/scrum-domain'
 import { createHostApi } from '@dsh-scrum/scrum-harness-host'
 import { MemoryStore, harness, ownerOf, runtime } from '../support/runtime.js'
 
@@ -25,8 +30,12 @@ async function project(): Promise<MemoryStore> {
   return store
 }
 
-async function item(store: MemoryStore, title: string): Promise<WorkItem> {
-  return await api(store).createWorkItem({ type: 'story', title })
+async function item(
+  store: MemoryStore,
+  title: string,
+  type: WorkItemType = WORK_ITEM_TYPE.story,
+): Promise<WorkItem> {
+  return await api(store).createWorkItem({ type, title })
 }
 
 async function caught(run: Promise<unknown>): Promise<{ code?: string }> {
@@ -36,7 +45,7 @@ async function caught(run: Promise<unknown>): Promise<{ code?: string }> {
 describe('setting a parent', () => {
   it('records the parent the caller named', async () => {
     const store = await project()
-    const parent = await item(store, 'epic')
+    const parent = await item(store, 'epic', WORK_ITEM_TYPE.epic)
     const child = await item(store, 'story')
 
     const updated = await api(store).setWorkItemParent({
@@ -50,7 +59,7 @@ describe('setting a parent', () => {
 
   it('clears it when the caller names none', async () => {
     const store = await project()
-    const parent = await item(store, 'epic')
+    const parent = await item(store, 'epic', WORK_ITEM_TYPE.epic)
     const child = await item(store, 'story')
     const linked = await api(store).setWorkItemParent({
       workItemId: child.id,
@@ -69,7 +78,7 @@ describe('setting a parent', () => {
 
   it('refuses a revision the caller was not looking at', async () => {
     const store = await project()
-    const parent = await item(store, 'epic')
+    const parent = await item(store, 'epic', WORK_ITEM_TYPE.epic)
     const child = await item(store, 'story')
     await api(store).setWorkItemParent({
       workItemId: child.id,
