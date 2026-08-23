@@ -847,7 +847,7 @@ export const SCRUM_STYLES = String.raw`
 
 @media (max-width: 900px) {
   [data-scrum-toolbar] { grid-template-columns: 1fr 1fr; }
-  [data-scrum-columns] { grid-template-columns: repeat(4, minmax(250px, 78vw)); }
+  [data-scrum-columns] { grid-auto-columns: minmax(250px, 78vw); }
   [data-scrum-planning] { grid-template-columns: 1fr; }
 }
 
