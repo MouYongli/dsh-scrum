@@ -43,6 +43,38 @@ export const BOARD_STATUSES: readonly WorkItemStatus[] = [
   WORK_ITEM_STATUS.review,
 ]
 
+/**
+ * How a finished item ended.
+ *
+ * Separate from `status`, which says where an item sits. "Not going to fix",
+ * "duplicate" and "cannot reproduce" are outcomes, not positions: as statuses
+ * they would each need a board column, and every type would need its own state
+ * machine to decide which of them it can reach. Kept apart, all five types
+ * share one machine and a report tells real completion from the rest by reading
+ * this instead of counting everything that left the board.
+ *
+ * Persisted, so the values may be added to but never renamed.
+ */
+export const WORK_ITEM_RESOLUTION = {
+  done: 'done',
+  wontFix: 'wont_fix',
+  duplicate: 'duplicate',
+  cannotReproduce: 'cannot_reproduce',
+} as const
+
+export type WorkItemResolution = (typeof WORK_ITEM_RESOLUTION)[keyof typeof WORK_ITEM_RESOLUTION]
+
+const RESOLUTIONS: readonly string[] = Object.values(WORK_ITEM_RESOLUTION)
+
+export function toWorkItemResolution(value: string): WorkItemResolution {
+  if (!RESOLUTIONS.includes(value)) {
+    throw new ValidationError(`WorkItemResolution must be one of ${RESOLUTIONS.join(', ')}`, {
+      value,
+    })
+  }
+  return value as WorkItemResolution
+}
+
 const STATUSES: readonly string[] = DEFAULT_WORKFLOW_STATUSES
 
 export function toWorkItemStatus(value: string): WorkItemStatus {

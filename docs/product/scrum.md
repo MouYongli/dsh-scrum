@@ -331,9 +331,9 @@ Epic 和 Subtask 都不进 Sprint、不估算。Epic 的进度由子项按点数
 | 条目类型 | category | 推荐类型 | 理由 |
 |---|---|---|---|
 | 功能需求（用户故事） | `feature` | Story | 有用户价值，可独立交付 |
-| 非功能需求（用户可感知） | `nfr-visible` | Story | 例如"页面三秒内加载完"，用户能感受到 |
-| 非功能需求（纯约束） | `nfr-constraint` | Task | 例如日志留存、合规要求，用户无感 |
-| 技术债与重构 | `tech-debt` | Task | 无对外行为变化 |
+| 非功能需求（用户可感知） | `nfr_visible` | Story | 例如"页面三秒内加载完"，用户能感受到 |
+| 非功能需求（纯约束） | `nfr_constraint` | Task | 例如日志留存、合规要求，用户无感 |
+| 技术债与重构 | `tech_debt` | Task | 无对外行为变化 |
 | 探针（Spike） | `spike` | Task | 产出是结论而非功能 |
 | 运维与迁移 | `ops` | Task | 支撑性工作 |
 | 文档 | `docs` | Task | 支撑性工作 |

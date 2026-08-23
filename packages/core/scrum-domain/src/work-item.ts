@@ -3,8 +3,14 @@ import type { IdentityId, ProjectId, SprintId, WorkItemId } from './ids.js'
 import { createEntityMetadata, touchEntityMetadata, type EntityMetadata } from './metadata.js'
 import type { Rank } from './rank.js'
 import { requireOptionalText, requireText } from './text.js'
+import { WORK_ITEM_CATEGORY, type WorkItemCategory } from './work-category.js'
 import type { Timestamp } from './time.js'
-import { WORK_ITEM_STATUS, type WorkItemStatus } from './workflow.js'
+import {
+  WORK_ITEM_RESOLUTION,
+  WORK_ITEM_STATUS,
+  type WorkItemResolution,
+  type WorkItemStatus,
+} from './workflow.js'
 
 const MAX_TITLE_LENGTH = 200
 const MAX_DESCRIPTION_LENGTH = 20000
@@ -82,6 +88,30 @@ export function workItemRequiresParent(level: WorkItemLevel): boolean {
 const EPIC_LEVEL = 1
 
 /**
+ * The type each category suggests when an item is created.
+ *
+ * A suggestion and not a rule. The judgement behind it — whether the work is
+ * visible to a user and separately deliverable — falls differently between
+ * teams on the boundary cases, and "the page loads within three seconds" is a
+ * story in one team and a task in the next. Enforcing it would turn a team
+ * convention into a form somebody cannot complete.
+ */
+const RECOMMENDED_TYPE = {
+  [WORK_ITEM_CATEGORY.feature]: WORK_ITEM_TYPE.story,
+  [WORK_ITEM_CATEGORY.nfrVisible]: WORK_ITEM_TYPE.story,
+  [WORK_ITEM_CATEGORY.nfrConstraint]: WORK_ITEM_TYPE.task,
+  [WORK_ITEM_CATEGORY.techDebt]: WORK_ITEM_TYPE.task,
+  [WORK_ITEM_CATEGORY.spike]: WORK_ITEM_TYPE.task,
+  [WORK_ITEM_CATEGORY.ops]: WORK_ITEM_TYPE.task,
+  [WORK_ITEM_CATEGORY.docs]: WORK_ITEM_TYPE.task,
+  [WORK_ITEM_CATEGORY.defect]: WORK_ITEM_TYPE.bug,
+} as const satisfies Record<WorkItemCategory, WorkItemType>
+
+export function recommendedTypeFor(category: WorkItemCategory): WorkItemType {
+  return RECOMMENDED_TYPE[category]
+}
+
+/**
  * The one level a sprint holds, estimates and ranks.
  *
  * An epic spans sprints, so a sprint of its own would give "which round
@@ -151,9 +181,21 @@ export interface WorkItem extends EntityMetadata {
   readonly projectId: ProjectId
   readonly type: WorkItemType
   readonly level: WorkItemLevel
+  /**
+   * What kind of work this is. `null` means nobody said, which is a state the
+   * field has to be able to hold: the statistic it serves — how much of a
+   * sprint went into one kind of work — is worth less if unclassified items
+   * are quietly counted as features.
+   */
+  readonly category: WorkItemCategory | null
   readonly title: string
   readonly description: string
   readonly status: WorkItemStatus
+  /**
+   * How the work ended, and `null` until it has. The two always agree: an item
+   * short of `done` carries none, and one at `done` always carries one.
+   */
+  readonly resolution: WorkItemResolution | null
   readonly priority: Priority
   readonly assigneeId: IdentityId | null
   readonly reporterId: IdentityId
@@ -177,6 +219,7 @@ export interface CreateWorkItemInput {
    * this only settles whether one had to be named at all.
    */
   readonly parentId?: WorkItemId | null | undefined
+  readonly category?: WorkItemCategory | null | undefined
   readonly title: string
   readonly description?: string | undefined
   readonly priority?: Priority | undefined
@@ -205,6 +248,7 @@ export function createWorkItem(input: CreateWorkItemInput): WorkItem {
     projectId: input.projectId,
     type: input.type,
     level: workItemLevel(input.type),
+    category: input.category ?? null,
     title: requireText(input.title, 'Work item title', MAX_TITLE_LENGTH),
     description: requireOptionalText(
       input.description ?? '',
@@ -212,6 +256,7 @@ export function createWorkItem(input: CreateWorkItemInput): WorkItem {
       MAX_DESCRIPTION_LENGTH,
     ),
     status: WORK_ITEM_STATUS.backlog,
+    resolution: null,
     priority: input.priority ?? PRIORITY.medium,
     assigneeId: input.assigneeId ?? null,
     reporterId: input.reporterId,
@@ -230,6 +275,7 @@ export interface WorkItemDetailChanges {
   readonly title?: string | undefined
   readonly description?: string | undefined
   readonly type?: WorkItemType | undefined
+  readonly category?: WorkItemCategory | null | undefined
   readonly priority?: Priority | undefined
   readonly assigneeId?: IdentityId | null | undefined
   readonly estimate?: number | null | undefined
@@ -262,6 +308,7 @@ export function updateWorkItemDetails(
         : requireOptionalText(changes.description, 'Work item description', MAX_DESCRIPTION_LENGTH),
     type,
     level: workItemLevel(type),
+    category: changes.category === undefined ? item.category : changes.category,
     priority: changes.priority ?? item.priority,
     assigneeId: changes.assigneeId === undefined ? item.assigneeId : changes.assigneeId,
     estimate: toLevelEstimate(
@@ -409,20 +456,32 @@ function assertPlannable(item: WorkItem, action: string): void {
   }
 }
 
+/** What a board move needs beyond the column it is aimed at. */
+export interface WorkItemStatusMove {
+  /**
+   * The sprint the item effectively belongs to. Defaults to its own and is
+   * supplied only for a level 3 item, whose board is its parent's. The caller
+   * resolves it, because the domain cannot read another item from here.
+   */
+  readonly effectiveSprintId?: SprintId | null | undefined
+  /** How the work ended. Only meaningful on the move to `done`. */
+  readonly resolution?: WorkItemResolution | undefined
+}
+
 /**
  * Moves an item between the board columns. Reaching `backlog` is not a status
  * move but a removal from the sprint, so it has its own operation; letting it
  * happen here would leave an item in the backlog still pointing at a sprint.
  *
- * `effectiveSprintId` defaults to the item's own and is supplied only for a
- * level 3 item, whose board is its parent's. The caller resolves it, because
- * the domain cannot read another item from here.
+ * The resolution travels with the move rather than being set afterwards: the
+ * moment an item is finished is the moment somebody knows how it finished, and
+ * a `done` item with no outcome yet is the state the pairing rules out.
  */
 export function moveWorkItemStatus(
   item: WorkItem,
   status: WorkItemStatus,
   now: Timestamp,
-  effectiveSprintId: SprintId | null = item.sprintId,
+  move: WorkItemStatusMove = {},
 ): WorkItem {
   if (status === WORK_ITEM_STATUS.backlog) {
     throw new ValidationError('returning an item to the backlog removes it from its sprint', {
@@ -435,11 +494,68 @@ export function moveWorkItemStatus(
       status,
     })
   }
-  assertInASprint(item, effectiveSprintId, 'move across the board')
+  const sprintId = move.effectiveSprintId === undefined ? item.sprintId : move.effectiveSprintId
+  assertInASprint(item, sprintId, 'move across the board')
   if (item.status === status) {
     throw new ValidationError(`item is already ${status}`, { workItemId: item.id, status })
   }
-  return { ...item, ...touchEntityMetadata(item, now), status }
+  return {
+    ...item,
+    ...touchEntityMetadata(item, now),
+    status,
+    resolution: toMovedResolution(item, status, move.resolution),
+  }
+}
+
+/**
+ * The outcome after a move: one on the way into `done`, none anywhere else.
+ *
+ * A resolution aimed at any other column is refused rather than dropped. The
+ * caller meant something by it, and the only readings are that they aimed at
+ * the wrong column or expected an outcome to survive there — both worth
+ * hearing about, neither worth guessing between.
+ */
+function toMovedResolution(
+  item: WorkItem,
+  status: WorkItemStatus,
+  resolution: WorkItemResolution | undefined,
+): WorkItemResolution | null {
+  if (status !== WORK_ITEM_STATUS.done) {
+    if (resolution !== undefined) {
+      throw new ValidationError('only a finished item has an outcome', {
+        workItemId: item.id,
+        status,
+        resolution,
+      })
+    }
+    return null
+  }
+  return resolution ?? WORK_ITEM_RESOLUTION.done
+}
+
+/**
+ * Restates how a finished item ended, without moving it again.
+ *
+ * The board move is refused a second time — an item already `done` cannot be
+ * moved to `done` — so without this an outcome picked in haste would be
+ * permanent, and the only way to correct it would be to reopen work that is
+ * finished.
+ */
+export function resolveWorkItem(
+  item: WorkItem,
+  resolution: WorkItemResolution,
+  now: Timestamp,
+): WorkItem {
+  if (!isWorkItemFinished(item)) {
+    throw new ValidationError('only a finished item has an outcome', {
+      workItemId: item.id,
+      status: item.status,
+    })
+  }
+  if (item.resolution === resolution) {
+    throw new ValidationError('item already ended this way', { workItemId: item.id, resolution })
+  }
+  return { ...item, ...touchEntityMetadata(item, now), resolution }
 }
 
 /**
@@ -487,6 +603,7 @@ export function removeWorkItemFromSprint(item: WorkItem, now: Timestamp): WorkIt
     ...touchEntityMetadata(item, now),
     sprintId: null,
     status: WORK_ITEM_STATUS.backlog,
+    resolution: null,
   }
 }
 

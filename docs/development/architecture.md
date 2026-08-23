@@ -272,8 +272,8 @@ work_item
   project_id
   type                     // epic | story | task | bug | subtask
   level                    // 1 | 2 | 3，由 type 唯一决定，显式落盘
-  category                 // feature | nfr_visible | nfr_constraint | tech_debt
-                           // | spike | ops | docs | defect
+  category                 // null | feature | nfr_visible | nfr_constraint
+                           // | tech_debt | spike | ops | docs | defect
   title
   description
   status                   // backlog | todo | in_progress | review | done
@@ -326,10 +326,12 @@ Subtask 既不持有 `sprint_id` 也不持有 `estimate`。它表达一条 level
 | 维度 | 取值 | 回答的问题 |
 |---|---|---|
 | `type` | 五个枚举值 | 这条事项在层级中的位置，以及它有哪些特有字段 |
-| `category` | 八个枚举值 | 这是哪一类工作 |
+| `category` | 八个枚举值或 `null` | 这是哪一类工作 |
 | `labels` | 自由字符串 | 团队自己的切分维度，例如模块、平台、客户 |
 
 `category` 必须是受控枚举而不是自由标签。「本轮 Sprint 有多少点花在技术债上」这类问题要求取值集合封闭且跨项目可比，自由标签给不出可靠答案。
+
+`null` 表示没有人分类过，是一个允许出现的取值。给未分类的事项一个默认类别，等于用猜测填充上面那个统计口径；报一个更小的数字并同时报出「还有多少条没分类」，比报一个掺了猜测的数字更有用。
 
 创建事项时 `category` 推荐一个 `type`，但不强制：
 

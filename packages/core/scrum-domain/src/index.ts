@@ -55,13 +55,15 @@ export type { Edition } from './edition.js'
 export { EDITION, toEdition } from './edition.js'
 export type { Tenant, CreateTenantInput } from './tenant.js'
 export { createTenant, renameTenant } from './tenant.js'
-export type { WorkItemStatus } from './workflow.js'
+export type { WorkItemResolution, WorkItemStatus } from './workflow.js'
 export {
   BOARD_STATUSES,
   DEFAULT_WORKFLOW_STATUSES,
+  WORK_ITEM_RESOLUTION,
   WORK_ITEM_STATUS,
   isBoardStatus,
   statusRank,
+  toWorkItemResolution,
   toWorkItemStatus,
 } from './workflow.js'
 export type { CreateProjectInput, Project, ProjectDetailChanges, ProjectStatus } from './project.js'
@@ -119,6 +121,8 @@ export {
   toPermission,
   toPermissionPolicy,
 } from './permissions.js'
+export type { WorkItemCategory } from './work-category.js'
+export { WORK_ITEM_CATEGORY, toWorkItemCategory } from './work-category.js'
 export type { Rank } from './rank.js'
 export { compareRanks, rankBetween, toRank } from './rank.js'
 export type {
@@ -128,6 +132,7 @@ export type {
   WorkItem,
   WorkItemDetailChanges,
   WorkItemLevel,
+  WorkItemStatusMove,
   WorkItemType,
 } from './work-item.js'
 export {
@@ -136,6 +141,7 @@ export {
   WORK_ITEM_TYPE,
   createWorkItem,
   isWorkItemAccepted,
+  recommendedTypeFor,
   workItemLevel,
   setAcceptanceCriterionSatisfied,
   toPriority,
@@ -152,6 +158,7 @@ export {
   moveWorkItemRank,
   moveWorkItemStatus,
   removeWorkItemFromSprint,
+  resolveWorkItem,
   unblockWorkItem,
 } from './work-item.js'
 export type { WorkItemLookup, WorkItemReferences } from './work-item-graph.js'
