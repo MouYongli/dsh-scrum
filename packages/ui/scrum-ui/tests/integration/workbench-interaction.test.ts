@@ -51,14 +51,28 @@ function workbench(
 }
 
 describe('a workbench over a bound project', () => {
-  it('uses one consistent tab row for home, backlog, sprint and agent', async () => {
+  it('offers the six pages in the order they are documented', async () => {
     const mounted = workbench(stubClient({ entry: () => Promise.resolve(BOUND) }))
     await settle()
 
-    expect(mounted.all('[data-scrum-surface] > nav [data-scrum-section]')).toHaveLength(4)
+    // The agent is beside them rather than among them: it opens a
+    // conversation, not another view of the project.
     expect(
       mounted.all('[data-scrum-surface] > nav [data-scrum-section]').map((tab) => tab.textContent),
-    ).toEqual(['首页', '产品 Backlog', 'Sprint 看板', '打开 Scrum Agent'])
+    ).toEqual(['仪表盘', '工作项', '产品 Backlog', 'Sprint 看板', '回顾', '设置'])
+    expect(mounted.find('[data-scrum-agent]').textContent).toBe('打开 Scrum Agent')
+  })
+
+  it('names what a page not yet built is for', async () => {
+    const mounted = workbench(stubClient({ entry: () => Promise.resolve(BOUND) }))
+    await settle()
+
+    mounted.click('[data-scrum-section="review"]')
+
+    // Not an empty frame: somebody opening it should read what lands there
+    // rather than wonder whether the page failed to load.
+    expect(mounted.container.querySelector('[data-scrum-placeholder="review"]')).not.toBeNull()
+    expect(mounted.container.textContent).toContain(t('review.body'))
   })
 
   it('opens the workspace agent without requiring a conversation', async () => {
@@ -76,14 +90,14 @@ describe('a workbench over a bound project', () => {
     expect(mounted.container.textContent).toContain(t('agent.body'))
   })
 
-  it('opens on the home page and loads the backlog when its tab is selected', async () => {
+  it('opens on the dashboard and loads the backlog when its tab is selected', async () => {
     const backlog = vi.fn(() => Promise.resolve([item(1, { title: '结算对账' })]))
     const mounted = workbench(stubClient({ entry: () => Promise.resolve(BOUND), backlog }))
 
     await settle()
 
     expect(backlog).not.toHaveBeenCalled()
-    expect(mounted.find('[data-scrum-surface]').dataset['scrumSurface']).toBe('home')
+    expect(mounted.find('[data-scrum-surface]').dataset['scrumSurface']).toBe('dashboard')
     expect(mounted.container.querySelector('[data-scrum-home]')).not.toBeNull()
 
     mounted.click('[data-scrum-section="backlog"]')
@@ -112,7 +126,7 @@ describe('a workbench over a bound project', () => {
     expect(mounted.container.querySelector('[data-scrum-member-editor]')).toBeNull()
   })
 
-  it('places the key beside the title and edits the title and multiline description', async () => {
+  it('edits the title and multiline description on the settings page', async () => {
     const updateProject = vi.fn(() =>
       Promise.resolve({
         id: 'prj_1',
@@ -136,9 +150,16 @@ describe('a workbench over a bound project', () => {
     )
     await settle()
 
-    const heading = mounted.find('[data-scrum-project-heading]')
-    expect(heading.firstElementChild?.tagName).toBe('H2')
-    expect(heading.children[1]?.getAttribute('data-scrum-project')).toBe('SCR')
+    // The dashboard shows the project read-only. A heading somebody can edit
+    // in passing on the page they open every morning is the one that gets
+    // changed by accident, so the edit lives with the rest of the settings.
+    const dashboardHeading = mounted.find('[data-scrum-project-heading]')
+    expect(dashboardHeading.firstElementChild?.tagName).toBe('H2')
+    expect(dashboardHeading.children[1]?.getAttribute('data-scrum-project')).toBe('SCR')
+    expect(mounted.container.querySelector('[data-scrum-project-edit]')).toBeNull()
+
+    mounted.click('[data-scrum-section="settings"]')
+    await settle()
     mounted.click('[data-scrum-project-edit]')
     mounted.type('#scrum-project-name', 'Storefront')
     mounted.type('#scrum-project-description', 'First line\nSecond line')

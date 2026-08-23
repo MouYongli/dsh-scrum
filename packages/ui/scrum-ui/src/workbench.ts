@@ -14,6 +14,7 @@ import { BacklogScreen } from './backlog-view.js'
 import { createSprintController } from './sprint-controller.js'
 import { SprintScreen } from './sprint-view.js'
 import type {
+  AuthorizationView,
   CreateProjectInput,
   EntryView,
   ProjectView,
@@ -24,7 +25,7 @@ import type {
 import { createWorkbenchController, type WorkbenchState } from './controller.js'
 import type { ScrumFailure } from './failure.js'
 import { DraftsProvider, NO_DRAFTS, useDraftGuard, type DraftRegistry } from './drafts.js'
-import { createTranslate, type Translate } from './messages.js'
+import { createTranslate, type MessageKey, type Translate } from './messages.js'
 import { pageFor } from './pages.js'
 
 /**
@@ -596,15 +597,49 @@ function ConnectedSprints(props: {
   })
 }
 
-/** The screens a project has, and which one is showing. */
+/**
+ * The pages a project has, and which one is showing.
+ *
+ * Grouped by time: the backlog is about what is next, the board about what is
+ * happening, the review about what happened, and the work item page carries no
+ * Scrum ceremony at all. The order is the one `docs/product/scrum.md` 5.1
+ * lists, which is the order somebody reads them in.
+ *
+ * The agent is not among them. It opens a conversation rather than a view of
+ * the project, and this strip is about which projection of the project is
+ * showing; it sits in the workbench header beside the way back.
+ */
 const SECTIONS = [
-  { id: 'home', label: 'section.home' },
+  { id: 'dashboard', label: 'section.dashboard' },
+  { id: 'items', label: 'section.items' },
   { id: 'backlog', label: 'section.backlog' },
   { id: 'sprint', label: 'section.sprint' },
-  { id: 'agent', label: 'agent.open' },
+  { id: 'review', label: 'section.review' },
+  { id: 'settings', label: 'section.settings' },
 ] as const
 
 type SectionId = (typeof SECTIONS)[number]['id']
+
+/**
+ * A page that names what it is for before it has anything to show.
+ *
+ * Not an empty frame: somebody who opens the review page before it exists
+ * should read that reports and improvement actions land there, rather than
+ * wonder whether the page failed to load.
+ */
+function Placeholder(props: {
+  readonly t: Translate
+  readonly id: SectionId
+  readonly title: MessageKey
+  readonly body: MessageKey
+}): ReactElement {
+  return createElement(
+    'section',
+    { 'data-scrum-placeholder': props.id },
+    createElement('h3', null, props.t(props.title)),
+    createElement('p', null, props.t(props.body)),
+  )
+}
 
 /**
  * The project surface: a tab strip over two screens.
@@ -622,7 +657,8 @@ function ProjectSurface(props: {
   readonly onProjectUpdated: () => void
   readonly onOpenAgent?: (() => void) | undefined
 }): ReactElement {
-  const [section, setSection] = useState<SectionId>('home')
+  const [section, setSection] = useState<SectionId>('dashboard')
+  const [agentOpened, setAgentOpened] = useState(false)
   return createElement(
     'div',
     { 'data-scrum-surface': section },
@@ -637,16 +673,29 @@ function ProjectSurface(props: {
             type: 'button',
             'aria-pressed': section === entry.id,
             'data-scrum-section': entry.id,
-            'data-scrum-agent': entry.id === 'agent' ? true : undefined,
             onClick: () => {
               setSection(entry.id)
-              if (entry.id === 'agent') props.onOpenAgent?.()
             },
           },
           props.t(entry.label),
         ),
       ),
+      createElement(
+        'button',
+        {
+          type: 'button',
+          'data-scrum-agent': true,
+          onClick: () => {
+            setAgentOpened(true)
+            props.onOpenAgent?.()
+          },
+        },
+        props.t('agent.open'),
+      ),
     ),
+    agentOpened
+      ? createElement('section', { 'data-scrum-agent-panel': true }, props.t('agent.body'))
+      : null,
     surfaceFor(section, props),
   )
 }
@@ -662,38 +711,43 @@ function surfaceFor(
   },
 ): ReactElement {
   switch (section) {
-    case 'home':
+    case 'dashboard':
       return createElement(ConnectedHome, props)
     case 'backlog':
       return createElement(ConnectedBacklog, props)
     case 'sprint':
       return createElement(ConnectedSprints, props)
-    case 'agent':
-      return createElement('section', { 'data-scrum-agent-panel': true }, props.t('agent.body'))
+    case 'items':
+      return createElement(Placeholder, {
+        t: props.t,
+        id: 'items',
+        title: 'items.title',
+        body: 'items.body',
+      })
+    case 'review':
+      return createElement(Placeholder, {
+        t: props.t,
+        id: 'review',
+        title: 'review.title',
+        body: 'review.body',
+      })
+    case 'settings':
+      return createElement(ConnectedSettings, props)
   }
 }
 
-function ConnectedHome(props: {
-  readonly client: ScrumClient
-  readonly t: Translate
-  readonly project: ProjectView
-  readonly readOnly: boolean
-  readonly onProjectUpdated: () => void
-}): ReactElement {
-  const [authorization, setAuthorization] = useState<Awaited<
-    ReturnType<ScrumClient['authorization']>
-  > | null>(null)
-  const [editing, setEditing] = useState(false)
-  const [name, setName] = useState(props.project.name)
-  const [description, setDescription] = useState(props.project.description)
-  const [saving, setSaving] = useState(false)
-  const [failure, setFailure] = useState<string | null>(null)
-  const dirty = name !== props.project.name || description !== props.project.description
-  useDraftGuard(editing && dirty)
-
+/**
+ * What the current user may do here, resolved once per client.
+ *
+ * Two pages ask, and the answer is about the person and the project rather
+ * than about either page, so it is read the same way in both instead of one
+ * page passing it to the other through a shape neither owns.
+ */
+function useAuthorization(client: ScrumClient): AuthorizationView | null {
+  const [authorization, setAuthorization] = useState<AuthorizationView | null>(null)
   useEffect(() => {
     let current = true
-    void props.client
+    void client
       .authorization()
       .then((resolved) => {
         if (current) setAuthorization(resolved)
@@ -704,7 +758,71 @@ function ConnectedHome(props: {
     return () => {
       current = false
     }
-  }, [props.client])
+  }, [client])
+  return authorization
+}
+
+/**
+ * The dashboard: what this project is, and eventually how it is going.
+ *
+ * Read-only. Changing the project's own details is a settings act, and a
+ * heading somebody edits in passing on the page they open every morning is
+ * the heading that gets changed by accident.
+ */
+function ConnectedHome(props: {
+  readonly client: ScrumClient
+  readonly t: Translate
+  readonly project: ProjectView
+  readonly readOnly: boolean
+  readonly onProjectUpdated: () => void
+}): ReactElement {
+  const authorization = useAuthorization(props.client)
+  return createElement(
+    'section',
+    { 'data-scrum-home': true },
+    createElement(
+      'div',
+      { 'data-scrum-project-heading': true },
+      createElement('h2', null, props.project.name),
+      createElement('p', { 'data-scrum-project': props.project.key }, props.project.key),
+    ),
+    props.project.description === ''
+      ? null
+      : createElement('p', { 'data-scrum-project-description': true }, props.project.description),
+    createElement('h3', null, props.t('dashboard.title')),
+    createElement('p', null, props.t('dashboard.body')),
+    authorization?.membership.mode === 'personal'
+      ? createElement(
+          'aside',
+          { 'data-scrum-personal-owner': true },
+          createElement('h3', null, props.t('membership.personal.title')),
+          createElement('p', null, props.t('membership.personal.body')),
+          createElement(
+            'p',
+            { 'data-scrum-owner-roles': true },
+            authorization.membership.roles.join(', '),
+          ),
+        )
+      : null,
+  )
+}
+
+/** The settings page, which for now is the project's own details. */
+function ConnectedSettings(props: {
+  readonly client: ScrumClient
+  readonly t: Translate
+  readonly project: ProjectView
+  readonly readOnly: boolean
+  readonly onProjectUpdated: () => void
+}): ReactElement {
+  const authorization = useAuthorization(props.client)
+  const [editing, setEditing] = useState(false)
+  const [name, setName] = useState(props.project.name)
+  const [description, setDescription] = useState(props.project.description)
+  const [saving, setSaving] = useState(false)
+  const [failure, setFailure] = useState<string | null>(null)
+  const dirty = name !== props.project.name || description !== props.project.description
+  useDraftGuard(editing && dirty)
 
   async function save(event: FormEvent): Promise<void> {
     event.preventDefault()
@@ -732,11 +850,13 @@ function ConnectedHome(props: {
 
   return createElement(
     'section',
-    { 'data-scrum-home': true },
+    { 'data-scrum-settings': true },
+    createElement('h3', null, props.t('settings.title')),
+    createElement('p', null, props.t('settings.body')),
     createElement(
       'div',
       { 'data-scrum-project-heading': true },
-      createElement('h2', null, props.project.name),
+      createElement('h4', null, props.project.name),
       createElement('p', { 'data-scrum-project': props.project.key }, props.project.key),
       !mayEdit || editing
         ? null
@@ -784,21 +904,6 @@ function ConnectedHome(props: {
       : props.project.description === ''
         ? null
         : createElement('p', { 'data-scrum-project-description': true }, props.project.description),
-    createElement('h3', null, props.t('home.title')),
-    createElement('p', null, props.t('home.body')),
-    authorization?.membership.mode === 'personal'
-      ? createElement(
-          'aside',
-          { 'data-scrum-personal-owner': true },
-          createElement('h3', null, props.t('membership.personal.title')),
-          createElement('p', null, props.t('membership.personal.body')),
-          createElement(
-            'p',
-            { 'data-scrum-owner-roles': true },
-            authorization.membership.roles.join(', '),
-          ),
-        )
-      : null,
   )
 }
 
