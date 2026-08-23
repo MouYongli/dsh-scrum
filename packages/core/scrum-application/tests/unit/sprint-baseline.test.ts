@@ -1,8 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import { toTimestamp, type Sprint, type WorkItem } from '@dsh-scrum/scrum-domain'
+import {
+  WORK_ITEM_RESOLUTION,
+  WORK_ITEM_STATUS,
+  toTimestamp,
+  type Sprint,
+  type WorkItem,
+} from '@dsh-scrum/scrum-domain'
 import {
   createSprint,
+  moveWorkItemStatus,
   planSprint,
+  sprintProgress,
+  sprintScopeChange,
   startSprint,
   updateWorkItem,
   type StoredProject,
@@ -132,5 +141,119 @@ describe('the commitment a sprint opens with', () => {
     expect(started).toBeNull()
     expect((await deps.sprints.find(stored.project.id, opening.id))?.status).toBe('active')
     expect(deps.sprintProgressLog.entries).toEqual([])
+  })
+})
+
+describe('scope change against the commitment', () => {
+  it('reports what came in and what went out', async () => {
+    const deps = dependencies()
+    const stored = await project(deps)
+    const kept = await sized(deps, stored, 'kept', 3)
+    const dropped = await sized(deps, stored, 'dropped', 2)
+    const opening = await sprint(deps, stored)
+    await plan(deps, stored, opening, [kept, dropped])
+    const started = await startSprint(deps, {
+      actor: actor(),
+      command: {
+        projectId: stored.project.id,
+        sprintId: opening.id,
+        expectedRevision: opening.revision,
+      },
+    })
+
+    const arrived = await sized(deps, stored, 'arrived', 8)
+    await plan(deps, stored, started, [arrived])
+    const current = await deps.workItems.list(stored.project.id, {})
+    await planSprint(deps, {
+      actor: actor(),
+      command: {
+        projectId: stored.project.id,
+        sprintId: null,
+        items: [
+          {
+            workItemId: dropped.id,
+            expectedRevision: current.find((one) => one.id === dropped.id)!.revision,
+          },
+        ],
+      },
+    })
+
+    const [baseline] = await deps.sprintProgressLog.read(started.id)
+    const change = sprintScopeChange(baseline!, await deps.workItems.list(stored.project.id, {}))
+
+    // Both directions, because a review has to explain both. Reporting only
+    // what arrived would let a sprint shed half its commitment and still read
+    // as having grown.
+    expect(change.added).toEqual([arrived.id])
+    expect(change.removed).toEqual([dropped.id])
+    expect(change.committedPoints).toBe(5)
+  })
+
+  it('reports nothing changed when nothing did', async () => {
+    const deps = dependencies()
+    const stored = await project(deps)
+    const only = await sized(deps, stored, 'only', 5)
+    const opening = await sprint(deps, stored)
+    await plan(deps, stored, opening, [only])
+    const started = await startSprint(deps, {
+      actor: actor(),
+      command: {
+        projectId: stored.project.id,
+        sprintId: opening.id,
+        expectedRevision: opening.revision,
+      },
+    })
+
+    const [baseline] = await deps.sprintProgressLog.read(started.id)
+    const change = sprintScopeChange(baseline!, await deps.workItems.list(stored.project.id, {}))
+
+    expect(change).toEqual({
+      sprintId: started.id,
+      added: [],
+      removed: [],
+      committedPoints: 5,
+    })
+  })
+})
+
+describe('what a sprint delivered', () => {
+  it('counts only work that ended as done towards delivery', async () => {
+    const deps = dependencies()
+    const stored = await project(deps)
+    const shipped = await sized(deps, stored, 'shipped', 5)
+    const abandoned = await sized(deps, stored, 'abandoned', 8)
+    const opening = await sprint(deps, stored)
+    const planned = await plan(deps, stored, opening, [shipped, abandoned])
+    await startSprint(deps, {
+      actor: actor(),
+      command: {
+        projectId: stored.project.id,
+        sprintId: opening.id,
+        expectedRevision: opening.revision,
+      },
+    })
+
+    for (const [one, resolution] of [
+      [planned[0]!, WORK_ITEM_RESOLUTION.done],
+      [planned[1]!, WORK_ITEM_RESOLUTION.wontFix],
+    ] as const) {
+      await moveWorkItemStatus(deps, {
+        actor: actor(),
+        command: {
+          projectId: stored.project.id,
+          workItemId: one.id,
+          expectedRevision: one.revision,
+          status: WORK_ITEM_STATUS.done,
+          resolution,
+        },
+      })
+    }
+    const progress = sprintProgress(opening.id, await deps.workItems.list(stored.project.id, {}))
+
+    // Both items left the board; only one was delivered. Velocity is a claim
+    // about what a team can deliver, so a sprint closed by abandoning half of
+    // it must not read as having gone faster.
+    expect(progress.finished).toEqual({ count: 2, estimate: 13 })
+    expect(progress.delivered).toEqual({ count: 1, estimate: 5 })
   })
 })

@@ -115,6 +115,7 @@ describe('the summaries a tool returns', () => {
         byStatus: { todo: { count: 1, estimate: 2 } } as never,
         total: { count: 1, estimate: 2 },
         finished: { count: 0, estimate: 0 },
+        delivered: { count: 0, estimate: 0 },
         unestimated: 0,
       }),
     ).toMatchObject({ sprintId: 'sprint-3', total: { count: 1, estimate: 2 } })

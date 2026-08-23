@@ -26,8 +26,8 @@ export type {
   SprintProgressLog,
 } from './ports/sprint-progress-log.js'
 export type { SprintRepository } from './ports/sprints.js'
-export type { SprintProgress, StatusTotals } from './sprint-progress.js'
-export { sprintProgress } from './sprint-progress.js'
+export type { SprintProgress, SprintScopeChange, StatusTotals } from './sprint-progress.js'
+export { sprintProgress, sprintScopeChange } from './sprint-progress.js'
 export type { WorkItemFilter, WorkItemRepository } from './ports/work-items.js'
 export type {
   AtomicWrites,
