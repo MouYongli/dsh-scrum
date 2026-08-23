@@ -172,6 +172,32 @@ describe('a workbench over a bound project', () => {
     expect((mounted.find('#scrum-backlog-text') as HTMLInputElement).value).toBe('对账')
   })
 
+  it('switches the work item page between its two projections, keeping the filter', async () => {
+    const mounted = workbench(
+      stubClient({
+        entry: () => Promise.resolve(BOUND),
+        backlog: () => Promise.resolve([item(1, { title: '结算对账' })]),
+        sprints: () => Promise.resolve([sprint(1)]),
+        settings: () => Promise.resolve(SETTINGS),
+        activity: () => Promise.resolve({ events: [], problems: [] }),
+      }),
+    )
+    await settle()
+
+    mounted.click('[data-scrum-section="items"]')
+    await settle()
+    mounted.type('#scrum-items-text', '对账')
+    await settle()
+
+    mounted.click('[data-scrum-projection-tab="timeline"]')
+    await settle()
+
+    // The same query, drawn along time instead of down a table.
+    expect(mounted.container.querySelector('[data-scrum-timeline]')).not.toBeNull()
+    expect((mounted.find('#scrum-items-text') as HTMLInputElement).value).toBe('对账')
+    expect(mounted.container.querySelector('[data-scrum-list]')).toBeNull()
+  })
+
   it('describes a personal Community owner on the settings page, without role editing', async () => {
     const mounted = workbench(
       stubClient({
