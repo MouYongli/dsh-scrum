@@ -36,6 +36,7 @@ type Dependencies = Pick<
   | 'transactions'
   | 'capabilities'
   | 'activity'
+  | 'sprintProgressLog'
   | 'clock'
 >
 
@@ -169,8 +170,39 @@ export async function startSprint(
     deps.clock.now(),
   )
   await deps.sprints.save(started, current.revision)
+  await recordCommitment(deps, command.projectId, started)
   await report(deps, actor, 'sprint.start', started)
   return started
+}
+
+/**
+ * Writes down what the sprint opened with.
+ *
+ * After the sprint is saved, and a failure here is not swallowed — the same
+ * reasoning as activity. A sprint that opened without a baseline can never be
+ * given one afterwards, so scope change and the burndown are unanswerable for
+ * that sprint forever; a caller told the write failed can retry, and the retry
+ * is harmless because the sprint is already active and appending is the only
+ * thing left to do.
+ *
+ * Unestimated items count zero towards the total and are counted separately.
+ * A committed total that quietly omitted them would read as a complete number
+ * and would not be one.
+ */
+async function recordCommitment(
+  deps: Pick<Dependencies, 'workItems' | 'sprintProgressLog'>,
+  projectId: ProjectId,
+  sprint: Sprint,
+): Promise<void> {
+  const items = await deps.workItems.list(projectId, { sprintId: sprint.id })
+  await deps.sprintProgressLog.append({
+    kind: 'baseline',
+    sprintId: sprint.id,
+    recordedAt: sprint.startedAt ?? sprint.updatedAt,
+    itemIds: items.map((item) => item.id),
+    totalPoints: items.reduce((sum, item) => sum + (item.estimate ?? 0), 0),
+    unestimatedCount: items.filter((item) => item.estimate === null).length,
+  })
 }
 
 /** Where one unfinished item goes when its sprint closes. */
