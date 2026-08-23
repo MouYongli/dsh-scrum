@@ -8,9 +8,11 @@ import {
   type ReactElement,
   type ReactNode,
 } from 'react'
-import { PERMISSION, toProjectKey } from '@dsh-scrum/scrum-domain'
+import { PERMISSION, toProjectKey, type Sprint, type WorkItemId } from '@dsh-scrum/scrum-domain'
 import { createBacklogController } from './backlog-controller.js'
+import { applyBatch, type BatchChange, type BatchOutcome } from './batch.js'
 import { createDashboardController } from './dashboard-controller.js'
+import { downloadCsv, toCsv } from './export.js'
 import { FilterBar } from './filter-bar.js'
 import { DashboardScreen } from './dashboard-view.js'
 import { BacklogScreen } from './backlog-view.js'
@@ -584,17 +586,49 @@ function ConnectedBacklog(props: {
 function ConnectedItems(props: {
   readonly client: ScrumClient
   readonly t: Translate
+  readonly readOnly: boolean
   readonly query: WorkItemQuery
   readonly onQuery: (query: WorkItemQuery) => void
 }): ReactElement {
   const controller = useMemo(() => createBacklogController(props.client, {}), [props.client])
   const state = useSyncExternalStore(controller.subscribe, controller.state, controller.state)
   const [sort, setSort] = useState(DEFAULT_SORT)
+  const [marked, setMarked] = useState<readonly WorkItemId[]>([])
+  const [outcome, setOutcome] = useState<BatchOutcome | null>(null)
+  const [sprints, setSprints] = useState<readonly Sprint[]>([])
   const { query } = props
 
   useEffect(() => {
     void controller.setQuery(toBacklogQuery(query, ANY_SPRINT))
   }, [controller, query])
+
+  // The sprints are only needed to name the batch's targets, so a project
+  // that has none simply offers the backlog.
+  useEffect(() => {
+    let current = true
+    void props.client
+      .sprints()
+      .then((all) => {
+        if (current) setSprints(all)
+      })
+      .catch(() => {
+        if (current) setSprints([])
+      })
+    return () => {
+      current = false
+    }
+  }, [props.client])
+
+  async function apply(change: BatchChange): Promise<void> {
+    const rows = state.ordered.filter((item) => marked.includes(item.id))
+    const result = await applyBatch(props.client, rows, change)
+    setOutcome(result)
+    // The whole list is read back rather than patched: a status move can take
+    // an item out of what the current filter shows, and a list assembled from
+    // the responses would keep drawing rows the query no longer matches.
+    await controller.load()
+    setMarked(result.refused.map((one) => one.id))
+  }
 
   return createElement(
     'section',
@@ -610,11 +644,20 @@ function ConnectedItems(props: {
     createElement(WorkItemList, {
       state,
       sort,
+      marked,
+      outcome,
+      sprints,
+      readOnly: props.readOnly,
       t: props.t,
       actions: {
         sort: setSort,
         select: controller.select,
         refresh: () => void controller.load(),
+        mark: setMarked,
+        apply: (change) => void apply(change),
+        exportRows: (rows) => {
+          downloadCsv(`${props.t('items.title')}.csv`, toCsv(rows, props.t))
+        },
       },
     }),
   )

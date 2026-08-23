@@ -73,7 +73,7 @@ export {
   currentSprint,
   dashboardView,
 } from './dashboard.js'
-export { boardView, moveTargets } from './board.js'
+export { boardView, everyMoveTarget, moveTargets } from './board.js'
 export type { BoardActions, BoardProps } from './board-view.js'
 export { Board } from './board-view.js'
 export type { BacklogController, BacklogState } from './backlog-controller.js'

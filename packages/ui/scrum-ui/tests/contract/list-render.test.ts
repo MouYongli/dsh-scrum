@@ -33,7 +33,18 @@ function render(props: Partial<ListProps> = {}): string {
       state: state([item(1, {})]),
       sort: DEFAULT_SORT,
       t,
-      actions: { sort: vi.fn(), select: vi.fn(), refresh: vi.fn() },
+      marked: [],
+      outcome: null,
+      sprints: [],
+      readOnly: false,
+      actions: {
+        sort: vi.fn(),
+        select: vi.fn(),
+        refresh: vi.fn(),
+        mark: vi.fn(),
+        apply: vi.fn(),
+        exportRows: vi.fn(),
+      },
       ...props,
     }),
   )
@@ -80,5 +91,52 @@ describe('the work item list', () => {
   it('tells an empty project apart from an over-narrow filter', () => {
     expect(render({ state: state([], false) })).toContain(t('list.empty'))
     expect(render({ state: state([], true) })).toContain(t('list.noMatches'))
+  })
+})
+
+describe('selecting rows for a batch', () => {
+  it('says how to start rather than showing a form with nothing to act on', () => {
+    const markup = render()
+
+    expect(markup).toContain('data-scrum-batch="none"')
+    expect(markup).toContain(t('list.batch.none'))
+  })
+
+  it('offers the change form once something is marked, and counts what is marked', () => {
+    const markup = render({ marked: [item(1, {}).id] })
+
+    expect(markup).toContain('data-scrum-batch="open"')
+    expect(markup).toContain('data-scrum-batch-count="1"')
+    expect(markup).toContain(t('list.batch.apply'))
+  })
+
+  it('offers neither selection nor export on an archived project', () => {
+    const markup = render({ readOnly: true })
+
+    expect(markup).not.toContain('data-scrum-mark-all')
+    expect(markup).not.toContain('data-scrum-export')
+    expect(markup).not.toContain('data-scrum-batch')
+  })
+})
+
+describe('what the last batch did', () => {
+  it('is not drawn before one has run', () => {
+    expect(render()).not.toContain('data-scrum-batch-outcome')
+  })
+
+  it('reports both halves, because both happened', () => {
+    // Eighteen of twenty written is not "the batch failed": each item carries
+    // its own revision and was written on its own.
+    const markup = render({
+      outcome: {
+        written: [item(1, {}).id],
+        refused: [{ id: item(2, {}).id, failure: { kind: 'conflict', message: 'SCR-2 已被改动' } }],
+      },
+    })
+
+    expect(markup).toContain('data-scrum-batch-written="1"')
+    expect(markup).toContain('data-scrum-batch-refused="1"')
+    expect(markup).toContain('data-scrum-batch-refusal="SCR-2"')
+    expect(markup).toContain('SCR-2 已被改动')
   })
 })
