@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   ERROR_CODE,
   PRIORITY,
+  WORK_ITEM_CATEGORY,
   WORK_ITEM_STATUS,
   WORK_ITEM_TYPE,
   assignWorkItemToSprint,
@@ -277,5 +278,45 @@ describe('blocking', () => {
     )
     expectRejects(() => unblockWorkItem(item(), T2), 'unblocking an item that is not blocked')
     expect(blockWorkItem(blocked, '等待法务确认', T3).blockedReason).toBe('等待法务确认')
+  })
+})
+
+describe('the work category', () => {
+  function created(category: unknown): unknown {
+    return caughtFrom(() =>
+      createWorkItem({
+        id: toWorkItemId('SCR-9'),
+        projectId: PROJECT,
+        type: WORK_ITEM_TYPE.story,
+        title: 'x',
+        reporterId: REPORTER,
+        rank: rankBetween(null, null),
+        now: T1,
+        category: category as never,
+      }),
+    )
+  }
+
+  it('is refused when it names something no rule knows', () => {
+    // The type is erased at runtime, so an in-process caller hands over
+    // whatever string it has. Trusting it wrote a file the codec then refused
+    // on the way back, and the item vanished from every list.
+    expectRejects(() => {
+      const error = created('infrastructure')
+      if (error !== undefined) throw error
+    }, 'a category outside the vocabulary')
+  })
+
+  it('takes one it does know, and takes none at all', () => {
+    expect(created(WORK_ITEM_CATEGORY.ops)).toBeUndefined()
+    expect(created(null)).toBeUndefined()
+    expect(created(undefined)).toBeUndefined()
+  })
+
+  it('is refused on an edit as well as on creation', () => {
+    expectRejects(
+      () => updateWorkItemDetails(item(), { category: 'infrastructure' as never }, T2),
+      'a category outside the vocabulary',
+    )
   })
 })
