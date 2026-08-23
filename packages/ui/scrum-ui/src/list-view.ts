@@ -260,6 +260,18 @@ function selectAllCell(rows: readonly WorkItem[], props: ListProps): ReactElemen
   )
 }
 
+/**
+ * One submitted select, as a string.
+ *
+ * A form entry is a string or a file, and only the selects in this form are
+ * ever read; anything else is a control that does not belong here rather than
+ * a value worth guessing at.
+ */
+function chosen(form: FormData, name: string): string {
+  const entry = form.get(name)
+  return typeof entry === 'string' ? entry : ''
+}
+
 /** The fields a batch can set, and where each one's choices come from. */
 const BATCH_FIELDS: readonly { readonly field: string; readonly label: MessageKey }[] = [
   { field: BATCH_FIELD.status, label: 'list.batch.status' },
@@ -290,9 +302,11 @@ function batchPanel(rows: readonly WorkItem[], props: ListProps): ReactElement {
       onSubmit: (event: { preventDefault: () => void; currentTarget: HTMLFormElement }) => {
         event.preventDefault()
         const form = new FormData(event.currentTarget)
-        const field = String(form.get('field') ?? '')
-        const value = String(form.get(`value-${field}`) ?? '')
-        props.actions.apply({ field: field as BatchChange['field'], value })
+        const field = chosen(form, 'field')
+        props.actions.apply({
+          field: field as BatchChange['field'],
+          value: chosen(form, `value-${field}`),
+        })
       },
     },
     createElement(
