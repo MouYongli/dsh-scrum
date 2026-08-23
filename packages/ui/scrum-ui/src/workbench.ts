@@ -763,6 +763,7 @@ function ConnectedSprints(props: {
       detail: controller.openDetail,
       refresh: () => void controller.load(),
       dismiss: controller.dismiss,
+      lane: controller.setLane,
       edit: (command) => void controller.edit(command),
       criterion: (command) => void controller.setCriterion(command),
       parent: (command) => void controller.setParent(command),

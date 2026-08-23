@@ -20,6 +20,37 @@ export interface BoardColumn {
   readonly status: WorkItemStatus
   readonly cards: readonly BoardCard[]
   readonly totals: GroupTotals
+  /**
+   * The limit this column is held to, or null where none applies.
+   *
+   * Null on the first and last columns whatever the project set: a backlog is
+   * a queue and a finished pile is a record, and limiting either would be
+   * limiting the wrong thing. A limit is about how much is under way at once.
+   */
+  readonly limit: number | null
+  readonly overLimit: boolean
+}
+
+/** How a board is split into rows. */
+export const BOARD_LANE = {
+  none: 'none',
+  assignee: 'assignee',
+  epic: 'epic',
+} as const
+
+export type BoardLane = (typeof BOARD_LANE)[keyof typeof BOARD_LANE]
+
+export interface BoardSwimlane {
+  /**
+   * `all` for the single lane of an ungrouped board, `none` for the work with
+   * no owner or no epic, and otherwise the identifier grouped on. The renderer
+   * reads this rather than the label: the first two need copy of their own,
+   * and only it knows how to translate.
+   */
+  readonly key: string
+  /** Null for `all` and `none`, which the renderer names for itself. */
+  readonly label: string | null
+  readonly columns: readonly BoardColumn[]
 }
 
 /**
@@ -33,6 +64,11 @@ export interface BoardColumn {
  */
 export interface BoardView {
   readonly columns: readonly BoardColumn[]
+  /**
+   * The board split into rows. Always at least one, so the renderer has one
+   * shape to draw rather than a grouped branch and an ungrouped one.
+   */
+  readonly lanes: readonly BoardSwimlane[]
   readonly total: GroupTotals
   readonly finished: GroupTotals
   /**
@@ -66,17 +102,94 @@ function totalsOf(items: readonly WorkItem[]): GroupTotals {
  * appeared and vanished with their contents would move under the pointer
  * exactly as work started arriving in them.
  */
-export function boardView(items: readonly WorkItem[]): BoardView {
-  const columns = BOARD_COLUMNS.map((status) => {
+export interface BoardOptions {
+  /** The project's limit, or null when it has not set one. */
+  readonly limit?: number | null | undefined
+  readonly lane?: BoardLane | undefined
+  /**
+   * Titles for the epics the cards belong to, so a lane can be headed by a
+   * name rather than an identifier. An epic the filter left out simply keeps
+   * its identifier.
+   */
+  readonly epicTitles?: ReadonlyMap<string, string> | undefined
+}
+
+/**
+ * Which columns a work-in-progress limit governs.
+ *
+ * Everything between the first and the last. A limit exists to stop a team
+ * starting more than it can finish, and neither the queue in front nor the
+ * pile behind is work in progress.
+ */
+function limitFor(status: WorkItemStatus, limit: number | null): number | null {
+  if (limit === null) {
+    return null
+  }
+  const first = BOARD_COLUMNS[0]
+  const last = BOARD_COLUMNS[BOARD_COLUMNS.length - 1]
+  return status === first || status === last ? null : limit
+}
+
+function columnsOf(items: readonly WorkItem[], limit: number | null): readonly BoardColumn[] {
+  return BOARD_COLUMNS.map((status) => {
     const inColumn = items.filter((item) => item.status === status)
-    return { status, cards: inColumn.map(cardOf), totals: totalsOf(inColumn) }
+    const columnLimit = limitFor(status, limit)
+    return {
+      status,
+      cards: inColumn.map(cardOf),
+      totals: totalsOf(inColumn),
+      limit: columnLimit,
+      overLimit: columnLimit !== null && inColumn.length > columnLimit,
+    }
   })
+}
+
+/**
+ * Every column is drawn, including the empty ones. A board whose columns
+ * appeared and vanished with their contents would move under the pointer
+ * exactly as work started arriving in them.
+ */
+export function boardView(items: readonly WorkItem[], options: BoardOptions = {}): BoardView {
+  const limit = options.limit ?? null
   return {
-    columns,
+    columns: columnsOf(items, limit),
+    lanes: swimlanes(items, limit, options),
     total: totalsOf(items),
     finished: totalsOf(items.filter(isWorkItemFinished)),
     hidden: items.filter((item) => !BOARD_COLUMNS.includes(item.status)).length,
   }
+}
+
+/**
+ * The lanes, in a stable order with the unattributed one last.
+ *
+ * "Nobody" and "no epic" are lanes rather than omissions: work with no owner
+ * is exactly what a lane view is being opened to find, and dropping it would
+ * make the board disagree with its own totals.
+ */
+function swimlanes(
+  items: readonly WorkItem[],
+  limit: number | null,
+  options: BoardOptions,
+): readonly BoardSwimlane[] {
+  const lane = options.lane ?? BOARD_LANE.none
+  if (lane === BOARD_LANE.none) {
+    return [{ key: 'all', label: null, columns: columnsOf(items, limit) }]
+  }
+  const keyOf = (item: WorkItem): string =>
+    (lane === BOARD_LANE.assignee ? item.assigneeId : item.parentId) ?? ''
+  const keys = [...new Set(items.map(keyOf))].sort()
+  // The empty key sorts first as a string and belongs last as a lane: it is
+  // the leftovers, and a board that opened with them would bury the people.
+  const ordered = [...keys.filter((key) => key !== ''), ...keys.filter((key) => key === '')]
+  return ordered.map((key) => ({
+    key: key === '' ? 'none' : key,
+    label: key === '' ? null : (options.epicTitles?.get(key) ?? key),
+    columns: columnsOf(
+      items.filter((item) => keyOf(item) === key),
+      limit,
+    ),
+  }))
 }
 
 /** Somewhere a card can be moved to, and how the work ended if that is it. */

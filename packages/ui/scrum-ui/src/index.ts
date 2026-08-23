@@ -49,7 +49,14 @@ export type {
   GroupTotals,
 } from './backlog.js'
 export { BACKLOG_GROUPING, backlogPage } from './backlog.js'
-export type { BoardCard, BoardColumn, BoardView } from './board.js'
+export type {
+  BoardCard,
+  BoardColumn,
+  BoardLane,
+  BoardOptions,
+  BoardSwimlane,
+  BoardView,
+} from './board.js'
 export type {
   BurndownView,
   DashboardInput,
@@ -86,7 +93,7 @@ export {
   currentSprint,
   dashboardView,
 } from './dashboard.js'
-export { boardView, everyMoveTarget, moveTargets } from './board.js'
+export { BOARD_LANE, boardView, everyMoveTarget, moveTargets } from './board.js'
 export type { BoardActions, BoardProps } from './board-view.js'
 export { Board } from './board-view.js'
 export type { BacklogController, BacklogState } from './backlog-controller.js'
