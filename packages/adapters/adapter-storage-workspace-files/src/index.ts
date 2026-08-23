@@ -6,6 +6,7 @@ export {
   layoutDirectories,
   realPathInside,
   resolveInside,
+  sprintProgressFile,
   sprintFile,
   workItemFile,
   workspaceLayout,
@@ -62,6 +63,8 @@ export {
   listActivityMonths,
   readActivity,
 } from './activity.js'
+export type { SprintProgressReadResult } from './sprint-progress-log.js'
+export { appendSprintProgress, readSprintProgress } from './sprint-progress-log.js'
 export type { StoredEdition } from './repository-project.js'
 export type { WorkspaceRepositories, WorkspaceRepositoriesInput } from './repositories.js'
 export { createWorkspaceRepositories } from './repositories.js'

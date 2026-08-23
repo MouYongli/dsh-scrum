@@ -25,6 +25,7 @@ import {
   type ApplicationDependencies,
   type AtomicWrites,
   type NewProject,
+  type SprintProgressEntry,
   type StoredProject,
   type WorkItemFilter,
   type WorkspaceBinding,
@@ -68,6 +69,8 @@ export interface Store {
     sessionId: string | null
     targetId: string
   }[]
+  /** What each sprint committed to when it opened. */
+  readonly commitments: SprintProgressEntry[]
 }
 
 export function store(): Store {
@@ -79,6 +82,7 @@ export function store(): Store {
     sprints: new Map(),
     actors: [],
     activity: [],
+    commitments: [],
   }
 }
 
@@ -186,6 +190,13 @@ function dependencies(state: Store): ApplicationDependencies {
           targetId: event.targetId,
         })
       },
+    },
+    sprintProgressLog: {
+      append: async (commitment) => {
+        state.commitments.push(commitment)
+      },
+      read: async (sprintId) =>
+        state.commitments.filter((commitment) => commitment.sprintId === sprintId),
     },
     idempotency: { find: async () => null, save: async () => undefined },
   }

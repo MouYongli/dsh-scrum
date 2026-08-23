@@ -119,7 +119,10 @@ export interface SprintProgressSummary {
   readonly sprintId: string
   readonly byStatus: Readonly<Record<string, { readonly count: number; readonly estimate: number }>>
   readonly total: { readonly count: number; readonly estimate: number }
+  /** Everything that left the board, however it ended. */
   readonly finished: { readonly count: number; readonly estimate: number }
+  /** The part of it that ended as done, which is what velocity counts. */
+  readonly delivered: { readonly count: number; readonly estimate: number }
   readonly unestimated: number
 }
 
@@ -131,6 +134,7 @@ export function progressSummary(progress: SprintProgress): SprintProgressSummary
     ),
     total: { ...progress.total },
     finished: { ...progress.finished },
+    delivered: { ...progress.delivered },
     unestimated: progress.unestimated,
   }
 }
