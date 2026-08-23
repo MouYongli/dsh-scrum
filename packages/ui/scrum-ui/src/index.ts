@@ -57,6 +57,10 @@ export type {
   DashboardView,
   SignalGroup,
 } from './dashboard.js'
+export type { DashboardController, DashboardState } from './dashboard-controller.js'
+export { ACTIVITY_WINDOW, createDashboardController } from './dashboard-controller.js'
+export type { DashboardActions, DashboardProps } from './dashboard-view.js'
+export { DashboardScreen } from './dashboard-view.js'
 export {
   DASHBOARD_SIGNAL,
   DASHBOARD_SIGNALS,
