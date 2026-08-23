@@ -371,38 +371,41 @@ export const SCRUM_STYLES = String.raw`
 
 [data-scrum-dashboard] {
   display: grid;
-  gap: 18px;
-  margin-top: 18px;
+  gap: var(--scrum-space-5);
+  margin-top: var(--scrum-space-5);
 }
 
 [data-scrum-dashboard] > section {
-  padding: 18px;
+  padding: var(--scrum-space-4);
   border: 1px solid var(--scrum-border);
   border-radius: var(--scrum-radius);
   background: var(--scrum-panel);
 }
 
-[data-scrum-dashboard] h3 { font-size: 15px; margin-bottom: 10px; }
-[data-scrum-dashboard] h4 { font-size: 14px; }
+[data-scrum-dashboard] h3 {
+  font-size: var(--scrum-text-lg);
+  margin-bottom: var(--scrum-space-2);
+}
+[data-scrum-dashboard] h4 { font-size: var(--scrum-text-md); }
 
 [data-scrum-sprint-totals],
 [data-scrum-burndown] dl {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 22px;
-  margin-top: 8px;
+  gap: var(--scrum-space-1) var(--scrum-space-5);
+  margin-top: var(--scrum-space-2);
 }
 [data-scrum-sprint-totals] dt,
 [data-scrum-burndown] dt { color: var(--scrum-muted); }
 [data-scrum-sprint-totals] dd,
-[data-scrum-burndown] dd { margin: 0 0 0 6px; font-variant-numeric: tabular-nums; }
+[data-scrum-burndown] dd { margin: 0 0 0 var(--scrum-space-1); font-variant-numeric: tabular-nums; }
 
 /* The bar is the burndown: a filled length for what is left, and a marker
    where an even spread would have it by now. */
 [data-scrum-burndown-bar] {
   position: relative;
   height: 10px;
-  margin: 14px 0 10px;
+  margin: var(--scrum-space-3) 0 var(--scrum-space-2);
   border-radius: 999px;
   background: var(--scrum-panel-subtle);
   overflow: hidden;
@@ -419,27 +422,31 @@ export const SCRUM_STYLES = String.raw`
   width: 2px;
   background: var(--scrum-warning);
 }
-[data-scrum-burndown-note] { color: var(--scrum-muted); font-size: 12px; }
+[data-scrum-burndown-note] { color: var(--scrum-muted); font-size: var(--scrum-text-xs); }
 [data-scrum-scope-change] { color: var(--scrum-warning); }
 
 [data-scrum-signal] {
-  padding: 12px 0;
+  padding: var(--scrum-space-3) 0;
   border-top: 1px solid var(--scrum-border);
 }
 [data-scrum-signal]:first-child { border-top: 0; padding-top: 0; }
-[data-scrum-signal] > p { color: var(--scrum-muted); font-size: 12px; margin-bottom: 6px; }
+[data-scrum-signal] > p {
+  color: var(--scrum-muted);
+  font-size: var(--scrum-text-xs);
+  margin-bottom: var(--scrum-space-1);
+}
 [data-scrum-signal] li,
 [data-scrum-activity] li {
   display: flex;
-  gap: 12px;
+  gap: var(--scrum-space-3);
   align-items: baseline;
-  padding: 5px 0;
+  padding: var(--scrum-space-1) 0;
 }
 [data-scrum-signal] [data-scrum-meta],
 [data-scrum-activity-at],
 [data-scrum-activity-action] {
   color: var(--scrum-muted);
-  font-size: 12px;
+  font-size: var(--scrum-text-xs);
 }
 [data-scrum-activity-at] { font-variant-numeric: tabular-nums; }
 [data-scrum-activity-problems] { color: var(--scrum-warning); }
@@ -671,14 +678,18 @@ export const SCRUM_STYLES = String.raw`
 
 [data-scrum-sprint-summary] {
   display: grid;
-  gap: 8px;
-  padding: 20px;
+  gap: var(--scrum-space-2);
+  padding: var(--scrum-space-5);
   border-radius: var(--scrum-radius);
   background: linear-gradient(135deg, color-mix(in srgb, var(--scrum-accent) 14%, var(--scrum-panel)), var(--scrum-panel));
   border: 1px solid color-mix(in srgb, var(--scrum-accent) 24%, var(--scrum-border));
 }
 
-[data-scrum-sprint-dates], [data-scrum-sprint-progress] { color: var(--scrum-muted); font-size: 13px; }
+[data-scrum-sprint-dates],
+[data-scrum-sprint-progress] {
+  color: var(--scrum-muted);
+  font-size: var(--scrum-text-sm);
+}
 [data-scrum-columns] {
   display: grid;
   grid-auto-flow: column;
@@ -742,15 +753,19 @@ export const SCRUM_STYLES = String.raw`
   color: inherit;
 }
 
-[data-scrum-planning] { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+[data-scrum-planning] {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--scrum-space-4);
+}
 [data-scrum-pane] {
-  padding: 16px;
+  padding: var(--scrum-space-4);
   border: 1px solid var(--scrum-border);
   border-radius: var(--scrum-radius);
   background: var(--scrum-panel);
 }
 
-[data-scrum-pane] > h4 { margin-bottom: 10px; }
+[data-scrum-pane] > h4 { margin-bottom: var(--scrum-space-2); }
 [data-scrum-pane] [data-scrum-row] { padding-inline: 0; }
 
 [data-scrum-detail] {
@@ -1020,7 +1035,11 @@ export const SCRUM_STYLES = String.raw`
   border: 1px solid var(--scrum-border);
 }
 
-[data-scrum-timeline="grid"] { display: grid; gap: 10px; }
+[data-scrum-timeline="grid"] {
+  --scrum-timeline-label: 260px;
+  display: grid;
+  gap: var(--scrum-space-2);
+}
 
 /* The lane the bars are read against. Equal columns because a sprint is a
    fixed-length box in this grid, not a proportional one. */
@@ -1029,11 +1048,11 @@ export const SCRUM_STYLES = String.raw`
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
   gap: 1px;
-  margin-inline-start: 260px;
-  padding: 4px 0;
+  margin-inline-start: var(--scrum-timeline-label);
+  padding: var(--scrum-space-1) 0;
   border-block: 1px solid var(--scrum-border);
   color: var(--scrum-muted);
-  font-size: 12px;
+  font-size: var(--scrum-text-xs);
   text-align: center;
 }
 
@@ -1041,10 +1060,10 @@ export const SCRUM_STYLES = String.raw`
 
 [data-scrum-timeline-row] {
   display: grid;
-  grid-template-columns: 260px 1fr 90px;
+  grid-template-columns: var(--scrum-timeline-label) 1fr 90px;
   align-items: center;
-  gap: 10px;
-  padding: 3px 0;
+  gap: var(--scrum-space-2);
+  padding: var(--scrum-space-1) 0;
 }
 [data-scrum-timeline-row] > ul { grid-column: 1 / -1; }
 
@@ -1069,14 +1088,21 @@ export const SCRUM_STYLES = String.raw`
 }
 [data-scrum-depth="0"] [data-scrum-timeline-track] > span { background: var(--scrum-accent); }
 
-[data-scrum-timeline-meta] { color: var(--scrum-muted); font-size: 12px; text-align: end; }
+[data-scrum-timeline-meta] {
+  color: var(--scrum-muted);
+  font-size: var(--scrum-text-xs);
+  text-align: end;
+}
 
 [data-scrum-timeline-unscheduled] {
-  padding: 12px 14px;
+  padding: var(--scrum-space-3) var(--scrum-space-4);
   border: 1px dashed var(--scrum-border);
   border-radius: var(--scrum-radius);
 }
-[data-scrum-timeline-unscheduled] p { color: var(--scrum-muted); font-size: 12px; }
+[data-scrum-timeline-unscheduled] p {
+  color: var(--scrum-muted);
+  font-size: var(--scrum-text-xs);
+}
 [data-scrum-timeline="no-sprints"] p,
 [data-scrum-timeline-empty] { color: var(--scrum-muted); }
 
