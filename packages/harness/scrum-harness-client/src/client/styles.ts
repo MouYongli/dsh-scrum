@@ -681,23 +681,24 @@ export const SCRUM_STYLES = String.raw`
 [data-scrum-sprint-dates], [data-scrum-sprint-progress] { color: var(--scrum-muted); font-size: 13px; }
 [data-scrum-columns] {
   display: grid;
-  grid-template-columns: repeat(4, minmax(220px, 1fr));
-  gap: 12px;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(220px, 1fr);
+  gap: var(--scrum-space-3);
   overflow-x: auto;
-  padding-bottom: 6px;
+  padding-bottom: var(--scrum-space-2);
 }
 
 [data-scrum-column] {
   min-width: 220px;
-  padding: 12px;
+  padding: var(--scrum-space-3);
   border: 1px solid var(--scrum-border);
   border-radius: var(--scrum-radius);
   background: var(--scrum-panel-subtle);
 }
 
-[data-scrum-column] > h4 { display: inline; font-size: 13px; }
-[data-scrum-column] > [data-scrum-totals] { display: inline; margin-left: 8px; }
-[data-scrum-column] > ul { display: grid; gap: 9px; margin-top: 12px; }
+[data-scrum-column] > h4 { display: inline; font-size: var(--scrum-text-sm); }
+[data-scrum-column] > [data-scrum-totals] { display: inline; margin-left: var(--scrum-space-2); }
+[data-scrum-column] > ul { display: grid; gap: var(--scrum-space-2); margin-top: var(--scrum-space-3); }
 [data-scrum-column] [data-scrum-card] {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -707,7 +708,39 @@ export const SCRUM_STYLES = String.raw`
 }
 
 [data-scrum-column] [data-scrum-card] > button:first-child { grid-column: 1 / -1; }
-[data-scrum-column] [data-scrum-card] > span:last-child { grid-column: 1 / -1; display: grid; gap: 5px; }
+[data-scrum-column] [data-scrum-card] > span:last-child {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: var(--scrum-space-1);
+}
+
+/*
+ * The move control, quieted.
+ *
+ * Every card carries one, because dragging is the single gesture no keyboard
+ * can reach and the select names where a card can go before the pointer is
+ * over it. Twelve cards then meant twelve full-size bordered dropdowns
+ * competing with the twelve titles that are what the column is scanned for.
+ *
+ * Quieted, not hidden: it keeps its label, its size and its place in the tab
+ * order, and it comes back to full strength on hover and on keyboard focus.
+ * A control that only existed on hover would not exist at all on a touch
+ * screen, which is the trap this board already refused once by not using drag.
+ */
+[data-scrum-column] [data-scrum-card] select {
+  min-height: 28px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--scrum-muted);
+  font-size: var(--scrum-text-xs);
+}
+
+[data-scrum-column] [data-scrum-card]:hover select,
+[data-scrum-column] [data-scrum-card] select:focus-visible {
+  border-color: var(--scrum-border);
+  background: var(--scrum-panel);
+  color: inherit;
+}
 
 [data-scrum-planning] { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 [data-scrum-pane] {
@@ -1074,6 +1107,11 @@ export const SCRUM_STYLES = String.raw`
 [data-scrum-plan-field] { display: inline-flex; align-items: center; gap: 6px; }
 [data-scrum-plan-field] label { font-size: 12px; }
 [data-scrum-plan-empty] { color: var(--scrum-muted); font-size: 12px; }
+
+[data-scrum-column] [data-scrum-card] label {
+  font-size: var(--scrum-text-xs);
+  font-weight: 500;
+}
 
 [data-scrum-board-bar] {
   display: flex;
