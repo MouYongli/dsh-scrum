@@ -46,6 +46,20 @@ export const SCRUM_STYLES = String.raw`
    * blur, so they read as one light source rather than as haze.
    */
   --scrum-panel-raised: var(--dsw-alias-bg-layer-2, color-mix(in srgb, CanvasText 4%, Canvas));
+  /*
+   * A filled control and the text on it, taken as a pair.
+   *
+   * The primary buttons were the accent with white forced on top. That pairing
+   * is the shell's accent, not the shell's primary button -- the host fills one
+   * with brand-primary and puts label-primary-foreground on it -- and white on
+   * the accent measures about 4.2:1 in the light theme, under the floor, while
+   * in the dark theme the accent lightens to #679efe and white on it is worse
+   * still. The host's own pair inverts with the theme and clears the floor at
+   * both ends, which the Canvas/CanvasText fallback also does.
+   */
+  --scrum-primary-fill: var(--dsw-alias-button-primary-fill, CanvasText);
+  --scrum-primary-hover: var(--dsw-alias-button-primary-hover, color-mix(in srgb, CanvasText 85%, Canvas));
+  --scrum-primary-label: var(--dsw-alias-label-primary-foreground, Canvas);
   --scrum-mask: var(--dsw-alias-bg-mask-1, rgb(0 0 0 / 24%));
   --scrum-shadow-sm: 0 2px 3px rgb(0 0 0 / 6%);
   --scrum-shadow-lg: 0 6px 8px rgb(0 0 0 / 6%), 0 24px 40px rgb(0 0 0 / 14%);
@@ -193,7 +207,7 @@ export const SCRUM_STYLES = String.raw`
   justify-content: flex-start;
   gap: 0;
   min-height: 44px;
-  margin: 0 !important;
+  margin: 0;
   padding: 12px 28px 0;
   border-bottom: 0;
 }
@@ -259,7 +273,7 @@ export const SCRUM_STYLES = String.raw`
 
 [data-scrum-page="bound"] > [data-scrum-moved],
 [data-scrum-page="archived"] > [data-scrum-moved] {
-  margin: 16px clamp(20px, 3vw, 40px) 0 !important;
+  margin: 16px clamp(20px, 3vw, 40px) 0;
 }
 
 [data-scrum-page] > h2 {
@@ -277,9 +291,9 @@ export const SCRUM_STYLES = String.raw`
   text-transform: uppercase;
 }
 
-[data-scrum-project] {
+[data-scrum-overlay] [data-scrum-project] {
   width: fit-content;
-  margin-top: 4px !important;
+  margin-top: var(--scrum-space-1);
   padding: 5px 10px;
   border: 1px solid var(--scrum-border);
   border-radius: 999px;
@@ -365,7 +379,7 @@ export const SCRUM_STYLES = String.raw`
   line-height: 1.25;
   letter-spacing: -.02em;
 }
-[data-scrum-project-heading] > [data-scrum-project] { margin: 0 !important; }
+[data-scrum-project-heading] > [data-scrum-project] { margin: 0; }
 [data-scrum-project-edit] { margin-left: auto; }
 [data-scrum-home] > h3 { margin-top: 24px; font-size: 15px; }
 [data-scrum-home] > p { max-width: 680px; color: var(--scrum-muted); white-space: pre-wrap; }
@@ -463,10 +477,10 @@ export const SCRUM_STYLES = String.raw`
 }
 [data-scrum-project-form] > p { display: grid; gap: 6px; }
 [data-scrum-project-actions] { display: flex; justify-content: flex-end; gap: 8px; }
-[data-scrum-project-save] {
-  border-color: transparent !important;
-  background: var(--scrum-accent) !important;
-  color: white !important;
+[data-scrum-overlay] [data-scrum-project-save] {
+  border-color: transparent;
+  background: var(--scrum-primary-fill);
+  color: var(--scrum-primary-label);
   font-weight: 700;
 }
 
@@ -541,17 +555,32 @@ export const SCRUM_STYLES = String.raw`
 [data-scrum-overlay] label,
 [data-scrum-overlay] legend { font-size: 13px; font-weight: 650; color: var(--scrum-muted); }
 
-[data-scrum-create-open],
-[data-scrum-sprint-create-open],
-[data-scrum-submit],
-[data-scrum-item-submit],
-[data-scrum-sprint-submit],
-[data-scrum-transition] {
+[data-scrum-overlay] [data-scrum-create-open],
+[data-scrum-overlay] [data-scrum-sprint-create-open],
+[data-scrum-overlay] [data-scrum-submit],
+[data-scrum-overlay] [data-scrum-item-submit],
+[data-scrum-overlay] [data-scrum-sprint-submit],
+[data-scrum-overlay] [data-scrum-transition] {
   width: fit-content;
-  border-color: transparent !important;
-  background: var(--scrum-accent) !important;
-  color: white !important;
+  border-color: transparent;
+  background: var(--scrum-primary-fill);
+  color: var(--scrum-primary-label);
   font-weight: 700;
+}
+
+/*
+ * The baseline hover tints towards the accent, which on a filled control would
+ * wash the fill rather than deepen it. A primary button darkens instead.
+ */
+[data-scrum-overlay] [data-scrum-project-save]:hover:not(:disabled),
+[data-scrum-overlay] [data-scrum-create-open]:hover:not(:disabled),
+[data-scrum-overlay] [data-scrum-sprint-create-open]:hover:not(:disabled),
+[data-scrum-overlay] [data-scrum-submit]:hover:not(:disabled),
+[data-scrum-overlay] [data-scrum-item-submit]:hover:not(:disabled),
+[data-scrum-overlay] [data-scrum-sprint-submit]:hover:not(:disabled),
+[data-scrum-overlay] [data-scrum-transition]:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--scrum-primary-hover);
 }
 
 [data-scrum-create-open]::before,
@@ -932,7 +961,7 @@ export const SCRUM_STYLES = String.raw`
 
 /* Every field's control is rendered; only the chosen one is shown. Hiding
    with CSS keeps each control named apart in the form. */
-[data-scrum-batch-value] { display: none !important; }
+[data-scrum-batch] [data-scrum-batch-value] { display: none; }
 [data-scrum-batch]:has(#scrum-batch-field option[value="status"]:checked)
   [data-scrum-batch-value="status"],
 [data-scrum-batch]:has(#scrum-batch-field option[value="priority"]:checked)
@@ -945,7 +974,7 @@ export const SCRUM_STYLES = String.raw`
   [data-scrum-batch-value="addLabel"],
 [data-scrum-batch]:has(#scrum-batch-field option[value="removeLabel"]:checked)
   [data-scrum-batch-value="removeLabel"] {
-  display: grid !important;
+  display: grid;
 }
 
 [data-scrum-batch-outcome] {
