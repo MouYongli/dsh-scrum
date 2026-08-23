@@ -11,6 +11,7 @@ import {
 import { PERMISSION, toProjectKey } from '@dsh-scrum/scrum-domain'
 import { createBacklogController } from './backlog-controller.js'
 import { createDashboardController } from './dashboard-controller.js'
+import { FilterBar } from './filter-bar.js'
 import { DashboardScreen } from './dashboard-view.js'
 import { BacklogScreen } from './backlog-view.js'
 import { createSprintController } from './sprint-controller.js'
@@ -584,6 +585,7 @@ function ConnectedItems(props: {
   readonly client: ScrumClient
   readonly t: Translate
   readonly query: WorkItemQuery
+  readonly onQuery: (query: WorkItemQuery) => void
 }): ReactElement {
   const controller = useMemo(() => createBacklogController(props.client, {}), [props.client])
   const state = useSyncExternalStore(controller.subscribe, controller.state, controller.state)
@@ -598,6 +600,13 @@ function ConnectedItems(props: {
     'section',
     { 'data-scrum-items': true },
     createElement('h3', null, props.t('items.title')),
+    createElement(FilterBar, {
+      query,
+      onQuery: props.onQuery,
+      items: state.ordered,
+      t: props.t,
+      id: 'scrum-items',
+    }),
     createElement(WorkItemList, {
       state,
       sort,

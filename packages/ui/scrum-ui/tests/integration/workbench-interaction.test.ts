@@ -147,6 +147,31 @@ describe('a workbench over a bound project', () => {
     expect(mounted.container.textContent).toContain('SCR-1 · 结算对账')
   })
 
+  it('keeps a narrowing set on the work item list in force on the backlog', async () => {
+    const mounted = workbench(
+      stubClient({
+        entry: () => Promise.resolve(BOUND),
+        backlog: () => Promise.resolve([item(1, { title: '结算对账' })]),
+        sprints: () => Promise.resolve([]),
+        settings: () => Promise.resolve(SETTINGS),
+        activity: () => Promise.resolve({ events: [], problems: [] }),
+      }),
+    )
+    await settle()
+
+    mounted.click('[data-scrum-section="items"]')
+    await settle()
+    mounted.type('#scrum-items-text', '对账')
+    await settle()
+
+    mounted.click('[data-scrum-section="backlog"]')
+    await settle()
+
+    // One filter over the project, held above both pages: saying it again on
+    // the way to the backlog is what a shared model exists to avoid.
+    expect((mounted.find('#scrum-backlog-text') as HTMLInputElement).value).toBe('对账')
+  })
+
   it('describes a personal Community owner on the settings page, without role editing', async () => {
     const mounted = workbench(
       stubClient({

@@ -1,6 +1,7 @@
 import { createElement, useState, type ReactElement, type ReactNode } from 'react'
 import { isWorkItemBlocked, type WorkItem, type WorkItemId } from '@dsh-scrum/scrum-domain'
 import type { BacklogGroup, BacklogRow } from './backlog.js'
+import { FilterBar } from './filter-bar.js'
 import { BACKLOG_GROUPING, type BacklogGrouping } from './backlog.js'
 import type { BacklogState } from './backlog-controller.js'
 import type {
@@ -194,19 +195,16 @@ function toolbar(props: BacklogProps): ReactElement {
   return createElement(
     'div',
     { 'data-scrum-toolbar': true },
-    createElement(
-      'p',
-      null,
-      createElement('label', { htmlFor: 'scrum-backlog-text' }, t('backlog.filter.text')),
-      createElement('input', {
-        id: 'scrum-backlog-text',
-        type: 'search',
-        value: query.text,
-        onChange: (event: { target: { value: string } }) => {
-          props.actions.narrow({ ...query, text: event.target.value })
-        },
-      }),
-    ),
+    // The narrowing is the shared bar's, so what the user set here is still
+    // set on the work item list. Grouping stays: it is a way of drawing this
+    // list rather than a way of narrowing it, and no other page has one.
+    createElement(FilterBar, {
+      query,
+      onQuery: props.actions.narrow,
+      items: state.ordered,
+      t,
+      id: 'scrum-backlog',
+    }),
     createElement(
       'p',
       null,
@@ -229,44 +227,6 @@ function toolbar(props: BacklogProps): ReactElement {
         ),
       ),
     ),
-    // The scope is not offered here any more. Turning "only what is unplanned"
-    // off turned the backlog into a list of every work item, which is now a
-    // page of its own; two routes to one screen is one more than it needs.
-    checkbox('scrum-backlog-blocked', t('backlog.filter.blocked'), query.blocked === true, (on) => {
-      props.actions.narrow(on ? { ...query, blocked: true } : without(query, 'blocked'))
-    }),
-  )
-}
-
-/**
- * Drops one narrowing.
- *
- * Dropping means clearing the field, not setting it to `false`: an absent
- * `blocked` asks for everything, while `false` asks for the items that are
- * explicitly not blocked, and those are different lists.
- */
-function without(query: WorkItemQuery, key: 'blocked'): WorkItemQuery {
-  return { ...query, [key]: undefined }
-}
-
-function checkbox(
-  id: string,
-  label: string,
-  checked: boolean,
-  onChange: (checked: boolean) => void,
-): ReactElement {
-  return createElement(
-    'p',
-    { key: id },
-    createElement('input', {
-      id,
-      type: 'checkbox',
-      checked,
-      onChange: (event: { target: { checked: boolean } }) => {
-        onChange(event.target.checked)
-      },
-    }),
-    createElement('label', { htmlFor: id }, label),
   )
 }
 

@@ -396,8 +396,8 @@ export const SCRUM_STYLES = String.raw`
 [data-scrum-sprints] > h2 { font-size: 16px; }
 
 [data-scrum-toolbar] {
-  display: grid;
-  grid-template-columns: minmax(220px, 2fr) minmax(150px, 1fr) auto auto;
+  display: flex;
+  flex-wrap: wrap;
   align-items: end;
   gap: 12px;
   padding: 14px;
@@ -415,6 +415,30 @@ export const SCRUM_STYLES = String.raw`
   padding: 0 4px;
   white-space: nowrap;
 }
+
+/* The bar wraps rather than scrolls: nine controls on one line would push the
+   work off the screen the filter exists to narrow. */
+[data-scrum-filter-bar] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 10px 14px;
+  flex: 1 1 100%;
+}
+
+[data-scrum-filter-field] { display: grid; gap: 6px; }
+[data-scrum-filter-field]:has(input[type="checkbox"]) {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  gap: 8px;
+  white-space: nowrap;
+}
+[data-scrum-filter-bar] input[type="search"] { min-width: 200px; }
+[data-scrum-filter-bar] select[multiple] { min-width: 130px; padding: 4px; }
+[data-scrum-filter-bar] select:not([multiple]) { min-width: 150px; }
+[data-scrum-filter-none] { color: var(--scrum-muted); font-size: 12px; align-self: center; }
+[data-scrum-filter-clear] { align-self: center; }
 
 [data-scrum-overlay] label,
 [data-scrum-overlay] legend { font-size: 13px; font-weight: 650; color: var(--scrum-muted); }
