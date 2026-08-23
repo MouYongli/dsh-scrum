@@ -14,6 +14,7 @@ import { BacklogScreen } from './backlog-view.js'
 import { createSprintController } from './sprint-controller.js'
 import { SprintScreen } from './sprint-view.js'
 import type {
+  AuthorizationView,
   CreateProjectInput,
   EntryView,
   ProjectView,
@@ -731,36 +732,22 @@ function surfaceFor(
         body: 'review.body',
       })
     case 'settings':
-      return createElement(Placeholder, {
-        t: props.t,
-        id: 'settings',
-        title: 'settings.title',
-        body: 'settings.body',
-      })
+      return createElement(ConnectedSettings, props)
   }
 }
 
-function ConnectedHome(props: {
-  readonly client: ScrumClient
-  readonly t: Translate
-  readonly project: ProjectView
-  readonly readOnly: boolean
-  readonly onProjectUpdated: () => void
-}): ReactElement {
-  const [authorization, setAuthorization] = useState<Awaited<
-    ReturnType<ScrumClient['authorization']>
-  > | null>(null)
-  const [editing, setEditing] = useState(false)
-  const [name, setName] = useState(props.project.name)
-  const [description, setDescription] = useState(props.project.description)
-  const [saving, setSaving] = useState(false)
-  const [failure, setFailure] = useState<string | null>(null)
-  const dirty = name !== props.project.name || description !== props.project.description
-  useDraftGuard(editing && dirty)
-
+/**
+ * What the current user may do here, resolved once per client.
+ *
+ * Two pages ask, and the answer is about the person and the project rather
+ * than about either page, so it is read the same way in both instead of one
+ * page passing it to the other through a shape neither owns.
+ */
+function useAuthorization(client: ScrumClient): AuthorizationView | null {
+  const [authorization, setAuthorization] = useState<AuthorizationView | null>(null)
   useEffect(() => {
     let current = true
-    void props.client
+    void client
       .authorization()
       .then((resolved) => {
         if (current) setAuthorization(resolved)
@@ -771,7 +758,71 @@ function ConnectedHome(props: {
     return () => {
       current = false
     }
-  }, [props.client])
+  }, [client])
+  return authorization
+}
+
+/**
+ * The dashboard: what this project is, and eventually how it is going.
+ *
+ * Read-only. Changing the project's own details is a settings act, and a
+ * heading somebody edits in passing on the page they open every morning is
+ * the heading that gets changed by accident.
+ */
+function ConnectedHome(props: {
+  readonly client: ScrumClient
+  readonly t: Translate
+  readonly project: ProjectView
+  readonly readOnly: boolean
+  readonly onProjectUpdated: () => void
+}): ReactElement {
+  const authorization = useAuthorization(props.client)
+  return createElement(
+    'section',
+    { 'data-scrum-home': true },
+    createElement(
+      'div',
+      { 'data-scrum-project-heading': true },
+      createElement('h2', null, props.project.name),
+      createElement('p', { 'data-scrum-project': props.project.key }, props.project.key),
+    ),
+    props.project.description === ''
+      ? null
+      : createElement('p', { 'data-scrum-project-description': true }, props.project.description),
+    createElement('h3', null, props.t('dashboard.title')),
+    createElement('p', null, props.t('dashboard.body')),
+    authorization?.membership.mode === 'personal'
+      ? createElement(
+          'aside',
+          { 'data-scrum-personal-owner': true },
+          createElement('h3', null, props.t('membership.personal.title')),
+          createElement('p', null, props.t('membership.personal.body')),
+          createElement(
+            'p',
+            { 'data-scrum-owner-roles': true },
+            authorization.membership.roles.join(', '),
+          ),
+        )
+      : null,
+  )
+}
+
+/** The settings page, which for now is the project's own details. */
+function ConnectedSettings(props: {
+  readonly client: ScrumClient
+  readonly t: Translate
+  readonly project: ProjectView
+  readonly readOnly: boolean
+  readonly onProjectUpdated: () => void
+}): ReactElement {
+  const authorization = useAuthorization(props.client)
+  const [editing, setEditing] = useState(false)
+  const [name, setName] = useState(props.project.name)
+  const [description, setDescription] = useState(props.project.description)
+  const [saving, setSaving] = useState(false)
+  const [failure, setFailure] = useState<string | null>(null)
+  const dirty = name !== props.project.name || description !== props.project.description
+  useDraftGuard(editing && dirty)
 
   async function save(event: FormEvent): Promise<void> {
     event.preventDefault()
@@ -799,11 +850,13 @@ function ConnectedHome(props: {
 
   return createElement(
     'section',
-    { 'data-scrum-home': true },
+    { 'data-scrum-settings': true },
+    createElement('h3', null, props.t('settings.title')),
+    createElement('p', null, props.t('settings.body')),
     createElement(
       'div',
       { 'data-scrum-project-heading': true },
-      createElement('h2', null, props.project.name),
+      createElement('h4', null, props.project.name),
       createElement('p', { 'data-scrum-project': props.project.key }, props.project.key),
       !mayEdit || editing
         ? null
@@ -851,21 +904,6 @@ function ConnectedHome(props: {
       : props.project.description === ''
         ? null
         : createElement('p', { 'data-scrum-project-description': true }, props.project.description),
-    createElement('h3', null, props.t('home.title')),
-    createElement('p', null, props.t('home.body')),
-    authorization?.membership.mode === 'personal'
-      ? createElement(
-          'aside',
-          { 'data-scrum-personal-owner': true },
-          createElement('h3', null, props.t('membership.personal.title')),
-          createElement('p', null, props.t('membership.personal.body')),
-          createElement(
-            'p',
-            { 'data-scrum-owner-roles': true },
-            authorization.membership.roles.join(', '),
-          ),
-        )
-      : null,
   )
 }
 

@@ -126,7 +126,7 @@ describe('a workbench over a bound project', () => {
     expect(mounted.container.querySelector('[data-scrum-member-editor]')).toBeNull()
   })
 
-  it('places the key beside the title and edits the title and multiline description', async () => {
+  it('edits the title and multiline description on the settings page', async () => {
     const updateProject = vi.fn(() =>
       Promise.resolve({
         id: 'prj_1',
@@ -150,9 +150,16 @@ describe('a workbench over a bound project', () => {
     )
     await settle()
 
-    const heading = mounted.find('[data-scrum-project-heading]')
-    expect(heading.firstElementChild?.tagName).toBe('H2')
-    expect(heading.children[1]?.getAttribute('data-scrum-project')).toBe('SCR')
+    // The dashboard shows the project read-only. A heading somebody can edit
+    // in passing on the page they open every morning is the one that gets
+    // changed by accident, so the edit lives with the rest of the settings.
+    const dashboardHeading = mounted.find('[data-scrum-project-heading]')
+    expect(dashboardHeading.firstElementChild?.tagName).toBe('H2')
+    expect(dashboardHeading.children[1]?.getAttribute('data-scrum-project')).toBe('SCR')
+    expect(mounted.container.querySelector('[data-scrum-project-edit]')).toBeNull()
+
+    mounted.click('[data-scrum-section="settings"]')
+    await settle()
     mounted.click('[data-scrum-project-edit]')
     mounted.type('#scrum-project-name', 'Storefront')
     mounted.type('#scrum-project-description', 'First line\nSecond line')

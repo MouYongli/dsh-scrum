@@ -68,8 +68,6 @@ export const SCRUM_MESSAGES = {
     'state.stale.title': '绑定已失效',
     'state.stale.body': '此工作区绑定的 Scrum 项目已不存在，可以解除绑定后重新创建。',
     'state.moved.notice': '此工作区的位置与绑定时不同，请确认这是同一个目录。',
-    'home.title': '项目概览',
-    'home.body': '从上方页签进入各个视图。',
     'project.edit': '编辑项目',
     'project.save': '保存',
     'project.saving': '正在保存……',
@@ -304,8 +302,6 @@ export const SCRUM_MESSAGES = {
       'The project this workspace was attached to is gone. Detach and create a new one.',
     'state.moved.notice':
       'This workspace is not where it was when it was attached. Check that it is the same directory.',
-    'home.title': 'Project overview',
-    'home.body': 'Use the tabs above to open any of the views.',
     'project.edit': 'Edit project',
     'project.save': 'Save',
     'project.saving': 'Saving…',
