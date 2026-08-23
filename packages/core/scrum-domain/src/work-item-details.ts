@@ -88,12 +88,18 @@ const NO_DETAILS: EmptyDetails = {}
  *
  * Absent is a value: every field defaults, so an item created without details
  * and a record written before the field existed both land on the same shape.
- * Keys this type does not carry are ignored rather than refused — they can
- * only come from a caller confusing two types, and the API contract parses
- * strictly before anything reaches here.
+ * Keys this type does not carry are ignored rather than refused, so that a
+ * caller may hand over what it read without pruning it first.
+ *
+ * A `type` key is the exception. Callers that carry the details across a
+ * boundary tag them with the type they describe, and a tag naming a different
+ * type is the one mismatch worth refusing: the fields beside it would
+ * otherwise be dropped in silence, which is how a bug report becomes an empty
+ * epic without anybody being told.
  */
 export function toWorkItemDetails(type: WorkItemType, value: unknown = {}): WorkItemDetails {
   const record = asRecord(type, value)
+  assertDescribes(type, record)
   switch (type) {
     case WORK_ITEM_TYPE.epic:
       return { color: text(record, 'color', 'Epic colour', MAX_COLOR_LENGTH) }
@@ -116,6 +122,16 @@ export function toWorkItemDetails(type: WorkItemType, value: unknown = {}): Work
     case WORK_ITEM_TYPE.story:
     case WORK_ITEM_TYPE.subtask:
       return NO_DETAILS
+  }
+}
+
+function assertDescribes(type: WorkItemType, record: Record<string, unknown>): void {
+  const tag = record['type']
+  if (tag !== undefined && tag !== type) {
+    throw new ValidationError('these type details describe a different type', {
+      type,
+      found: typeof tag === 'string' ? tag : typeof tag,
+    })
   }
 }
 

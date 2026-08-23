@@ -1,4 +1,6 @@
 import {
+  WORK_ITEM_TYPE,
+  toBugSeverity,
   toIdentityId,
   toPriority,
   toProjectKey,
@@ -6,6 +8,7 @@ import {
   toRevision,
   toSprintId,
   toTimestamp,
+  toWorkItemCategory,
   toWorkItemId,
   toWorkItemStatus,
   toWorkItemType,
@@ -94,6 +97,8 @@ const rank = domain(toRank, 'a rank')
 const timestamp = domain(toTimestamp, 'a timestamp')
 const priority = domain(toPriority, 'a priority')
 const workItemType = domain(toWorkItemType, 'a work item type')
+const workItemCategory = domain(toWorkItemCategory, 'a work category')
+const bugSeverity = domain(toBugSeverity, 'a bug severity')
 const workItemStatus = domain(toWorkItemStatus, 'a work item status')
 const projectKey = domain(toProjectKey, 'a project key')
 const identityId = domain(toIdentityId, 'an identity id')
@@ -120,6 +125,43 @@ const acceptanceCriterion = z.object({
   satisfied: z.boolean(),
 })
 
+/**
+ * The fields a type carries, one shape per type.
+ *
+ * Tagged with the type it describes, and strict about everything else. The tag
+ * travels to the domain, which refuses details describing a type other than
+ * the one they were handed with — an edit can leave the type alone, and only
+ * the layer holding the stored item knows what that type is.
+ *
+ * Strict, because a key no shape owns can only come from a caller confusing
+ * two types, and this is where it is still holding the field it meant.
+ */
+const typeDetails = z.discriminatedUnion('type', [
+  z.object({ type: z.literal(WORK_ITEM_TYPE.epic), color: z.string().optional() }).strict(),
+  z.object({ type: z.literal(WORK_ITEM_TYPE.story) }).strict(),
+  z
+    .object({
+      type: z.literal(WORK_ITEM_TYPE.task),
+      timebox: z.int().nullable().optional(),
+      outcome: z.string().optional(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal(WORK_ITEM_TYPE.bug),
+      severity: bugSeverity.nullable().optional(),
+      stepsToReproduce: z.string().optional(),
+      expected: z.string().optional(),
+      actual: z.string().optional(),
+      environment: z.string().optional(),
+      affectedVersion: z.string().optional(),
+      isRegression: z.boolean().optional(),
+      rootCause: z.string().optional(),
+    })
+    .strict(),
+  z.object({ type: z.literal(WORK_ITEM_TYPE.subtask) }).strict(),
+])
+
 const workItemRef = {
   workItemId,
   expectedRevision: revision,
@@ -134,6 +176,8 @@ const detailChanges = z.object({
   title: z.string().optional(),
   description: z.string().optional(),
   type: workItemType.optional(),
+  category: workItemCategory.nullable().optional(),
+  typeDetails: typeDetails.optional(),
   priority: priority.optional(),
   assigneeId: identityId.nullable().optional(),
   estimate: z.number().nullable().optional(),
@@ -184,6 +228,9 @@ export const SCRUM_INPUT = {
     type: workItemType,
     title: z.string(),
     description: z.string().optional(),
+    category: workItemCategory.nullable().optional(),
+    typeDetails: typeDetails.optional(),
+    parentId: workItemId.nullable().optional(),
     priority: priority.optional(),
     labels: z.array(z.string()).optional(),
     acceptanceCriteria: z.array(acceptanceCriterion).optional(),
