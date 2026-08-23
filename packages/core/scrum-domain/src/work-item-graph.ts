@@ -2,13 +2,13 @@ import { ValidationError } from './errors.js'
 import type { WorkItemId } from './ids.js'
 import { touchEntityMetadata } from './metadata.js'
 import type { Timestamp } from './time.js'
+import type { WorkItem } from './work-item.js'
 import {
   workItemLevel,
   workItemRequiresParent,
-  type WorkItem,
   type WorkItemLevel,
   type WorkItemType,
-} from './work-item.js'
+} from './work-item-type.js'
 
 // A store that already contains a cycle would otherwise walk forever. The
 // bounds turn corrupted data into a rejected write naming the item it gave up

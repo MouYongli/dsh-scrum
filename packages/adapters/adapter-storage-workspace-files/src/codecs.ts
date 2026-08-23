@@ -20,6 +20,7 @@ import {
   toWorkItemId,
   toWorkItemStatus,
   toWorkItemCategory,
+  toWorkItemDetails,
   toWorkItemResolution,
   toWorkItemType,
   workItemLevel,
@@ -167,9 +168,16 @@ export function decodeWorkItem(raw: unknown): WorkItem {
  * or written by an older layout is repaired on the way in instead of carrying a
  * disagreement no rule could resolve.
  */
-function decodeWorkItemType(record: JsonRecord): Pick<WorkItem, 'type' | 'level'> {
+function decodeWorkItemType(record: JsonRecord): Pick<WorkItem, 'type' | 'level' | 'typeDetails'> {
   const type = toWorkItemType(stringField(record, 'type'))
-  return { type, level: workItemLevel(type) }
+  return {
+    type,
+    level: workItemLevel(type),
+    // Through the domain's own normaliser, so the shape a rule is written
+    // against is the shape read off disk, and a record from before the field
+    // existed lands on the same defaults as a freshly created item.
+    typeDetails: toWorkItemDetails(type, record['typeDetails']),
+  }
 }
 
 /**

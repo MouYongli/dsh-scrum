@@ -13,6 +13,7 @@ import {
 import {
   EDITION,
   ERROR_CODE,
+  BUG_SEVERITY,
   WORK_ITEM_CATEGORY,
   WORK_ITEM_RESOLUTION,
   WORK_ITEM_STATUS,
@@ -205,6 +206,45 @@ describe('round trips', () => {
           resolution: WORK_ITEM_RESOLUTION.wontFix,
         }),
       'an unfinished item with an outcome',
+    )
+  })
+
+  it('reads a work item written before the type details existed', () => {
+    const encoded = stored(encodeWorkItem(workItem))
+    const older: Record<string, unknown> = { ...encoded }
+    delete older['typeDetails']
+
+    // A story carries no fields of its own, so the absence and the empty
+    // shape describe the same item; the point is that the reader supplies one.
+    expect(decodeWorkItem(older).typeDetails).toEqual({})
+  })
+
+  it('reads the details a type carries and refuses one of the wrong shape', () => {
+    const bug = createWorkItem({
+      id: toWorkItemId('SCR-2'),
+      projectId: project.id,
+      type: WORK_ITEM_TYPE.bug,
+      title: '保存后页面白屏',
+      reporterId: OWNER,
+      rank: rankBetween(null, null),
+      typeDetails: {
+        severity: BUG_SEVERITY.blocker,
+        stepsToReproduce: '1. 打开设置\n2. 点击保存',
+        expected: '保存成功',
+        actual: '页面白屏',
+        environment: 'macOS 15',
+        affectedVersion: '0.4.1',
+        isRegression: true,
+        rootCause: '',
+      },
+      now: T1,
+    })
+    const encoded = stored(encodeWorkItem(bug))
+
+    expect(decodeWorkItem(encoded)).toEqual(bug)
+    expectRejects(
+      () => decodeWorkItem({ ...encoded, typeDetails: { severity: 'catastrophic' } }),
+      'a severity this build does not know',
     )
   })
 

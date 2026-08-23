@@ -131,23 +131,36 @@ export type {
   Priority,
   WorkItem,
   WorkItemDetailChanges,
-  WorkItemLevel,
   WorkItemStatusMove,
-  WorkItemType,
 } from './work-item.js'
+export type {
+  BugDetails,
+  BugSeverity,
+  EmptyDetails,
+  EpicDetails,
+  TaskDetails,
+  WorkItemDetails,
+} from './work-item-details.js'
+export { BUG_SEVERITY, toBugSeverity, toWorkItemDetails } from './work-item-details.js'
+export type { WorkItemLevel, WorkItemType } from './work-item-type.js'
 export {
-  PRIORITY,
   WORK_ITEM_LEVEL,
   WORK_ITEM_TYPE,
-  createWorkItem,
-  isWorkItemAccepted,
   recommendedTypeFor,
+  toWorkItemType,
   workItemLevel,
+  workItemRequiresParent,
+} from './work-item-type.js'
+export {
+  PRIORITY,
+  bugDetails,
+  createWorkItem,
+  epicDetails,
+  isWorkItemAccepted,
+  taskDetails,
   setAcceptanceCriterionSatisfied,
   toPriority,
-  toWorkItemType,
   updateWorkItemDetails,
-  workItemRequiresParent,
 } from './work-item.js'
 export {
   assignWorkItemToSprint,

@@ -3,7 +3,21 @@ import type { IdentityId, ProjectId, SprintId, WorkItemId } from './ids.js'
 import { createEntityMetadata, touchEntityMetadata, type EntityMetadata } from './metadata.js'
 import type { Rank } from './rank.js'
 import { requireOptionalText, requireText } from './text.js'
-import { WORK_ITEM_CATEGORY, type WorkItemCategory } from './work-category.js'
+import type { WorkItemCategory } from './work-category.js'
+import {
+  toWorkItemDetails,
+  type BugDetails,
+  type EpicDetails,
+  type TaskDetails,
+  type WorkItemDetails,
+} from './work-item-details.js'
+import {
+  WORK_ITEM_TYPE,
+  workItemLevel,
+  workItemRequiresParent,
+  type WorkItemLevel,
+  type WorkItemType,
+} from './work-item-type.js'
 import type { Timestamp } from './time.js'
 import {
   WORK_ITEM_RESOLUTION,
@@ -21,95 +35,7 @@ const MAX_ACCEPTANCE_CRITERION_LENGTH = 500
 const MAX_ESTIMATE = 1000
 const MAX_BLOCKED_REASON_LENGTH = 500
 
-/**
- * The kinds of work a project tracks. Persisted, so the values may be added to
- * but never renamed.
- *
- * Five rather than six: a spike is a task carrying the spike category, not a
- * type of its own. This enum fixes the hierarchy and the fields a type brings
- * with it, and a semantic distinction worth two extra fields would otherwise
- * add a branch to every type check and every type selector in the product.
- */
-export const WORK_ITEM_TYPE = {
-  epic: 'epic',
-  story: 'story',
-  task: 'task',
-  bug: 'bug',
-  subtask: 'subtask',
-} as const
-
-export type WorkItemType = (typeof WORK_ITEM_TYPE)[keyof typeof WORK_ITEM_TYPE]
-
-const TYPES: readonly string[] = Object.values(WORK_ITEM_TYPE)
-
-export function toWorkItemType(value: string): WorkItemType {
-  if (!TYPES.includes(value)) {
-    throw new ValidationError(`WorkItemType must be one of ${TYPES.join(', ')}`, { value })
-  }
-  return value as WorkItemType
-}
-
-/** Where an item sits in the hierarchy: an epic is 1, a subtask is 3. */
-export type WorkItemLevel = 1 | 2 | 3
-
-/**
- * The level each type occupies.
- *
- * The three level 2 types are peers. A bug is not filed under the story it
- * affects: a defect and the requirement it breaks reference one another, and
- * hanging the first under the second folds the cost of the defect into the
- * progress of the requirement, which is where defect statistics start to lie.
- */
-export const WORK_ITEM_LEVEL = {
-  [WORK_ITEM_TYPE.epic]: 1,
-  [WORK_ITEM_TYPE.story]: 2,
-  [WORK_ITEM_TYPE.task]: 2,
-  [WORK_ITEM_TYPE.bug]: 2,
-  [WORK_ITEM_TYPE.subtask]: 3,
-} as const satisfies Record<WorkItemType, WorkItemLevel>
-
-export function workItemLevel(type: WorkItemType): WorkItemLevel {
-  return WORK_ITEM_LEVEL[type]
-}
-
-const SUBTASK_LEVEL = 3
-
-/**
- * Whether an item at this level is meaningless on its own.
- *
- * Only a level 3 item is. An epic tops the hierarchy and a level 2 item is
- * deliverable by itself, but a subtask is a breakdown of something, so one
- * with nothing above it names no work anybody agreed to do.
- */
-export function workItemRequiresParent(level: WorkItemLevel): boolean {
-  return level === SUBTASK_LEVEL
-}
-
 const EPIC_LEVEL = 1
-
-/**
- * The type each category suggests when an item is created.
- *
- * A suggestion and not a rule. The judgement behind it — whether the work is
- * visible to a user and separately deliverable — falls differently between
- * teams on the boundary cases, and "the page loads within three seconds" is a
- * story in one team and a task in the next. Enforcing it would turn a team
- * convention into a form somebody cannot complete.
- */
-const RECOMMENDED_TYPE = {
-  [WORK_ITEM_CATEGORY.feature]: WORK_ITEM_TYPE.story,
-  [WORK_ITEM_CATEGORY.nfrVisible]: WORK_ITEM_TYPE.story,
-  [WORK_ITEM_CATEGORY.nfrConstraint]: WORK_ITEM_TYPE.task,
-  [WORK_ITEM_CATEGORY.techDebt]: WORK_ITEM_TYPE.task,
-  [WORK_ITEM_CATEGORY.spike]: WORK_ITEM_TYPE.task,
-  [WORK_ITEM_CATEGORY.ops]: WORK_ITEM_TYPE.task,
-  [WORK_ITEM_CATEGORY.docs]: WORK_ITEM_TYPE.task,
-  [WORK_ITEM_CATEGORY.defect]: WORK_ITEM_TYPE.bug,
-} as const satisfies Record<WorkItemCategory, WorkItemType>
-
-export function recommendedTypeFor(category: WorkItemCategory): WorkItemType {
-  return RECOMMENDED_TYPE[category]
-}
 
 /**
  * The one level a sprint holds, estimates and ranks.
@@ -207,6 +133,34 @@ export interface WorkItem extends EntityMetadata {
   readonly blockedReason: string | null
   readonly labels: readonly string[]
   readonly acceptanceCriteria: readonly AcceptanceCriterion[]
+  /**
+   * The fields only this type carries, written under the same revision as the
+   * rest of the item. A table of its own would make one edit two writes and
+   * put the pair out of step whenever the second one failed.
+   */
+  readonly typeDetails: WorkItemDetails
+}
+
+/*
+ * Reading the details back.
+ *
+ * The union members are told apart by the item's own `type` rather than by a
+ * tag inside the details, so nothing has to keep two spellings of the same
+ * fact in agreement. The cast is confined to these three functions, and the
+ * constructors below are what make it true: details are always built for the
+ * type they sit beside, and a type change rebuilds them.
+ */
+
+export function epicDetails(item: WorkItem): EpicDetails | null {
+  return item.type === WORK_ITEM_TYPE.epic ? (item.typeDetails as EpicDetails) : null
+}
+
+export function taskDetails(item: WorkItem): TaskDetails | null {
+  return item.type === WORK_ITEM_TYPE.task ? (item.typeDetails as TaskDetails) : null
+}
+
+export function bugDetails(item: WorkItem): BugDetails | null {
+  return item.type === WORK_ITEM_TYPE.bug ? (item.typeDetails as BugDetails) : null
 }
 
 export interface CreateWorkItemInput {
@@ -220,6 +174,7 @@ export interface CreateWorkItemInput {
    */
   readonly parentId?: WorkItemId | null | undefined
   readonly category?: WorkItemCategory | null | undefined
+  readonly typeDetails?: WorkItemDetails | undefined
   readonly title: string
   readonly description?: string | undefined
   readonly priority?: Priority | undefined
@@ -268,6 +223,7 @@ export function createWorkItem(input: CreateWorkItemInput): WorkItem {
     blockedReason: null,
     labels: toLabels(input.labels ?? []),
     acceptanceCriteria: toAcceptanceCriteria(input.acceptanceCriteria ?? []),
+    typeDetails: toWorkItemDetails(input.type, input.typeDetails),
   }
 }
 
@@ -276,6 +232,7 @@ export interface WorkItemDetailChanges {
   readonly description?: string | undefined
   readonly type?: WorkItemType | undefined
   readonly category?: WorkItemCategory | null | undefined
+  readonly typeDetails?: WorkItemDetails | undefined
   readonly priority?: Priority | undefined
   readonly assigneeId?: IdentityId | null | undefined
   readonly estimate?: number | null | undefined
@@ -320,7 +277,27 @@ export function updateWorkItemDetails(
       changes.acceptanceCriteria === undefined
         ? item.acceptanceCriteria
         : toAcceptanceCriteria(changes.acceptanceCriteria),
+    typeDetails: nextTypeDetails(item, type, changes.typeDetails),
   }
+}
+
+/**
+ * The details after an edit.
+ *
+ * A type change replaces them rather than carrying fields across. The two
+ * types share no field that means the same thing — a bug's severity says
+ * nothing about an epic — and keeping whatever happened to be there would
+ * leave an item describing work it is no longer about.
+ */
+function nextTypeDetails(
+  item: WorkItem,
+  type: WorkItemType,
+  changed: WorkItemDetails | undefined,
+): WorkItemDetails {
+  if (changed !== undefined) {
+    return toWorkItemDetails(type, changed)
+  }
+  return type === item.type ? item.typeDetails : toWorkItemDetails(type)
 }
 
 /**
