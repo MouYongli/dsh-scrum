@@ -57,6 +57,9 @@ export type {
   DashboardView,
   SignalGroup,
 } from './dashboard.js'
+export type { BatchChange, BatchField, BatchOutcome, BatchRefusal } from './batch.js'
+export { BATCH_FIELD, applyBatch, isFinishingMove } from './batch.js'
+export { downloadCsv, toCsv } from './export.js'
 export type { FilterBarProps } from './filter-bar.js'
 export { FilterBar } from './filter-bar.js'
 export type { DashboardController, DashboardState } from './dashboard-controller.js'
