@@ -1,5 +1,5 @@
 import { createElement, useState, type ReactElement, type ReactNode } from 'react'
-import type { WorkItem, WorkItemId } from '@dsh-scrum/scrum-domain'
+import { isWorkItemBlocked, type WorkItem, type WorkItemId } from '@dsh-scrum/scrum-domain'
 import type { BacklogGroup, BacklogRow } from './backlog.js'
 import { BACKLOG_GROUPING, type BacklogGrouping } from './backlog.js'
 import type { BacklogState } from './backlog-controller.js'
@@ -14,7 +14,7 @@ import type {
   SetCriterion,
 } from './client.js'
 import type { MessageKey, Translate } from './messages.js'
-import { priorityLabel, typeLabel } from './vocabulary.js'
+import { categoryLabel, priorityLabel, statusLabel, typeLabel } from './vocabulary.js'
 import { EMPTY_FIELDS, WorkItemForm, toNewWorkItem } from './work-item-form.js'
 import { OrderControls, type RankTarget } from './work-item-links.js'
 import { WorkItemDetail } from './work-item-detail.js'
@@ -56,6 +56,7 @@ export interface BacklogProps {
 const GROUPINGS: readonly { readonly value: BacklogGrouping; readonly label: MessageKey }[] = [
   { value: BACKLOG_GROUPING.none, label: 'backlog.grouping.none' },
   { value: BACKLOG_GROUPING.type, label: 'backlog.grouping.type' },
+  { value: BACKLOG_GROUPING.category, label: 'backlog.grouping.category' },
   { value: BACKLOG_GROUPING.priority, label: 'backlog.grouping.priority' },
   { value: BACKLOG_GROUPING.parent, label: 'backlog.grouping.parent' },
 ]
@@ -340,6 +341,50 @@ function groupSection(group: BacklogGroup, props: BacklogProps): ReactElement {
  * the keyboard, and a row that only answers a pointer is a row half the users
  * cannot open.
  */
+/**
+ * The subtasks folded into one row.
+ *
+ * Drawn inside the parent's row rather than as siblings of it, and without
+ * order controls: rank is one order over the things a sprint plans, and a
+ * subtask is not one of them. They are still selectable, because a subtask is
+ * where somebody records that a piece of the work is blocked or done.
+ */
+function subtaskList(row: BacklogRow, props: BacklogProps): ReactElement | null {
+  if (row.subtasks.length === 0) {
+    return null
+  }
+  const { t } = props
+  return createElement(
+    'ul',
+    { 'data-scrum-subtasks': row.item.id, 'aria-label': t('backlog.subtasks') },
+    row.subtasks.map((subtask) =>
+      createElement(
+        'li',
+        { key: subtask.id, 'data-scrum-subtask': subtask.id },
+        createElement(
+          'button',
+          {
+            type: 'button',
+            'aria-pressed': props.state.selected?.id === subtask.id,
+            onClick: () => {
+              props.actions.select(props.state.selected?.id === subtask.id ? null : subtask.id)
+            },
+          },
+          `${subtask.id} · ${subtask.title}`,
+        ),
+        createElement(
+          'span',
+          { 'data-scrum-status': subtask.status },
+          t(statusLabel(subtask.status)),
+        ),
+        isWorkItemBlocked(subtask)
+          ? createElement('span', { 'data-scrum-blocked': true }, t('backlog.blocked'))
+          : null,
+      ),
+    ),
+  )
+}
+
 function rowItem(row: BacklogRow, props: BacklogProps): ReactElement {
   const { t } = props
   const item: WorkItem = row.item
@@ -359,6 +404,11 @@ function rowItem(row: BacklogRow, props: BacklogProps): ReactElement {
       `${item.id} · ${item.title}`,
     ),
     createElement('span', { 'data-scrum-type': item.type }, t(typeLabel(item.type))),
+    createElement(
+      'span',
+      { 'data-scrum-category': item.category ?? 'none' },
+      t(categoryLabel(item.category)),
+    ),
     createElement(
       'span',
       { 'data-scrum-priority': item.priority },
@@ -386,6 +436,7 @@ function rowItem(row: BacklogRow, props: BacklogProps): ReactElement {
     row.blocked
       ? createElement('span', { 'data-scrum-blocked': true }, t('backlog.blocked'))
       : null,
+    subtaskList(row, props),
     props.readOnly
       ? null
       : createElement(OrderControls, {

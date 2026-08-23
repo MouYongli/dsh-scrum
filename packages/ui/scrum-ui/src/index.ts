@@ -55,9 +55,16 @@ export type { SprintActions, SprintProps } from './sprint-view.js'
 export { SprintScreen } from './sprint-view.js'
 export {
   BOARD_COLUMNS,
+  BUG_SEVERITIES,
   PRIORITIES,
+  WORK_ITEM_CATEGORIES,
+  WORK_ITEM_RESOLUTIONS,
   WORK_ITEM_TYPES,
+  categoryLabel,
   priorityLabel,
+  recommendedTypeFor,
+  resolutionLabel,
+  severityLabel,
   sprintStatusLabel,
   statusLabel,
   typeLabel,

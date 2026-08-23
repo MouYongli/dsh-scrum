@@ -1,11 +1,18 @@
 import {
   BOARD_STATUSES,
+  BUG_SEVERITY,
   PRIORITY,
   SPRINT_STATUS,
+  WORK_ITEM_CATEGORY,
+  WORK_ITEM_RESOLUTION,
   WORK_ITEM_STATUS,
   WORK_ITEM_TYPE,
+  recommendedTypeFor,
+  type BugSeverity,
   type Priority,
   type SprintStatus,
+  type WorkItemCategory,
+  type WorkItemResolution,
   type WorkItemStatus,
   type WorkItemType,
 } from '@dsh-scrum/scrum-domain'
@@ -33,8 +40,52 @@ const PRIORITY_LABEL: Readonly<Record<Priority, MessageKey>> = {
   [PRIORITY.low]: 'priority.low',
 }
 
+const CATEGORY_LABEL: Readonly<Record<WorkItemCategory, MessageKey>> = {
+  [WORK_ITEM_CATEGORY.feature]: 'category.feature',
+  [WORK_ITEM_CATEGORY.nfrVisible]: 'category.nfrVisible',
+  [WORK_ITEM_CATEGORY.nfrConstraint]: 'category.nfrConstraint',
+  [WORK_ITEM_CATEGORY.techDebt]: 'category.techDebt',
+  [WORK_ITEM_CATEGORY.spike]: 'category.spike',
+  [WORK_ITEM_CATEGORY.ops]: 'category.ops',
+  [WORK_ITEM_CATEGORY.docs]: 'category.docs',
+  [WORK_ITEM_CATEGORY.defect]: 'category.defect',
+}
+
+const RESOLUTION_LABEL: Readonly<Record<WorkItemResolution, MessageKey>> = {
+  [WORK_ITEM_RESOLUTION.done]: 'resolution.done',
+  [WORK_ITEM_RESOLUTION.wontFix]: 'resolution.wontFix',
+  [WORK_ITEM_RESOLUTION.duplicate]: 'resolution.duplicate',
+  [WORK_ITEM_RESOLUTION.cannotReproduce]: 'resolution.cannotReproduce',
+}
+
+const SEVERITY_LABEL: Readonly<Record<BugSeverity, MessageKey>> = {
+  [BUG_SEVERITY.blocker]: 'severity.blocker',
+  [BUG_SEVERITY.major]: 'severity.major',
+  [BUG_SEVERITY.minor]: 'severity.minor',
+  [BUG_SEVERITY.trivial]: 'severity.trivial',
+}
+
 export function typeLabel(type: WorkItemType): MessageKey {
   return TYPE_LABEL[type]
+}
+
+/**
+ * The three vocabularies that admit "nobody said".
+ *
+ * Unset is named rather than shown as a blank. A row with an empty cell reads
+ * as a rendering fault; one that says it is unclassified reads as a fact about
+ * the item, which is what it is.
+ */
+export function categoryLabel(category: WorkItemCategory | null): MessageKey {
+  return category === null ? 'category.none' : CATEGORY_LABEL[category]
+}
+
+export function resolutionLabel(resolution: WorkItemResolution): MessageKey {
+  return RESOLUTION_LABEL[resolution]
+}
+
+export function severityLabel(severity: BugSeverity | null): MessageKey {
+  return severity === null ? 'severity.none' : SEVERITY_LABEL[severity]
 }
 
 export function priorityLabel(priority: Priority): MessageKey {
@@ -43,6 +94,42 @@ export function priorityLabel(priority: Priority): MessageKey {
 
 /** The order the vocabulary is offered in, which is the domain's own. */
 export const WORK_ITEM_TYPES: readonly WorkItemType[] = Object.values(WORK_ITEM_TYPE)
+
+/**
+ * The categories, grouped by the type each suggests.
+ *
+ * The order is the one the product document lists them in, which reads down
+ * from what a user asks for to what only the team sees. A list sorted by the
+ * stored spelling would put documentation between technical debt and features
+ * for no reason a reader could follow.
+ */
+export const WORK_ITEM_CATEGORIES: readonly WorkItemCategory[] = [
+  WORK_ITEM_CATEGORY.feature,
+  WORK_ITEM_CATEGORY.nfrVisible,
+  WORK_ITEM_CATEGORY.nfrConstraint,
+  WORK_ITEM_CATEGORY.techDebt,
+  WORK_ITEM_CATEGORY.spike,
+  WORK_ITEM_CATEGORY.ops,
+  WORK_ITEM_CATEGORY.docs,
+  WORK_ITEM_CATEGORY.defect,
+]
+
+export const WORK_ITEM_RESOLUTIONS: readonly WorkItemResolution[] = [
+  WORK_ITEM_RESOLUTION.done,
+  WORK_ITEM_RESOLUTION.wontFix,
+  WORK_ITEM_RESOLUTION.duplicate,
+  WORK_ITEM_RESOLUTION.cannotReproduce,
+]
+
+/** Worst first, the way a triage list is read. */
+export const BUG_SEVERITIES: readonly BugSeverity[] = [
+  BUG_SEVERITY.blocker,
+  BUG_SEVERITY.major,
+  BUG_SEVERITY.minor,
+  BUG_SEVERITY.trivial,
+]
+
+export { recommendedTypeFor }
 
 /**
  * Most urgent first, which is not the order the domain declares them in. The

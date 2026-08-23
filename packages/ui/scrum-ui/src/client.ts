@@ -140,11 +140,16 @@ export interface WorkItemRef {
 
 export interface NewWorkItem {
   readonly type: WorkItemType
+  readonly category?: WorkItemCategory | null | undefined
   readonly title: string
   readonly description?: string | undefined
   readonly priority?: Priority | undefined
   readonly labels?: readonly string[] | undefined
   readonly acceptanceCriteria?: readonly AcceptanceCriterion[] | undefined
+  /** The fields this type carries, tagged with the type they describe. */
+  readonly typeDetails?: Record<string, unknown> | undefined
+  /** Required for a subtask, which sits under the item it breaks down. */
+  readonly parentId?: WorkItemId | null | undefined
 }
 
 export interface EditWorkItem extends WorkItemRef {

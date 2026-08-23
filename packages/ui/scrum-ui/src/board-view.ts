@@ -1,12 +1,16 @@
 import { createElement, type ReactElement } from 'react'
-import type { WorkItemId, WorkItemStatus } from '@dsh-scrum/scrum-domain'
+import type { WorkItemId, WorkItemResolution, WorkItemStatus } from '@dsh-scrum/scrum-domain'
 import { moveTargets, type BoardCard, type BoardColumn, type BoardView } from './board.js'
 import type { WorkItemRef } from './client.js'
 import type { Translate } from './messages.js'
 import { priorityLabel, statusLabel, typeLabel } from './vocabulary.js'
 
 export interface BoardActions {
-  readonly move: (item: WorkItemRef, status: WorkItemStatus) => void
+  readonly move: (
+    item: WorkItemRef,
+    status: WorkItemStatus,
+    resolution: WorkItemResolution | null,
+  ) => void
   readonly detail: (id: WorkItemId | null) => void
 }
 
@@ -120,17 +124,21 @@ function cardItem(card: BoardCard, props: BoardProps): ReactElement {
               disabled: props.busy,
               'data-scrum-move': item.id,
               onChange: (event: { target: { value: string } }) => {
-                if (event.target.value !== '') {
+                const target = moveTargets(item.status).find(
+                  (candidate) => candidate.key === event.target.value,
+                )
+                if (target !== undefined) {
                   props.actions.move(
                     { workItemId: item.id, expectedRevision: item.revision },
-                    event.target.value as WorkItemStatus,
+                    target.status,
+                    target.resolution,
                   )
                 }
               },
             },
             createElement('option', { key: '', value: '' }, t('board.moveTo')),
-            moveTargets(item.status).map((status) =>
-              createElement('option', { key: status, value: status }, t(statusLabel(status))),
+            moveTargets(item.status).map((target) =>
+              createElement('option', { key: target.key, value: target.key }, t(target.label)),
             ),
           ),
         ),

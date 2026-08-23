@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { WORK_ITEM_STATUS } from '@dsh-scrum/scrum-domain'
+import { WORK_ITEM_RESOLUTION, WORK_ITEM_STATUS } from '@dsh-scrum/scrum-domain'
 import { BOARD_COLUMNS, boardView, moveTargets } from '@dsh-scrum/scrum-ui'
 import { item } from '../support/items.js'
 
@@ -68,10 +68,35 @@ describe('a card', () => {
 
 describe('where a card may go', () => {
   it('offers every other column, not only the next one', () => {
-    expect(moveTargets(WORK_ITEM_STATUS.inProgress)).toEqual([
-      WORK_ITEM_STATUS.todo,
-      WORK_ITEM_STATUS.review,
-      WORK_ITEM_STATUS.done,
+    expect(
+      moveTargets(WORK_ITEM_STATUS.inProgress)
+        .filter((target) => target.resolution === null)
+        .map((target) => target.status),
+    ).toEqual([WORK_ITEM_STATUS.todo, WORK_ITEM_STATUS.review])
+  })
+
+  it('offers the last column once per way of ending', () => {
+    const endings = moveTargets(WORK_ITEM_STATUS.review).filter(
+      (target) => target.resolution !== null,
+    )
+
+    // One choice, not a dialog after the move and not a silent default: the
+    // ordinary answer sits where the single "done" entry used to, and work
+    // that was abandoned stops being recorded as delivered.
+    expect(endings.every((target) => target.status === WORK_ITEM_STATUS.done)).toBe(true)
+    expect(endings.map((target) => target.resolution)).toEqual([
+      WORK_ITEM_RESOLUTION.done,
+      WORK_ITEM_RESOLUTION.wontFix,
+      WORK_ITEM_RESOLUTION.duplicate,
+      WORK_ITEM_RESOLUTION.cannotReproduce,
     ])
+  })
+
+  it('offers a finished card only the way back', () => {
+    // Restating how something ended is a different act from finishing it, and
+    // it belongs where the rest of an item's fields are edited.
+    expect(moveTargets(WORK_ITEM_STATUS.done).every((target) => target.resolution === null)).toBe(
+      true,
+    )
   })
 })

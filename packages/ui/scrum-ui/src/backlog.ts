@@ -1,6 +1,19 @@
-import { isWorkItemBlocked, type WorkItem, type WorkItemId } from '@dsh-scrum/scrum-domain'
+import {
+  isWorkItemBlocked,
+  workItemRequiresParent,
+  type WorkItem,
+  type WorkItemCategory,
+  type WorkItemId,
+} from '@dsh-scrum/scrum-domain'
 import type { MessageKey } from './messages.js'
-import { PRIORITIES, WORK_ITEM_TYPES, priorityLabel, typeLabel } from './vocabulary.js'
+import {
+  PRIORITIES,
+  WORK_ITEM_CATEGORIES,
+  WORK_ITEM_TYPES,
+  categoryLabel,
+  priorityLabel,
+  typeLabel,
+} from './vocabulary.js'
 
 /**
  * How the list is broken up.
@@ -14,6 +27,7 @@ import { PRIORITIES, WORK_ITEM_TYPES, priorityLabel, typeLabel } from './vocabul
 export const BACKLOG_GROUPING = {
   none: 'none',
   type: 'type',
+  category: 'category',
   priority: 'priority',
   parent: 'parent',
 } as const
@@ -31,6 +45,15 @@ export interface BacklogRow {
   /** Satisfied acceptance criteria over the total, for the list line. */
   readonly criteria: { readonly satisfied: number; readonly total: number }
   readonly dependencies: number
+  /**
+   * The subtasks broken out of this item, in rank order.
+   *
+   * They travel with the row rather than as rows of their own. A subtask is a
+   * breakdown of one item, so a flat list would put a decomposition beside the
+   * things being decomposed, and the ordering the product owner set would read
+   * as if it ranked both against each other.
+   */
+  readonly subtasks: readonly WorkItem[]
 }
 
 export interface GroupTotals {
@@ -64,7 +87,7 @@ export interface BacklogPage {
   readonly emptiness: BacklogEmptiness
 }
 
-function rowOf(item: WorkItem): BacklogRow {
+function rowOf(item: WorkItem, subtasks: readonly WorkItem[]): BacklogRow {
   return {
     item,
     blocked: isWorkItemBlocked(item),
@@ -73,7 +96,28 @@ function rowOf(item: WorkItem): BacklogRow {
       total: item.acceptanceCriteria.length,
     },
     dependencies: item.dependsOn.length,
+    subtasks,
   }
+}
+
+/**
+ * Turns a flat list into rows with their subtasks folded in.
+ *
+ * A subtask whose parent is not in the loaded set keeps a row of its own. It
+ * has to appear somewhere: folding it under a parent nobody can see would hide
+ * it, and dropping it would report a shorter backlog than the project has.
+ */
+function foldSubtasks(items: readonly WorkItem[]): readonly BacklogRow[] {
+  const shown = new Set(items.map((item) => item.id))
+  const folded = (item: WorkItem): boolean =>
+    workItemRequiresParent(item.level) && item.parentId !== null && shown.has(item.parentId)
+
+  const under = new Map<WorkItemId, WorkItem[]>()
+  for (const item of items.filter(folded)) {
+    const parentId = item.parentId as WorkItemId
+    under.set(parentId, [...(under.get(parentId) ?? []), item])
+  }
+  return items.filter((item) => !folded(item)).map((item) => rowOf(item, under.get(item.id) ?? []))
 }
 
 function totalsOf(rows: readonly BacklogRow[]): GroupTotals {
@@ -103,6 +147,28 @@ function partition<Key extends string>(
       return { key, label: label(key), rows: inGroup, totals: totalsOf(inGroup) }
     })
     .filter((group) => group.rows.length > 0)
+}
+
+/**
+ * The items nobody classified, as a group of their own at the end.
+ *
+ * Named rather than left out: an item with no category is still work, and a
+ * grouping that silently dropped it would report a backlog shorter than the
+ * one the project has.
+ */
+function unclassified(rows: readonly BacklogRow[]): readonly BacklogGroup[] {
+  const inGroup = rows.filter((row) => row.item.category === null)
+  if (inGroup.length === 0) {
+    return []
+  }
+  return [
+    {
+      key: 'uncategorised',
+      label: { kind: 'message', key: categoryLabel(null) },
+      rows: inGroup,
+      totals: totalsOf(inGroup),
+    },
+  ]
 }
 
 /**
@@ -148,7 +214,7 @@ export function backlogPage(
   grouping: BacklogGrouping,
   filtered: boolean,
 ): BacklogPage {
-  const rows = items.map(rowOf)
+  const rows = foldSubtasks(items)
   const emptiness: BacklogEmptiness =
     rows.length > 0 ? 'items' : filtered ? 'no-matches' : 'no-items'
   return { groups: groupRows(rows, grouping), total: rows.length, emptiness }
@@ -178,6 +244,18 @@ function groupRows(
         (row) => row.item.type,
         (type) => ({ kind: 'message', key: typeLabel(type) }),
       )
+    case BACKLOG_GROUPING.category: {
+      const classified = rows.filter((row) => row.item.category !== null)
+      return [
+        ...partition(
+          classified,
+          WORK_ITEM_CATEGORIES,
+          (row) => row.item.category as WorkItemCategory,
+          (category) => ({ kind: 'message', key: categoryLabel(category) }),
+        ),
+        ...unclassified(rows),
+      ]
+    }
     case BACKLOG_GROUPING.priority:
       return partition(
         rows,

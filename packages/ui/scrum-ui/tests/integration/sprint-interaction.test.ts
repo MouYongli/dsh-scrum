@@ -1,7 +1,13 @@
 // @vitest-environment jsdom
 import { createElement } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { SPRINT_STATUS, WORK_ITEM_STATUS, toRevision, toTimestamp } from '@dsh-scrum/scrum-domain'
+import {
+  SPRINT_STATUS,
+  WORK_ITEM_RESOLUTION,
+  WORK_ITEM_STATUS,
+  toRevision,
+  toTimestamp,
+} from '@dsh-scrum/scrum-domain'
 import { SprintScreen, boardView, createTranslate } from '@dsh-scrum/scrum-ui'
 import type { SprintActions, SprintState } from '@dsh-scrum/scrum-ui'
 import { mount, type Mounted } from '../support/dom.js'
@@ -128,6 +134,26 @@ describe('the board', () => {
     expect(handlers.move).toHaveBeenCalledWith(
       { workItemId: itemId(1), expectedRevision: toRevision(1) },
       WORK_ITEM_STATUS.review,
+      null,
+    )
+  })
+
+  it('carries the chosen ending with the move to the last column', () => {
+    const { mounted, handlers } = screen({
+      sprints: [active],
+      selected: active,
+      board: boardView([item(1, { status: WORK_ITEM_STATUS.review })]),
+    })
+
+    mounted.choose('#scrum-move-SCR-1', `${WORK_ITEM_STATUS.done}:${WORK_ITEM_RESOLUTION.wontFix}`)
+
+    // One choice rather than a dialog after the move: work that was abandoned
+    // stops being recorded as delivered, and finishing normally still costs
+    // the single selection it always did.
+    expect(handlers.move).toHaveBeenCalledWith(
+      { workItemId: itemId(1), expectedRevision: toRevision(1) },
+      WORK_ITEM_STATUS.done,
+      WORK_ITEM_RESOLUTION.wontFix,
     )
   })
 

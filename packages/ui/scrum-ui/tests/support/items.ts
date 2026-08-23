@@ -19,6 +19,7 @@ import {
   type SprintId,
   type SprintStatus,
   type WorkItem,
+  type WorkItemCategory,
   type WorkItemId,
   type WorkItemStatus,
   type WorkItemType,
@@ -44,6 +45,7 @@ export interface ItemOverrides {
   readonly estimate?: number | null
   readonly sprintId?: SprintId | null
   readonly parentId?: WorkItemId | null
+  readonly category?: WorkItemCategory | null
   readonly dependsOn?: readonly WorkItemId[]
   readonly blockedReason?: string | null
   readonly labels?: readonly string[]
@@ -96,7 +98,7 @@ export function item(sequence: number, overrides: ItemOverrides = {}): WorkItem 
     projectId: PROJECT,
     type,
     level: workItemLevel(type),
-    category: null,
+    category: overrides.category ?? null,
     typeDetails: toWorkItemDetails(type),
     title: overrides.title ?? `工作项 ${sequence}`,
     description: overrides.description ?? '',
