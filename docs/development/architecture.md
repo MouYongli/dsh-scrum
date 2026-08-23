@@ -413,6 +413,34 @@ sprint
 
 同一 Project 最多有一个 active Sprint。closed Sprint 不再接收新事项；结束 Sprint 时必须处理所有未完成事项；Done 事项可以保留原 Sprint 引用用于历史统计。
 
+#### 承诺基线与每日剩余
+
+「Sprint 启动之后加进来了什么」和「燃尽图从哪一点起算」都要求知道启动那一刻承诺了哪些事项、合计多少点。这个事实无法事后重建：一条现在属于某个 Sprint 的事项，从当前数据看不出它是启动时就在其中，还是后来加进去的。
+
+它也推不出来。`scrum_activity` 记录 `action`、`target` 和前后 `revision`，不记录字段取值，所以它能回答「谁在什么时候把这条事项排进了这个 Sprint」，却回答不了「当时它估了几点」。
+
+因此单独保存一份只追加的 Sprint 进度记录：
+
+```text
+sprint_progress_entry
+  sprint_id
+  kind                     // baseline | daily
+  recorded_at
+  item_ids                 // 仅 baseline
+  total_points             // baseline 为承诺点数
+  remaining_points
+  completed_points
+  unestimated_count
+```
+
+启动 Sprint 时写入唯一一条 `baseline`，此后每天追加一条 `daily`，两类记录写入后都不再修改。
+
+这份记录不是 Sprint 的成员列表，也不并入 `sprint` 实体：成员关系仍然只由工作项的 `sprint_id` 表达。基线描述的是过去某一时刻的事实而非当前归属，两者不会互相矛盾——基线不随事项进出而更新，这正是它的用处。
+
+由它派生：范围变化是当前成员集合与 baseline `item_ids` 的差集，进出双向都能说明；燃尽曲线的起点是 baseline 的 `total_points`，其余的点来自 daily 记录。
+
+Sprint 的当前进度仍然由工作项现算，不读这份记录；这份记录只服务于需要历史时点的报表。
+
 ## 8. Harness 绑定与活动模型
 
 ### 8.1 Workspace Project Link
@@ -582,6 +610,8 @@ Workspace 中存在有效 project.json   → 已绑定一个 Scrum Project
 ├─ comments/
 │  ├─ SCR-1.jsonl
 │  └─ SCR-2.jsonl
+├─ sprint-progress/
+│  └─ sprint-1.jsonl
 ├─ activities/
 │  └─ 2026-08.jsonl
 ├─ operations/
@@ -646,6 +676,8 @@ Workspace 中存在有效 project.json   → 已绑定一个 Scrum Project
 ```
 
 Sprint 成员关系只由 `sprintId` 表达，Sprint 文件不重复保存 Work Item ID 列表。
+
+每个 `sprint-progress/<sprint-id>.jsonl` 只追加，保存 7.6 的承诺基线和每日剩余：首行是启动时写入的 `baseline`，此后每天一条 `daily`。它记录的是历史时点，不是成员关系，因此不与上一条冲突；当前进度仍然由工作项现算。
 
 `rank` 用 Fractional Indexing：字符集是数字加小写字母，按字符串直接比较即为 Backlog 顺序，任意两个 rank 之间总能取到新值，因此一次拖拽只重写被拖动的那一个文件，也不存在需要重排整个 Backlog 的时刻。代价是反复拖进同一个间隙会让 rank 逐字符变长，由长度上限兜住。不使用 LexoRank 的 `0|` 桶前缀：那个前缀的用途正是支持重排，而这里不需要重排。
 
