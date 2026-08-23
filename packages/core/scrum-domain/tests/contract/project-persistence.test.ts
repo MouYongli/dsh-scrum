@@ -127,6 +127,7 @@ describe('project persistence contract', () => {
       [
         'createdAt',
         'definitionOfDone',
+        'definitionOfReady',
         'estimationMethod',
         'permissionPolicy',
         'projectId',
@@ -134,8 +135,10 @@ describe('project persistence contract', () => {
         'schemaVersion',
         'sprintLengthInDays',
         'statusDisplayNames',
+        'stalledAfterDays',
         'statuses',
         'updatedAt',
+        'velocityBasis',
         'workInProgressLimit',
       ].sort(),
     )

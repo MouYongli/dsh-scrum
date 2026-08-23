@@ -17,7 +17,7 @@ describe('the channel', () => {
       expect(isScrumEndpoint(endpoint)).toBe(true)
     }
     expect(isScrumEndpoint('workItem.delete')).toBe(false)
-    expect(isScrumEndpoint('project.configure')).toBe(false)
+    expect(isScrumEndpoint('project.archive')).toBe(false)
   })
 
   it('has an input schema for every endpoint, so dispatch cannot reach an unparsed one', () => {
@@ -231,5 +231,36 @@ describe('the sprint report', () => {
     expect(SCRUM_INPUT[SCRUM_ENDPOINT.sprintReport].safeParse({ sprintId: 'spr_3' }).success).toBe(
       false,
     )
+  })
+})
+
+describe('the project configuration', () => {
+  it('takes a partial change and the revision it was read at', () => {
+    expect(
+      SCRUM_INPUT[SCRUM_ENDPOINT.configureProject].safeParse({
+        expectedRevision: 3,
+        changes: { definitionOfReady: ['有验收标准'], velocityBasis: 'finished' },
+      }).success,
+    ).toBe(true)
+  })
+
+  it('has no way to change the workflow, which needs a migration rather than an edit', () => {
+    const result = SCRUM_INPUT[SCRUM_ENDPOINT.configureProject].safeParse({
+      expectedRevision: 1,
+      changes: { statuses: ['backlog', 'shipped'] },
+    })
+
+    // Parsed and dropped rather than refused: the schema names what may be
+    // changed, and what it does not name cannot reach the domain.
+    expect(result.success && 'statuses' in result.data.changes).toBe(false)
+  })
+
+  it('refuses a velocity basis and an estimation method no rule knows', () => {
+    for (const changes of [{ velocityBasis: 'guessed' }, { estimationMethod: 'vibes' }]) {
+      expect(
+        SCRUM_INPUT[SCRUM_ENDPOINT.configureProject].safeParse({ expectedRevision: 1, changes })
+          .success,
+      ).toBe(false)
+    }
   })
 })

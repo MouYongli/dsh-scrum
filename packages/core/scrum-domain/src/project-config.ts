@@ -12,10 +12,19 @@ import type { Timestamp } from './time.js'
 import { DEFAULT_WORKFLOW_STATUSES, toWorkItemStatus, type WorkItemStatus } from './workflow.js'
 
 const MAX_DISPLAY_NAME_LENGTH = 40
-const MAX_DEFINITION_OF_DONE_ENTRIES = 50
-const MAX_DEFINITION_OF_DONE_LENGTH = 200
+const MAX_CHECKLIST_ENTRIES = 50
+const MAX_CHECKLIST_LENGTH = 200
 const MAX_SPRINT_LENGTH_IN_DAYS = 28
 const DEFAULT_SPRINT_LENGTH_IN_DAYS = 14
+const MAX_STALLED_AFTER_DAYS = 60
+
+/**
+ * Three days: long enough that a card touched on Monday is not flagged on
+ * Tuesday, short enough that a two-week sprint notices before its review.
+ * Exported because the store needs it to read a config written before the
+ * field existed.
+ */
+export const DEFAULT_STALLED_AFTER_DAYS = 3
 
 /** How the team sizes work. Persisted, so the values may be added to but not renamed. */
 export const ESTIMATION_METHOD = {
@@ -25,6 +34,36 @@ export const ESTIMATION_METHOD = {
 } as const
 
 export type EstimationMethod = (typeof ESTIMATION_METHOD)[keyof typeof ESTIMATION_METHOD]
+
+/**
+ * Which half of a closed sprint velocity counts.
+ *
+ * Everything at the last column has left the board; only some of it was
+ * delivered, and the rest was dropped, deduplicated or never reproduced. A
+ * team that closed a sprint by abandoning half of it did not get faster, so
+ * `delivered` is the default. `finished` is here because some teams report
+ * throughput rather than delivery and would otherwise keep a second number by
+ * hand.
+ *
+ * Persisted, so the values may be added to but not renamed.
+ */
+export const VELOCITY_BASIS = {
+  delivered: 'delivered',
+  finished: 'finished',
+} as const
+
+export type VelocityBasis = (typeof VELOCITY_BASIS)[keyof typeof VELOCITY_BASIS]
+
+const VELOCITY_BASES: readonly string[] = Object.values(VELOCITY_BASIS)
+
+export function toVelocityBasis(value: string): VelocityBasis {
+  if (!VELOCITY_BASES.includes(value)) {
+    throw new ValidationError(`VelocityBasis must be one of ${VELOCITY_BASES.join(', ')}`, {
+      value,
+    })
+  }
+  return value as VelocityBasis
+}
 
 const ESTIMATION_METHODS: readonly string[] = Object.values(ESTIMATION_METHOD)
 
@@ -53,8 +92,19 @@ export interface ProjectConfig extends EntityMetadata {
   readonly statusDisplayNames: Readonly<Partial<Record<WorkItemStatus, string>>>
   readonly estimationMethod: EstimationMethod
   readonly sprintLengthInDays: number
+  /** What a work item must carry before a sprint may take it on. */
+  readonly definitionOfReady: readonly string[]
   readonly definitionOfDone: readonly string[]
   readonly workInProgressLimit: number | null
+  readonly velocityBasis: VelocityBasis
+  /**
+   * How long an item may sit in one status before a board calls it stalled.
+   *
+   * Configured rather than fixed: a two-week sprint and a one-week sprint do
+   * not agree on how long is too long, and a constant would be right for one
+   * of them and noise for the other.
+   */
+  readonly stalledAfterDays: number
   readonly permissionPolicy: ProjectPermissionPolicy
 }
 
@@ -66,8 +116,11 @@ export function createDefaultProjectConfig(projectId: ProjectId, now: Timestamp)
     statusDisplayNames: {},
     estimationMethod: ESTIMATION_METHOD.storyPoints,
     sprintLengthInDays: DEFAULT_SPRINT_LENGTH_IN_DAYS,
+    definitionOfReady: [],
     definitionOfDone: [],
     workInProgressLimit: null,
+    velocityBasis: VELOCITY_BASIS.delivered,
+    stalledAfterDays: DEFAULT_STALLED_AFTER_DAYS,
     permissionPolicy: DEFAULT_PERMISSION_POLICY,
   }
 }
@@ -76,8 +129,11 @@ export interface ProjectConfigChanges {
   readonly statusDisplayNames?: Readonly<Record<string, string>> | undefined
   readonly estimationMethod?: EstimationMethod | undefined
   readonly sprintLengthInDays?: number | undefined
+  readonly definitionOfReady?: readonly string[] | undefined
   readonly definitionOfDone?: readonly string[] | undefined
   readonly workInProgressLimit?: number | null | undefined
+  readonly velocityBasis?: VelocityBasis | undefined
+  readonly stalledAfterDays?: number | undefined
   readonly permissionPolicy?: Readonly<Record<string, readonly string[]>> | undefined
 }
 
@@ -103,14 +159,23 @@ export function updateProjectConfig(
       changes.sprintLengthInDays === undefined
         ? config.sprintLengthInDays
         : toSprintLengthInDays(changes.sprintLengthInDays),
+    definitionOfReady:
+      changes.definitionOfReady === undefined
+        ? config.definitionOfReady
+        : toChecklist(changes.definitionOfReady, 'Definition of ready'),
     definitionOfDone:
       changes.definitionOfDone === undefined
         ? config.definitionOfDone
-        : toDefinitionOfDone(changes.definitionOfDone),
+        : toChecklist(changes.definitionOfDone, 'Definition of done'),
     workInProgressLimit:
       changes.workInProgressLimit === undefined
         ? config.workInProgressLimit
         : toWorkInProgressLimit(changes.workInProgressLimit),
+    velocityBasis: changes.velocityBasis ?? config.velocityBasis,
+    stalledAfterDays:
+      changes.stalledAfterDays === undefined
+        ? config.stalledAfterDays
+        : toStalledAfterDays(changes.stalledAfterDays),
     permissionPolicy:
       changes.permissionPolicy === undefined
         ? config.permissionPolicy
@@ -143,16 +208,30 @@ function toSprintLengthInDays(value: number): number {
   return days
 }
 
-function toDefinitionOfDone(entries: readonly string[]): readonly string[] {
-  if (entries.length > MAX_DEFINITION_OF_DONE_ENTRIES) {
-    throw new ValidationError(
-      `Definition of done must have at most ${MAX_DEFINITION_OF_DONE_ENTRIES} entries`,
-      { count: entries.length, maxEntries: MAX_DEFINITION_OF_DONE_ENTRIES },
-    )
+/**
+ * A named checklist. Ready and done are held to the same limits because they
+ * are the same kind of thing — a short list a person reads before deciding —
+ * and two ceilings would only differ by accident.
+ */
+function toChecklist(entries: readonly string[], name: string): readonly string[] {
+  if (entries.length > MAX_CHECKLIST_ENTRIES) {
+    throw new ValidationError(`${name} must have at most ${MAX_CHECKLIST_ENTRIES} entries`, {
+      count: entries.length,
+      maxEntries: MAX_CHECKLIST_ENTRIES,
+    })
   }
-  return entries.map((entry) =>
-    requireText(entry, 'Definition of done entry', MAX_DEFINITION_OF_DONE_LENGTH),
-  )
+  return entries.map((entry) => requireText(entry, `${name} entry`, MAX_CHECKLIST_LENGTH))
+}
+
+function toStalledAfterDays(value: number): number {
+  const days = requirePositiveInteger(value, 'Stalled after days')
+  if (days > MAX_STALLED_AFTER_DAYS) {
+    throw new ValidationError(`Stalled after days must be at most ${MAX_STALLED_AFTER_DAYS}`, {
+      value,
+      maxStalledAfterDays: MAX_STALLED_AFTER_DAYS,
+    })
+  }
+  return days
 }
 
 /**

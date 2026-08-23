@@ -133,6 +133,7 @@ describe('a workbench over a bound project', () => {
         authorization: () =>
           Promise.resolve({
             permissions: [],
+            capabilities: [],
             projectArchived: false,
             membership: { mode: 'personal', roles: PROJECT_ROLES },
           }),
@@ -163,6 +164,7 @@ describe('a workbench over a bound project', () => {
         authorization: () =>
           Promise.resolve({
             permissions: [PERMISSION.projectConfigure],
+            capabilities: [],
             projectArchived: false,
             membership: { mode: 'personal', roles: PROJECT_ROLES },
           }),

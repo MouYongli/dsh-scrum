@@ -4,7 +4,10 @@ import {
   WORK_ITEM_STATUS,
   assertSupportedSchemaVersion,
   toEdition,
+  DEFAULT_STALLED_AFTER_DAYS,
+  VELOCITY_BASIS,
   toEstimationMethod,
+  toVelocityBasis,
   toIdentityId,
   toPermissionPolicy,
   toPriority,
@@ -104,8 +107,23 @@ export function decodeProjectConfig(raw: unknown): ProjectConfig {
     statusDisplayNames: decodeStatusDisplayNames(record),
     estimationMethod: toEstimationMethod(stringField(record, 'estimationMethod')),
     sprintLengthInDays: numberField(record, 'sprintLengthInDays'),
+    // Added after the first release, so a config written before them is read
+    // with the defaults rather than refused. `schemaVersion` stays 1: nothing
+    // that was already stored means anything different now.
+    definitionOfReady:
+      record['definitionOfReady'] === undefined
+        ? []
+        : [...stringArrayField(record, 'definitionOfReady')],
     definitionOfDone: [...stringArrayField(record, 'definitionOfDone')],
     workInProgressLimit: nullableField(record, 'workInProgressLimit', numberField),
+    velocityBasis:
+      record['velocityBasis'] === undefined
+        ? VELOCITY_BASIS.delivered
+        : toVelocityBasis(stringField(record, 'velocityBasis')),
+    stalledAfterDays:
+      record['stalledAfterDays'] === undefined
+        ? DEFAULT_STALLED_AFTER_DAYS
+        : numberField(record, 'stalledAfterDays'),
     permissionPolicy: toPermissionPolicy(decodePermissionPolicy(record)),
   }
 }

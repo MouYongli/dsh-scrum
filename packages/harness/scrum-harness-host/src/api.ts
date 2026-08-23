@@ -2,6 +2,7 @@ import {
   NotFoundError,
   ValidationError,
   type IdentityId,
+  type ProjectConfig,
   type ProjectId,
   type TenantId,
   type Sprint,
@@ -21,6 +22,7 @@ import {
   createSprint,
   createWorkItem,
   deleteWorkItem,
+  getProject,
   getSprint,
   getWorkItem,
   listSprints,
@@ -235,6 +237,8 @@ export interface ScrumHostApi {
   sprint(id: SprintId): Promise<Sprint>
   /** A sprint's progress beside what it committed to when it opened. */
   report(id: SprintId): Promise<SprintReport>
+  /** How the bound project is tuned, for a page that shows or edits it. */
+  settings(): Promise<ProjectConfig>
   /** The most recent changes to the bound project, newest first. */
   activity(window: ActivityWindow): Promise<ActivityHistory>
   createWorkItem(command: WorkOf<CreateWorkItemCommand>): Promise<WorkItem>
@@ -492,6 +496,16 @@ export function createHostApi(
         actor: request.actor,
         command: { projectId: await boundProjectId(request), sprintId: id },
       })
+    },
+
+    async settings(): Promise<ProjectConfig> {
+      const request = await resolveRequest(harness, source, activitySource)
+      return (
+        await getProject(request.deps, {
+          actor: request.actor,
+          command: { projectId: await boundProjectId(request) },
+        })
+      ).config
     },
 
     async activity(window: ActivityWindow): Promise<ActivityHistory> {

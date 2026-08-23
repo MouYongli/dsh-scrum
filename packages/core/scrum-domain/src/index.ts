@@ -77,11 +77,19 @@ export {
   toProjectStatus,
   updateProjectDetails,
 } from './project.js'
-export type { EstimationMethod, ProjectConfig, ProjectConfigChanges } from './project-config.js'
+export type {
+  EstimationMethod,
+  ProjectConfig,
+  ProjectConfigChanges,
+  VelocityBasis,
+} from './project-config.js'
 export {
+  DEFAULT_STALLED_AFTER_DAYS,
   ESTIMATION_METHOD,
+  VELOCITY_BASIS,
   createDefaultProjectConfig,
   toEstimationMethod,
+  toVelocityBasis,
   updateProjectConfig,
 } from './project-config.js'
 export type { Identity, IdentityKind, CreateLocalIdentityInput } from './identity.js'

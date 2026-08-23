@@ -1,5 +1,6 @@
 import type {
   Edition,
+  Capability,
   Permission,
   ProjectRole,
   Revision,
@@ -81,6 +82,8 @@ export type EntryPayload = EntryWithoutRuntime & {
  */
 export interface AuthorizationPayload {
   readonly permissions: readonly Permission[]
+  /** What the installation provides, which is not about the person. */
+  readonly capabilities: readonly Capability[]
   readonly projectArchived: boolean
   readonly membership: {
     readonly mode: 'personal' | 'managed'
