@@ -14,7 +14,7 @@ import {
   type ScrumScope,
   type AuthorizationPayload,
 } from '@dsh-scrum/scrum-api-contract'
-import type { Sprint, WorkItem } from '@dsh-scrum/scrum-domain'
+import type { Sprint, SprintId, WorkItem } from '@dsh-scrum/scrum-domain'
 import type {
   ActivityQuery,
   ActivityView,
@@ -37,6 +37,7 @@ import type {
   UpdateProjectInput,
   SetCriterion,
   SprintRef,
+  SprintReportView,
   AuthorizationView,
 } from '@dsh-scrum/scrum-ui'
 
@@ -157,6 +158,8 @@ export function createTransportClient(call: RpcCall, scope: ScopeReader): ScrumC
       await send<Sprint>(SCRUM_ENDPOINT.closeSprint, command),
     activity: async (query: ActivityQuery) =>
       await send<ActivityView>(SCRUM_ENDPOINT.activity, query),
+    sprintReport: async (sprintId: SprintId) =>
+      await send<SprintReportView>(SCRUM_ENDPOINT.sprintReport, { sprintId }),
   }
 }
 

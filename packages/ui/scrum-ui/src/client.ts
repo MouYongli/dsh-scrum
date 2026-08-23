@@ -231,6 +231,53 @@ export interface CloseSprint extends SprintRef {
   readonly dispositions: readonly Disposition[]
 }
 
+/** A count of items and the points on them. */
+export interface StatusTotalsView {
+  readonly count: number
+  readonly estimate: number
+}
+
+/**
+ * Where a sprint stands, as a screen reads it.
+ *
+ * `finished` and `delivered` are both here and are not the same question:
+ * everything at the last column has left the board, and only some of it was
+ * delivered. A velocity that read the first would call a sprint rescued by
+ * abandoning half its work a fast one.
+ */
+export interface SprintProgressView {
+  readonly sprintId: SprintId
+  readonly byStatus: Readonly<Record<WorkItemStatus, StatusTotalsView>>
+  readonly total: StatusTotalsView
+  readonly finished: StatusTotalsView
+  readonly delivered: StatusTotalsView
+  readonly unestimated: number
+}
+
+/** What a sprint committed to at the moment it opened. */
+export interface SprintBaselineView {
+  readonly sprintId: SprintId
+  readonly recordedAt: Timestamp
+  readonly itemIds: readonly WorkItemId[]
+  readonly totalPoints: number
+  readonly unestimatedCount: number
+}
+
+/** What the sprint holds now against what it opened with, both directions. */
+export interface SprintScopeChangeView {
+  readonly sprintId: SprintId
+  readonly added: readonly WorkItemId[]
+  readonly removed: readonly WorkItemId[]
+  readonly committedPoints: number
+}
+
+export interface SprintReportView {
+  readonly progress: SprintProgressView
+  /** Null for a sprint that never opened; there is no moment to compare to. */
+  readonly baseline: SprintBaselineView | null
+  readonly scopeChange: SprintScopeChangeView | null
+}
+
 /**
  * One recorded change, as a screen reads it.
  *
@@ -287,4 +334,5 @@ export interface ScrumClient {
   startSprint(command: SprintRef): Promise<Sprint>
   closeSprint(command: CloseSprint): Promise<Sprint>
   activity(query: ActivityQuery): Promise<ActivityView>
+  sprintReport(sprintId: SprintId): Promise<SprintReportView>
 }

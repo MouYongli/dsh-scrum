@@ -96,5 +96,6 @@ export function clientOver(host: ScrumHostApi): ScrumClient {
       }
     },
     activity: async (query) => await host.activity(query),
+    sprintReport: async (sprintId) => await host.report(sprintId),
   }
 }
