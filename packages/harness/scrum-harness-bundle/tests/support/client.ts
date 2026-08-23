@@ -91,11 +91,16 @@ export function clientOver(host: ScrumHostApi): ScrumClient {
       const authorization = await host.authorization()
       return {
         permissions: [...authorization.permissions],
+        capabilities: [...authorization.capabilities],
         projectArchived: authorization.projectArchived,
         membership: authorization.membership,
       }
     },
     activity: async (query) => await host.activity(query),
     sprintReport: async (sprintId) => await host.report(sprintId),
+    settings: async () => await host.settings(),
+    configureProject: async (input) => {
+      await host.configureProject(input)
+    },
   }
 }

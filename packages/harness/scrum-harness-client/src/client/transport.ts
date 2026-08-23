@@ -14,7 +14,7 @@ import {
   type ScrumScope,
   type AuthorizationPayload,
 } from '@dsh-scrum/scrum-api-contract'
-import type { Sprint, SprintId, WorkItem } from '@dsh-scrum/scrum-domain'
+import type { ProjectConfig, Sprint, SprintId, WorkItem } from '@dsh-scrum/scrum-domain'
 import type {
   ActivityQuery,
   ActivityView,
@@ -37,6 +37,8 @@ import type {
   UpdateProjectInput,
   SetCriterion,
   SprintRef,
+  ConfigureProjectInput,
+  ProjectSettingsView,
   SprintReportView,
   AuthorizationView,
 } from '@dsh-scrum/scrum-ui'
@@ -160,6 +162,11 @@ export function createTransportClient(call: RpcCall, scope: ScopeReader): ScrumC
       await send<ActivityView>(SCRUM_ENDPOINT.activity, query),
     sprintReport: async (sprintId: SprintId) =>
       await send<SprintReportView>(SCRUM_ENDPOINT.sprintReport, { sprintId }),
+    settings: async () =>
+      toSettingsView(await send<ProjectConfig>(SCRUM_ENDPOINT.projectSettings, {})),
+    configureProject: async (input: ConfigureProjectInput) => {
+      await send<ProjectPayload>(SCRUM_ENDPOINT.configureProject, input)
+    },
   }
 }
 
@@ -177,6 +184,28 @@ function toProjectView(payload: ProjectPayload): ProjectView {
 
 function toAuthorizationView(payload: AuthorizationPayload): AuthorizationView {
   return payload
+}
+
+/**
+ * The stored configuration as the page reads it.
+ *
+ * The entity's metadata is dropped except the revision, which the page has to
+ * send back on a save. Its project id is dropped too: the page is looking at
+ * the bound project and has no second one to confuse it with.
+ */
+function toSettingsView(payload: ProjectConfig): ProjectSettingsView {
+  return {
+    revision: payload.revision,
+    statuses: payload.statuses,
+    statusDisplayNames: payload.statusDisplayNames,
+    estimationMethod: payload.estimationMethod,
+    sprintLengthInDays: payload.sprintLengthInDays,
+    definitionOfReady: payload.definitionOfReady,
+    definitionOfDone: payload.definitionOfDone,
+    workInProgressLimit: payload.workInProgressLimit,
+    velocityBasis: payload.velocityBasis,
+    stalledAfterDays: payload.stalledAfterDays,
+  }
 }
 
 function toEntryView(payload: EntryPayload): EntryView {

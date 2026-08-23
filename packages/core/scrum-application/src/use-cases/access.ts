@@ -1,8 +1,10 @@
 import {
+  CAPABILITIES,
   CAPABILITY,
   PROJECT_STATUS,
   isReadPermission,
   PERMISSION,
+  type Capability,
   type Permission,
   type ProjectId,
   type ProjectRole,
@@ -20,6 +22,15 @@ export interface ResolveProjectAuthorizationCommand {
 /** The current user's effective access to one project, independent of a conversation. */
 export interface ProjectAuthorization {
   readonly permissions: ReadonlySet<Permission>
+  /**
+   * What this installation provides, which is not about the person.
+   *
+   * A screen needs both answers to say anything useful about a control it
+   * cannot offer: without a permission is "you may not", without a capability
+   * is "this edition does not do that". A page holding only the first has to
+   * present the second as a button that does nothing.
+   */
+  readonly capabilities: readonly Capability[]
   readonly projectArchived: boolean
   readonly membership: {
     readonly mode: 'personal' | 'managed'
@@ -44,6 +55,7 @@ export async function resolveProjectAuthorization(
   )
   const projectArchived = authorized.project.status === PROJECT_STATUS.archived
   return {
+    capabilities: CAPABILITIES.filter((capability) => deps.capabilities.has(capability)),
     permissions: projectArchived
       ? new Set([...authorized.permissions].filter(isReadPermission))
       : authorized.permissions,

@@ -1,9 +1,11 @@
 import {
   WORK_ITEM_TYPE,
   toBugSeverity,
+  toEstimationMethod,
   toIdentityId,
   toPriority,
   toProjectKey,
+  toVelocityBasis,
   toRank,
   toRevision,
   toSprintId,
@@ -31,8 +33,8 @@ export const SCRUM_CHANNEL = '/scrum'
  * The calls the browser half may make.
  *
  * One per method on the interface the screens are written against, and no
- * more. The host API is wider — it can detach a binding, delete a work item
- * and configure a project — and a call the interface never makes is a call the
+ * more. The host API is wider — it can detach a binding, archive a project and
+ * delete a work item — and a call the interface never makes is a call the
  * browser must not be able to make either.
  */
 export const SCRUM_ENDPOINT = {
@@ -43,6 +45,8 @@ export const SCRUM_ENDPOINT = {
   remoteAttach: 'remote.attach',
   createProject: 'project.create',
   updateProject: 'project.update',
+  projectSettings: 'project.settings',
+  configureProject: 'project.configure',
   backlog: 'backlog',
   createWorkItem: 'workItem.create',
   updateWorkItem: 'workItem.update',
@@ -107,6 +111,8 @@ const workItemStatus = domain(toWorkItemStatus, 'a work item status')
 const workItemResolution = domain(toWorkItemResolution, 'a work item resolution')
 const projectKey = domain(toProjectKey, 'a project key')
 const identityId = domain(toIdentityId, 'an identity id')
+const estimationMethod = domain(toEstimationMethod, 'an estimation method')
+const velocityBasis = domain(toVelocityBasis, 'a velocity basis')
 
 /**
  * Which workspace and session the caller is looking at.
@@ -293,6 +299,23 @@ export const SCRUM_INPUT = {
     ...sprintRef,
     resultSummary: z.string().optional(),
     dispositions: z.array(z.object({ ...workItemRef, moveTo: sprintId.nullable() })),
+  }),
+  [SCRUM_ENDPOINT.projectSettings]: empty,
+  // `statuses` is deliberately absent: changing the workflow changes what
+  // every stored status means and needs a migration, not an edit. Renaming a
+  // column is what `statusDisplayNames` is for.
+  [SCRUM_ENDPOINT.configureProject]: z.object({
+    expectedRevision: revision,
+    changes: z.object({
+      statusDisplayNames: z.record(z.string(), z.string()).optional(),
+      estimationMethod: estimationMethod.optional(),
+      sprintLengthInDays: z.int().optional(),
+      definitionOfReady: z.array(z.string()).optional(),
+      definitionOfDone: z.array(z.string()).optional(),
+      workInProgressLimit: z.int().nullable().optional(),
+      velocityBasis: velocityBasis.optional(),
+      stalledAfterDays: z.int().optional(),
+    }),
   }),
   [SCRUM_ENDPOINT.sprintReport]: z.object({ sprintId }),
   // Bounded here rather than by the caller's good manners: a browser asking

@@ -1,5 +1,7 @@
 import type {
   AcceptanceCriterion,
+  Capability,
+  EstimationMethod,
   IdentityId,
   Permission,
   ProjectRole,
@@ -17,11 +19,19 @@ import type {
   WorkItemResolution,
   WorkItemStatus,
   WorkItemType,
+  VelocityBasis,
   Edition,
 } from '@dsh-scrum/scrum-domain'
 
 export interface AuthorizationView {
   readonly permissions: readonly Permission[]
+  /**
+   * What this installation provides. Held beside the permissions because a
+   * screen needs both to explain a control it cannot offer: without a
+   * permission is "you may not", without a capability is "this edition does
+   * not do that".
+   */
+  readonly capabilities: readonly Capability[]
   readonly projectArchived: boolean
   readonly membership: {
     readonly mode: 'personal' | 'managed'
@@ -90,6 +100,41 @@ type EntryWithoutRuntime =
 
 export type EntryView = EntryWithoutRuntime & {
   readonly runtimeContext?: RuntimeContextView
+}
+
+/** How a project is tuned, as the settings page reads it. */
+export interface ProjectSettingsView {
+  readonly revision: Revision
+  readonly statuses: readonly WorkItemStatus[]
+  readonly statusDisplayNames: Readonly<Partial<Record<WorkItemStatus, string>>>
+  readonly estimationMethod: EstimationMethod
+  readonly sprintLengthInDays: number
+  readonly definitionOfReady: readonly string[]
+  readonly definitionOfDone: readonly string[]
+  /** `null` is "no limit", and must stay distinguishable from unset. */
+  readonly workInProgressLimit: number | null
+  readonly velocityBasis: VelocityBasis
+  readonly stalledAfterDays: number
+}
+
+/**
+ * What the settings page may change.
+ *
+ * `statuses` is absent on purpose: changing the workflow changes what every
+ * stored status means and needs a migration, not an edit.
+ */
+export interface ConfigureProjectInput {
+  readonly expectedRevision: Revision
+  readonly changes: {
+    readonly statusDisplayNames?: Readonly<Record<string, string>> | undefined
+    readonly estimationMethod?: EstimationMethod | undefined
+    readonly sprintLengthInDays?: number | undefined
+    readonly definitionOfReady?: readonly string[] | undefined
+    readonly definitionOfDone?: readonly string[] | undefined
+    readonly workInProgressLimit?: number | null | undefined
+    readonly velocityBasis?: VelocityBasis | undefined
+    readonly stalledAfterDays?: number | undefined
+  }
 }
 
 export interface CreateProjectInput {
@@ -335,4 +380,6 @@ export interface ScrumClient {
   closeSprint(command: CloseSprint): Promise<Sprint>
   activity(query: ActivityQuery): Promise<ActivityView>
   sprintReport(sprintId: SprintId): Promise<SprintReportView>
+  settings(): Promise<ProjectSettingsView>
+  configureProject(input: ConfigureProjectInput): Promise<void>
 }

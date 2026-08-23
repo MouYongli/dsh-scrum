@@ -157,6 +157,10 @@ async function dispatch(api: ScrumHostApi, call: Dispatchable): Promise<unknown>
       return api.startSprint(call.input)
     case SCRUM_ENDPOINT.closeSprint:
       return api.closeSprint(call.input)
+    case SCRUM_ENDPOINT.projectSettings:
+      return api.settings()
+    case SCRUM_ENDPOINT.configureProject:
+      return toProjectPayload(await api.configureProject(call.input))
     case SCRUM_ENDPOINT.sprintReport:
       return api.report(call.input.sprintId)
     case SCRUM_ENDPOINT.activity:
@@ -167,6 +171,7 @@ async function dispatch(api: ScrumHostApi, call: Dispatchable): Promise<unknown>
 function toAuthorizationPayload(authorization: ProjectAuthorization): AuthorizationPayload {
   return {
     permissions: [...authorization.permissions],
+    capabilities: [...authorization.capabilities],
     projectArchived: authorization.projectArchived,
     membership: authorization.membership,
   }

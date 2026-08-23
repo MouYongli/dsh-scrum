@@ -160,6 +160,40 @@ describe('from an empty workspace to a closed sprint', () => {
     expect(records.some((record) => record.targetId === created.id)).toBe(true)
   })
 
+  it('reads the configuration back the way it was written', async () => {
+    const stored = await app.host.initialise({ key: toProjectKey('SCR'), name: 'shop-service' })
+
+    await app.host.configureProject({
+      expectedRevision: stored.config.revision,
+      changes: {
+        definitionOfReady: ['有验收标准'],
+        workInProgressLimit: 3,
+        stalledAfterDays: 5,
+      },
+    })
+    const settings = await app.host.settings()
+
+    expect(settings.definitionOfReady).toEqual(['有验收标准'])
+    expect(settings.workInProgressLimit).toBe(3)
+    expect(settings.stalledAfterDays).toBe(5)
+    // Untouched fields keep their defaults rather than being reset by a
+    // partial save.
+    expect(settings.definitionOfDone).toEqual([])
+    expect(settings.velocityBasis).toBe('delivered')
+  })
+
+  it('names what the installation provides, not only what the user may do', async () => {
+    await app.host.initialise({ key: toProjectKey('SCR'), name: 'shop-service' })
+
+    const authorization = await app.host.authorization()
+
+    // Community has the core capability and not rbac, which is why the
+    // settings page shows members read-only rather than a button that does
+    // nothing.
+    expect(authorization.capabilities).toContain('scrum.core')
+    expect(authorization.capabilities).not.toContain('rbac')
+  })
+
   it('reads that history back through the same API the screens call', async () => {
     await app.host.initialise({ key: toProjectKey('SCR'), name: 'shop-service' })
     const created = await app.host.createWorkItem({
