@@ -23,6 +23,8 @@ import { timelineView } from './timeline.js'
 import { WorkItemTimeline } from './timeline-view.js'
 import { FilterBar } from './filter-bar.js'
 import { DashboardScreen } from './dashboard-view.js'
+import { createSettingsController } from './settings-controller.js'
+import { ProjectSettings } from './settings-view.js'
 import { BacklogScreen } from './backlog-view.js'
 import { createSprintController } from './sprint-controller.js'
 import { SprintScreen } from './sprint-view.js'
@@ -978,6 +980,8 @@ function ConnectedSettings(props: {
   readonly onProjectUpdated: () => void
 }): ReactElement {
   const authorization = useAuthorization(props.client)
+  const controller = useMemo(() => createSettingsController(props.client), [props.client])
+  const settings = useSyncExternalStore(controller.subscribe, controller.state, controller.state)
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(props.project.name)
   const [description, setDescription] = useState(props.project.description)
@@ -1005,14 +1009,19 @@ function ConnectedSettings(props: {
     }
   }
 
-  const mayEdit =
-    !props.readOnly &&
-    props.project.revision !== undefined &&
-    authorization?.permissions.includes(PERMISSION.projectConfigure) === true
+  useEffect(() => {
+    void controller.load()
+  }, [controller])
+
+  const mayConfigure =
+    !props.readOnly && authorization?.permissions.includes(PERMISSION.projectConfigure) === true
+  // Editing the project's own details additionally needs the revision it was
+  // read at; without one there is nothing to send with the save.
+  const mayEdit = mayConfigure && props.project.revision !== undefined
 
   return createElement(
     'section',
-    { 'data-scrum-settings': true },
+    { 'data-scrum-settings-page': true },
     createElement('h3', null, props.t('settings.title')),
     createElement('p', null, props.t('settings.body')),
     createElement(
@@ -1066,6 +1075,17 @@ function ConnectedSettings(props: {
       : props.project.description === ''
         ? null
         : createElement('p', { 'data-scrum-project-description': true }, props.project.description),
+    createElement(ProjectSettings, {
+      state: settings,
+      authorization,
+      readOnly: !mayConfigure,
+      t: props.t,
+      actions: {
+        save: (changes) => void controller.save(changes),
+        reload: () => void controller.load(),
+        dismiss: controller.dismiss,
+      },
+    }),
     // Membership belongs on the page that configures the project rather than
     // on the one somebody opens every morning. Community has no `rbac`
     // capability, so this says who the owner is and why there is nothing to
