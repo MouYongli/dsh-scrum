@@ -13,6 +13,8 @@ import { createBacklogController } from './backlog-controller.js'
 import { applyBatch, type BatchChange, type BatchOutcome } from './batch.js'
 import { createDashboardController } from './dashboard-controller.js'
 import { downloadCsv, toCsv } from './export.js'
+import { timelineView } from './timeline.js'
+import { WorkItemTimeline } from './timeline-view.js'
 import { FilterBar } from './filter-bar.js'
 import { DashboardScreen } from './dashboard-view.js'
 import { BacklogScreen } from './backlog-view.js'
@@ -576,8 +578,13 @@ function ConnectedBacklog(props: {
   })
 }
 
+/** The two drawings of one query the work item page offers. */
+const PROJECTIONS = ['list', 'timeline'] as const
+
+type Projection = (typeof PROJECTIONS)[number]
+
 /**
- * The work item list, wired to a client.
+ * The work item page, wired to a client.
  *
  * The same controller as the backlog, opened on the whole project rather than
  * on the unplanned work. Nothing about this page is Scrum-shaped: it answers
@@ -596,6 +603,7 @@ function ConnectedItems(props: {
   const [marked, setMarked] = useState<readonly WorkItemId[]>([])
   const [outcome, setOutcome] = useState<BatchOutcome | null>(null)
   const [sprints, setSprints] = useState<readonly Sprint[]>([])
+  const [projection, setProjection] = useState<Projection>('list')
   const { query } = props
 
   useEffect(() => {
@@ -634,6 +642,33 @@ function ConnectedItems(props: {
     'section',
     { 'data-scrum-items': true },
     createElement('h3', null, props.t('items.title')),
+    // Two drawings of one query, not two pages: the filter is the same one,
+    // and switching between them is a change of projection rather than of
+    // subject.
+    createElement(
+      'div',
+      {
+        'data-scrum-projection': projection,
+        role: 'tablist',
+        'aria-label': props.t('items.title'),
+      },
+      PROJECTIONS.map((entry) =>
+        createElement(
+          'button',
+          {
+            key: entry,
+            type: 'button',
+            role: 'tab',
+            'aria-selected': projection === entry,
+            'data-scrum-projection-tab': entry,
+            onClick: () => {
+              setProjection(entry)
+            },
+          },
+          props.t(entry === 'list' ? 'timeline.projection.list' : 'timeline.projection.timeline'),
+        ),
+      ),
+    ),
     createElement(FilterBar, {
       query,
       onQuery: props.onQuery,
@@ -641,25 +676,31 @@ function ConnectedItems(props: {
       t: props.t,
       id: 'scrum-items',
     }),
-    createElement(WorkItemList, {
-      state,
-      sort,
-      marked,
-      outcome,
-      sprints,
-      readOnly: props.readOnly,
-      t: props.t,
-      actions: {
-        sort: setSort,
-        select: controller.select,
-        refresh: () => void controller.load(),
-        mark: setMarked,
-        apply: (change) => void apply(change),
-        exportRows: (rows) => {
-          downloadCsv(`${props.t('items.title')}.csv`, toCsv(rows, props.t))
-        },
-      },
-    }),
+    projection === 'timeline'
+      ? createElement(WorkItemTimeline, {
+          state,
+          view: timelineView({ items: state.ordered, sprints }),
+          t: props.t,
+        })
+      : createElement(WorkItemList, {
+          state,
+          sort,
+          marked,
+          outcome,
+          sprints,
+          readOnly: props.readOnly,
+          t: props.t,
+          actions: {
+            sort: setSort,
+            select: controller.select,
+            refresh: () => void controller.load(),
+            mark: setMarked,
+            apply: (change) => void apply(change),
+            exportRows: (rows) => {
+              downloadCsv(`${props.t('items.title')}.csv`, toCsv(rows, props.t))
+            },
+          },
+        }),
   )
 }
 

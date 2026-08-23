@@ -69,6 +69,8 @@ export type {
   TimelineView,
 } from './timeline.js'
 export { timelineColumns, timelineView } from './timeline.js'
+export type { TimelineProps } from './timeline-view.js'
+export { WorkItemTimeline } from './timeline-view.js'
 export type { FilterBarProps } from './filter-bar.js'
 export { FilterBar } from './filter-bar.js'
 export type { DashboardController, DashboardState } from './dashboard-controller.js'

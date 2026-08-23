@@ -780,4 +780,79 @@ export const SCRUM_STYLES = String.raw`
 
 [data-scrum-list] th[data-scrum-column="mark"],
 [data-scrum-list] td[data-scrum-column="mark"] { width: 32px; text-align: center; }
+
+[data-scrum-projection] {
+  display: inline-flex;
+  gap: 4px;
+  margin-bottom: 12px;
+  padding: 3px;
+  border: 1px solid var(--scrum-border);
+  border-radius: 999px;
+  background: var(--scrum-panel-subtle);
+}
+[data-scrum-projection-tab] { min-height: 30px; border: 0; border-radius: 999px; background: transparent; }
+[data-scrum-projection-tab][aria-selected="true"] {
+  background: var(--scrum-panel);
+  border: 1px solid var(--scrum-border);
+}
+
+[data-scrum-timeline="grid"] { display: grid; gap: 10px; }
+
+/* The lane the bars are read against. Equal columns because a sprint is a
+   fixed-length box in this grid, not a proportional one. */
+[data-scrum-timeline-axis] {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 1px;
+  margin-inline-start: 260px;
+  padding: 4px 0;
+  border-block: 1px solid var(--scrum-border);
+  color: var(--scrum-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+[data-scrum-timeline-rows] ul { padding-inline-start: 0; }
+
+[data-scrum-timeline-row] {
+  display: grid;
+  grid-template-columns: 260px 1fr 90px;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 0;
+}
+[data-scrum-timeline-row] > ul { grid-column: 1 / -1; }
+
+[data-scrum-timeline-label] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-scrum-timeline-track] {
+  position: relative;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--scrum-panel-subtle);
+}
+[data-scrum-timeline-track] > span {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  border-radius: 999px;
+  background: var(--scrum-accent);
+}
+[data-scrum-depth="0"] [data-scrum-timeline-track] > span { background: var(--scrum-accent-strong); }
+
+[data-scrum-timeline-meta] { color: var(--scrum-muted); font-size: 12px; text-align: end; }
+
+[data-scrum-timeline-unscheduled] {
+  padding: 12px 14px;
+  border: 1px dashed var(--scrum-border);
+  border-radius: var(--scrum-radius);
+}
+[data-scrum-timeline-unscheduled] p { color: var(--scrum-muted); font-size: 12px; }
+[data-scrum-timeline="no-sprints"] p,
+[data-scrum-timeline-empty] { color: var(--scrum-muted); }
 `
