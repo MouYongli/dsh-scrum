@@ -309,38 +309,54 @@ Workspace 绑定 Project 后，该 Workspace 下的所有 Session 和 Scrum 工�
 
 ### 4.2 Product Backlog
 
-支持的工作项类型包括：
+工作项分三个层级，五个类型：
 
-- Epic；
-- Story；
-- Task；
-- Bug。
+```text
+Product Goal
+└── Epic                       level 1  跨多个 Sprint 的业务主题
+    ├── Story                  level 2  从用户视角描述的一项需求
+    │   └── Subtask            level 3  执行拆解
+    ├── Task                   level 2  支撑性工作，对外行为不变
+    │   └── Subtask
+    └── Bug                    level 2  已交付功能不符合预期
+        └── Subtask
+```
 
-后续可以扩展 Feature、Spike 等类型。
+父事项必须正好高一级。Story、Task 和 Bug 互为平级：Bug 不挂在 Story 下面，缺陷与它影响的需求之间是引用关系而不是归属关系，挂进去会让修缺陷的工作量算进那条需求的进度。
+
+Epic 和 Subtask 都不进 Sprint、不估算。Epic 的进度由子项按点数聚合派生；Subtask 跟随父事项进入 Sprint，不单独计入 Velocity。
+
+除类型外，每条工作项还带一个 `category`，说明这是哪一类工作：
+
+| 条目类型 | category | 推荐类型 | 理由 |
+|---|---|---|---|
+| 功能需求（用户故事） | `feature` | Story | 有用户价值，可独立交付 |
+| 非功能需求（用户可感知） | `nfr-visible` | Story | 例如"页面三秒内加载完"，用户能感受到 |
+| 非功能需求（纯约束） | `nfr-constraint` | Task | 例如日志留存、合规要求，用户无感 |
+| 技术债与重构 | `tech-debt` | Task | 无对外行为变化 |
+| 探针（Spike） | `spike` | Task | 产出是结论而非功能 |
+| 运维与迁移 | `ops` | Task | 支撑性工作 |
+| 文档 | `docs` | Task | 支撑性工作 |
+| 缺陷 | `defect` | Bug | 已交付功能不符合预期 |
+
+推荐类型是创建时的默认值，团队可以改。判据是"用户是否可感知，以及能否独立交付价值"，但边界案例不做硬性校验。
+
+Spike 不是独立类型，而是 `category` 为 `spike` 的 Task，额外带时间盒和结论字段。`labels` 与 `category` 并存，用于团队自己的切分维度，例如模块、平台或客户。
+
+Definition of Ready 按类型配置：Story 要求验收标准与估算，Bug 要求复现步骤，Task 要求明确产出。
 
 主要功能：
 
 - 创建、编辑、复制和删除工作项；
 - 拖拽排序；
 - 搜索、筛选和保存视图；
-- 设置优先级、负责人、标签和估算；
+- 设置优先级、负责人、类别、标签和估算；
 - 编写描述和验收标准；
 - 建立父子关系和依赖关系；
 - 标记阻塞；
 - 批量修改；
 - 将工作项加入 planned Sprint；
 - 检查 Definition of Ready。
-
-推荐层级：
-
-```text
-Product Goal
-└── Epic
-    ├── Story
-    │   ├── Task
-    │   └── Bug
-    └── Story
-```
 
 ### 4.3 Sprint 管理
 

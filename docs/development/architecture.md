@@ -206,7 +206,7 @@ Harness Instance
         └── Optional Activity Provenance
 ```
 
-共享领域对象包括 Tenant、Scrum Project、Product Goal、Product Backlog、Epic、Feature、User Story、Task、Bug、Spike、Sprint、Sprint Goal、Workflow、Acceptance Criteria、Definition of Done、Comment、Activity、Project Role 和 Permission。
+共享领域对象包括 Tenant、Scrum Project、Product Goal、Product Backlog、Work Item（Epic、Story、Task、Bug、Subtask）、Sprint、Sprint Goal、Workflow、Acceptance Criteria、Definition of Ready、Definition of Done、Comment、Activity、Project Role 和 Permission。Feature 与 Spike 不是独立的领域对象：前者由 Epic 与 Story 的层级表达，后者是 `category` 为 `spike` 的 Task，见 7.5。
 
 ### 7.2 Tenant
 
@@ -270,27 +270,111 @@ Community 不落成员文件。本地用户的 `IdentityId` 只出现在 `projec
 work_item
   id                       // 即 SCR-12，本身就是人类可读的 Key
   project_id
-  type                     // epic | story | task | bug
+  type                     // epic | story | task | bug | subtask
+  level                    // 1 | 2 | 3，由 type 唯一决定，显式落盘
+  category                 // feature | nfr_visible | nfr_constraint | tech_debt
+                           // | spike | ops | docs | defect
   title
   description
   status                   // backlog | todo | in_progress | review | done
+  resolution               // null | done | wont_fix | duplicate | cannot_reproduce
   priority                 // low | medium | high | critical
   assignee_id
   reporter_id
-  estimate
-  sprint_id
+  estimate                 // level 1 与 level 3 恒为 null
+  sprint_id                // level 1 与 level 3 恒为 null
   parent_id
   depends_on               // Work Item ID 列表
-  rank
+  rank                     // 仅 level 2 参与 Backlog 排序
   blocked_reason           // null 表示未阻塞
   labels
   acceptance_criteria
+  type_details             // 类型特有字段，见本节末
   created_at
   updated_at
   revision
 ```
 
 `id` 已经是 `SCR-12` 这样的可读 Key，不再另设 `key` 字段。阻塞只存 `blocked_reason`，`blocked` 由它派生——两个必须保持一致的字段最终一定会不一致，而「已阻塞但没有原因」正是不允许出现的状态。工作项同样不重复保存 `tenant_id`。
+
+#### 层级
+
+`type` 决定 `level`，`level` 决定结构：
+
+```text
+level 1   epic
+level 2   story | task | bug
+level 3   subtask
+```
+
+父子关系只有一条规则：`parent.level = self.level - 1`。Epic 不得有父事项，Subtask 必须有父事项，level 2 事项的父事项可以为空。
+
+`level` 由 `type` 唯一决定，之所以仍然落盘，是为了让父子校验、视图投影和聚合查询只依赖一个整数，而不是各自重新展开类型枚举。将来在 Epic 之上追加层级时，这些位置都不需要改动。
+
+level 2 的三个类型互为平级。Bug 不是 Story 的子项：缺陷与它所影响的需求之间是引用关系而不是归属关系，把 Bug 挂进 Story 会让缺陷的工作量并入需求的进度，缺陷统计随之失真。Bug 与 Story、Task 一样可以拥有 Subtask。
+
+Epic 不进入 Sprint，也不独立估算。它的估算与进度一律由子项聚合派生，进度按点数计算，未估算的子项按 0 计入分母。Epic 跨越多个 Sprint，给它一个自己的 `sprint_id` 会让「这件事在哪一轮交付」出现两个互相矛盾的答案。
+
+Subtask 既不持有 `sprint_id` 也不持有 `estimate`。它表达一条 level 2 事项的执行拆解，不表达可独立交付的价值；若允许它独立估算，同一份工作会在父子两级各计一次，Velocity 随拆解粒度虚增。
+
+这是 8.4 中「Sprint 归属只由 `sprint_id` 表达」的唯一例外：查询某个 Sprint 的成员时，level 3 事项按其父事项的 `sprint_id` 派生，不读自身字段。选择派生而不是冗余存储，是因为冗余的那一份迟早会与父项分叉，而移动父项时级联重写全部子项文件又违背「移动一条事项只写一个文件」。
+
+#### 三个正交维度
+
+`type`、`category` 和 `labels` 各自回答不同的问题，不得互相替代：
+
+| 维度 | 取值 | 回答的问题 |
+|---|---|---|
+| `type` | 五个枚举值 | 这条事项在层级中的位置，以及它有哪些特有字段 |
+| `category` | 八个枚举值 | 这是哪一类工作 |
+| `labels` | 自由字符串 | 团队自己的切分维度，例如模块、平台、客户 |
+
+`category` 必须是受控枚举而不是自由标签。「本轮 Sprint 有多少点花在技术债上」这类问题要求取值集合封闭且跨项目可比，自由标签给不出可靠答案。
+
+创建事项时 `category` 推荐一个 `type`，但不强制：
+
+| category | 推荐 type |
+|---|---|
+| `feature`、`nfr_visible` | `story` |
+| `nfr_constraint`、`tech_debt`、`spike`、`ops`、`docs` | `task` |
+| `defect` | `bug` |
+
+推荐的判据是「用户是否可感知，以及能否独立交付价值」。它只是引导：边界案例（例如「页面三秒内加载」）在不同团队会落到不同一侧，把它变成硬校验，只会把一次团队约定变成一个填不下去的表单。
+
+Spike 是 `category` 为 `spike` 的 `task`，不是第六个类型。类型枚举承载的是层级和字段结构；为一个只多出两个字段的语义分类新增类型，会让每一处类型判断和每一个类型选择器都多出一个分支。
+
+#### 状态与结果
+
+`status` 表达流转位置，`resolution` 表达结束方式，两者分开保存：
+
+```text
+status      backlog | todo | in_progress | review | done
+resolution  null | done | wont_fix | duplicate | cannot_reproduce
+```
+
+未到达 `done` 的事项 `resolution` 恒为 `null`；`status` 为 `done` 时 `resolution` 必须有值，缺省为 `done`。
+
+「不修了」「重复」「无法复现」是结束方式而不是流转位置。把它们做成状态，看板就要为每一种各开一列，而且每个类型都需要一套自己的状态机；分开之后全部类型共用同一套状态机，报表按 `resolution` 区分真正完成与其他终态。
+
+#### 类型特有字段
+
+通用字段之外，各类型另有自己的字段，存在 `type_details` 下，随事项文件在同一个 `revision` 下原子写入：
+
+| type | 特有字段 |
+|---|---|
+| `epic` | `color` |
+| `story` | 无（`acceptance_criteria` 是通用字段） |
+| `task` | 仅当 `category` 为 `spike`：`timebox`、`outcome` |
+| `bug` | `severity`、`steps_to_reproduce`、`expected`、`actual`、`environment`、`affected_version`、`is_regression`、`root_cause` |
+| `subtask` | 无 |
+
+`severity` 与 `priority` 分开：严重度描述缺陷本身的影响，优先级描述排期意图，一个影响面很窄却阻塞发布的缺陷，两者取值并不相同。
+
+Spike 的 `outcome` 是它的完成定义。探针交付的是结论而不是可用功能，没有 `outcome` 的 Spike 无法判断是否做完；`timebox` 则保证它不会无限延长。
+
+Definition of Ready 按类型配置，规则存于 Project Configuration，不硬编码在领域层：Story 要求验收标准与估算，Bug 要求复现步骤，Task 要求明确产出。
+
+#### 子模型
 
 相关子模型包括：
 
@@ -403,7 +487,9 @@ Activity 用于回答谁修改了数据、修改来自哪个入口和 Session，
 - Project Revision 单调递增。
 - 一个 Project 最多有一个 active Sprint。
 - 所有引用必须指向存在且兼容的实体。
-- 父子关系和依赖关系不得成环。
+- 父子关系和依赖关系不得成环，且父子必须相邻一级：`parent.level = self.level - 1`。
+- Epic 与 Subtask 的 `sprint_id` 和 `estimate` 恒为 `null`；Subtask 的 Sprint 归属由父事项派生。
+- `status` 未到 `done` 的事项 `resolution` 恒为 `null`；`status` 为 `done` 的事项 `resolution` 必须有值。
 - `backlog` 状态的事项不能属于 active Sprint。
 - active Sprint 中未完成事项只能处于 `todo`、`in_progress` 或 `review`。
 - 批量操作具有原子性，任一子操作失败则全部不写入。
