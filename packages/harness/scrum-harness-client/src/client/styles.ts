@@ -499,26 +499,42 @@ export const SCRUM_STYLES = String.raw`
 
 /* The bar wraps rather than scrolls: nine controls on one line would push the
    work off the screen the filter exists to narrow. */
+/*
+ * Nine controls, packed by how much room there is rather than by a breakpoint.
+ *
+ * Wrapping a flex row put each control on its own line the moment the row ran
+ * out, so a narrow shell got a nine-row column of full-width selects. Tracks
+ * that divide the available width fill each line before starting another, and
+ * the arrangement changes at whatever width the content runs out at instead of
+ * at a number copied from a device.
+ */
 [data-scrum-filter-bar] {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   align-items: end;
-  gap: 10px 14px;
+  gap: var(--scrum-space-3) var(--scrum-space-4);
   flex: 1 1 100%;
 }
 
-[data-scrum-filter-field] { display: grid; gap: 6px; }
+/* The one field worth two, since it is typed into rather than picked from. */
+[data-scrum-filter-field]:has(input[type="search"]) { grid-column: span 2; }
+
+[data-scrum-filter-field] { display: grid; gap: var(--scrum-space-1); }
 [data-scrum-filter-field]:has(input[type="checkbox"]) {
   display: flex;
   align-items: center;
   min-height: 40px;
-  gap: 8px;
+  gap: var(--scrum-space-2);
   white-space: nowrap;
 }
-[data-scrum-filter-bar] input[type="search"] { min-width: 200px; }
-[data-scrum-filter-bar] select[multiple] { min-width: 130px; padding: 4px; }
-[data-scrum-filter-bar] select:not([multiple]) { min-width: 150px; }
-[data-scrum-filter-none] { color: var(--scrum-muted); font-size: 12px; align-self: center; }
+
+/* The track minimum is the floor now; a per-control one would fight it. */
+[data-scrum-filter-bar] select[multiple] { padding: var(--scrum-space-1); }
+[data-scrum-filter-none] {
+  color: var(--scrum-muted);
+  font-size: var(--scrum-text-xs);
+  align-self: center;
+}
 [data-scrum-filter-clear] { align-self: center; }
 
 [data-scrum-overlay] label,
@@ -846,7 +862,6 @@ export const SCRUM_STYLES = String.raw`
 [data-scrum-leave] button + button, [data-scrum-confirm] button + button { margin-left: 8px; }
 
 @media (max-width: 900px) {
-  [data-scrum-toolbar] { grid-template-columns: 1fr 1fr; }
   [data-scrum-columns] { grid-auto-columns: minmax(250px, 78vw); }
   [data-scrum-planning] { grid-template-columns: 1fr; }
 }
@@ -854,7 +869,6 @@ export const SCRUM_STYLES = String.raw`
 @media (max-width: 620px) {
   [data-scrum-workbench] > [data-scrum-topbar] { padding-right: 20px; }
   [data-scrum-topbar] select { min-width: 0; max-width: 120px; }
-  [data-scrum-toolbar],
   [data-scrum-wizard],
   [data-scrum-item-form],
   [data-scrum-sprint-form],
