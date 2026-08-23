@@ -883,4 +883,30 @@ export const SCRUM_STYLES = String.raw`
 [data-scrum-plan-field] { display: inline-flex; align-items: center; gap: 6px; }
 [data-scrum-plan-field] label { font-size: 12px; }
 [data-scrum-plan-empty] { color: var(--scrum-muted); font-size: 12px; }
+
+[data-scrum-board-bar] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+[data-scrum-board-bar] > h3 { margin-right: auto; }
+
+[data-scrum-lane] + [data-scrum-lane] { margin-top: 14px; }
+[data-scrum-lane] > h4 {
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--scrum-border);
+  color: var(--scrum-muted);
+  font-size: 12px;
+}
+
+[data-scrum-over-limit] {
+  margin-top: 4px;
+  color: var(--scrum-warning);
+  font-size: 12px;
+}
+[data-scrum-column]:has([data-scrum-over-limit]) {
+  border-color: color-mix(in srgb, var(--scrum-warning) 55%, var(--scrum-border));
+}
 `

@@ -15,6 +15,7 @@ const actions: SprintActions = {
   detail: vi.fn(),
   refresh: vi.fn(),
   dismiss: vi.fn(),
+  lane: vi.fn(),
   move: vi.fn(),
   edit: vi.fn(),
   criterion: vi.fn(),
@@ -36,6 +37,7 @@ function state(overrides: Partial<SprintState> = {}): SprintState {
     unplanned: [],
     detail: null,
     confirmation: null,
+    lane: 'none',
     failure: null,
     busy: false,
     ...overrides,
@@ -302,5 +304,65 @@ describe('reaching the board without a pointer', () => {
     }
     expect(markup).not.toContain('draggable')
     expect(markup).toContain('<label for="scrum-move-SCR-1">')
+  })
+})
+
+describe('the limit and the lanes', () => {
+  const active = sprint(1, { status: SPRINT_STATUS.active })
+
+  function withBoard(board: SprintState['board'], lane: SprintState['lane'] = 'none'): string {
+    return renderToStaticMarkup(
+      createElement(SprintScreen, {
+        state: state({ sprints: [active], selected: active, board, lane }),
+        actions,
+        t,
+        readOnly: false,
+      }),
+    )
+  }
+
+  it('shows a count against the limit, and only where a limit applies', () => {
+    const markup = withBoard(
+      boardView([item(1, { status: WORK_ITEM_STATUS.inProgress })], { limit: 2 }),
+    )
+
+    expect(markup).toContain('1/2')
+    expect(markup).not.toContain('data-scrum-over-limit')
+  })
+
+  it('warns rather than refusing when a column is over', () => {
+    // A limit that blocked the move would be one somebody works around by
+    // leaving the card where it is and doing the work anyway.
+    const markup = withBoard(
+      boardView(
+        [
+          item(1, { status: WORK_ITEM_STATUS.inProgress }),
+          item(2, { status: WORK_ITEM_STATUS.inProgress }),
+        ],
+        { limit: 1 },
+      ),
+    )
+
+    expect(markup).toContain(`data-scrum-over-limit="${WORK_ITEM_STATUS.inProgress}"`)
+    expect(markup).toContain(t('board.overLimit'))
+    // The move control is still there.
+    expect(markup).toContain('data-scrum-move="SCR-1"')
+  })
+
+  it('draws one unheaded lane until somebody asks for swimlanes', () => {
+    const markup = withBoard(boardView([item(1, { status: WORK_ITEM_STATUS.todo })]))
+
+    expect(markup).toContain('data-scrum-lane="all"')
+    expect(markup).toContain(t('board.lane.label'))
+  })
+
+  it('heads each swimlane, and names the one with no owner', () => {
+    const markup = withBoard(
+      boardView([item(1, { status: WORK_ITEM_STATUS.todo })], { lane: 'assignee' }),
+      'assignee',
+    )
+
+    expect(markup).toContain('data-scrum-lane="none"')
+    expect(markup).toContain(t('board.lane.nobody'))
   })
 })

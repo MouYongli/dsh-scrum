@@ -8,7 +8,7 @@ import {
   type WorkItemResolution,
   type WorkItemStatus,
 } from '@dsh-scrum/scrum-domain'
-import { boardView, type BoardView } from './board.js'
+import { BOARD_LANE, boardView, type BoardLane, type BoardView } from './board.js'
 import type {
   BlockWorkItem,
   DependWorkItem,
@@ -44,6 +44,8 @@ export interface SprintState {
   /** The item the drawer is open on, resolved from what the board holds. */
   readonly detail: WorkItem | null
   readonly confirmation: SprintConfirmation | null
+  /** How the board is split into rows. A view choice, kept out of the query. */
+  readonly lane: BoardLane
   readonly failure: ScrumFailure | null
   readonly busy: boolean
 }
@@ -55,6 +57,7 @@ export interface SprintController {
   readonly select: (sprintId: SprintId) => Promise<void>
   readonly openDetail: (id: WorkItemId | null) => void
   readonly dismiss: () => void
+  readonly setLane: (lane: BoardLane) => void
   readonly create: (input: NewSprint) => Promise<void>
   readonly plan: (items: readonly WorkItemRef[], into: SprintId | null) => Promise<void>
   readonly move: (
@@ -97,6 +100,11 @@ export function createSprintController(client: ScrumClient): SprintController {
   let planned: readonly WorkItem[] = []
   let selectedId: SprintId | null = null
   let detailId: WorkItemId | null = null
+  // Read once and kept: a limit is a project setting rather than something a
+  // sprint carries, and refetching it on every board refresh would ask the
+  // host the same question all day.
+  let limit: number | null = null
+  let epicTitles = new Map<string, string>()
   let state: SprintState = {
     phase: 'loading',
     sprints: [],
@@ -105,6 +113,7 @@ export function createSprintController(client: ScrumClient): SprintController {
     unplanned: [],
     detail: null,
     confirmation: null,
+    lane: BOARD_LANE.none,
     failure: null,
     busy: false,
   }
@@ -124,7 +133,11 @@ export function createSprintController(client: ScrumClient): SprintController {
       ...patch,
       sprints,
       selected: sprints.find((sprint) => sprint.id === selectedId) ?? null,
-      board: boardView(planned),
+      board: boardView(planned, {
+        limit,
+        lane: patch.lane ?? state.lane,
+        epicTitles,
+      }),
       detail: planned.find((item) => item.id === detailId) ?? null,
     })
   }
@@ -138,11 +151,24 @@ export function createSprintController(client: ScrumClient): SprintController {
    */
   async function readItems(): Promise<void> {
     planned = selectedId === null ? [] : await client.backlog({ sprintId: selectedId })
-    reproject({ unplanned: await client.backlog({ sprintId: null }) })
+    const unplanned = await client.backlog({ sprintId: null })
+    // Titles for the epic lanes come from everything that was read: a lane
+    // headed by an identifier is a lane nobody can read at a glance.
+    epicTitles = new Map([...planned, ...unplanned].map((item) => [String(item.id), item.title]))
+    reproject({ unplanned })
   }
 
   async function load(): Promise<void> {
     try {
+      // The limit is asked for once. A project that has not set one, or a host
+      // that refuses the read, simply draws no limits rather than failing the
+      // board over a decoration.
+      if (limit === null) {
+        limit = await client
+          .settings()
+          .then((settings) => settings.workInProgressLimit)
+          .catch(() => null)
+      }
       const sprints = await client.sprints()
       selectedId =
         sprints.find((sprint) => sprint.id === selectedId)?.id ?? defaultSprint(sprints)?.id ?? null
@@ -204,6 +230,9 @@ export function createSprintController(client: ScrumClient): SprintController {
     openDetail: (id: WorkItemId | null) => {
       detailId = id
       reproject()
+    },
+    setLane: (lane: BoardLane) => {
+      reproject({ lane })
     },
     dismiss: () => {
       set({ ...state, failure: null })

@@ -104,6 +104,7 @@ function transitions(sprint: Sprint, props: SprintProps): ReactNode {
 function board(props: SprintProps): ReactElement {
   return createElement(Board, {
     board: props.state.board,
+    lane: props.state.lane,
     actions: props.actions,
     t: props.t,
     busy: props.state.busy,
