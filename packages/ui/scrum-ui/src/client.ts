@@ -10,7 +10,9 @@ import type {
   Timestamp,
   WorkItem,
   WorkItemDetailChanges,
+  WorkItemCategory,
   WorkItemId,
+  WorkItemLevel,
   WorkItemResolution,
   WorkItemStatus,
   WorkItemType,
@@ -115,6 +117,9 @@ export interface UpdateProjectInput {
 export interface BacklogQuery {
   readonly text?: string | undefined
   readonly types?: readonly WorkItemType[] | undefined
+  readonly levels?: readonly WorkItemLevel[] | undefined
+  readonly categories?: readonly WorkItemCategory[] | undefined
+  readonly resolutions?: readonly WorkItemResolution[] | undefined
   readonly priorities?: readonly Priority[] | undefined
   readonly labels?: readonly string[] | undefined
   readonly blocked?: boolean | undefined

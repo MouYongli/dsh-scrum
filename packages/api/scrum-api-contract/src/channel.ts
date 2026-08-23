@@ -220,6 +220,9 @@ export const SCRUM_INPUT = {
   [SCRUM_ENDPOINT.backlog]: z.object({
     text: z.string().optional(),
     types: z.array(workItemType).optional(),
+    levels: z.array(z.union([z.literal(1), z.literal(2), z.literal(3)])).optional(),
+    categories: z.array(workItemCategory).optional(),
+    resolutions: z.array(workItemResolution).optional(),
     priorities: z.array(priority).optional(),
     labels: z.array(z.string()).optional(),
     blocked: z.boolean().optional(),

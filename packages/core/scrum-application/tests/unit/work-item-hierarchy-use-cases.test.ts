@@ -12,12 +12,14 @@ import {
 } from '@dsh-scrum/scrum-domain'
 import {
   createSprint,
+  listWorkItems,
   moveWorkItemStatus,
   planSprint,
   resolveWorkItem,
   setWorkItemParent,
   updateWorkItem,
   type StoredProject,
+  type WorkItemFilter,
 } from '@dsh-scrum/scrum-application'
 import { actor, dependencies, type TestDependencies } from '../support/fakes.js'
 import { item, project } from '../support/project.js'
@@ -154,29 +156,29 @@ describe('changing a type across levels', () => {
   })
 })
 
-describe('finishing work', () => {
-  async function plannedStory(deps: TestDependencies, stored: StoredProject) {
-    const story = await item(deps, stored, { title: 'story' })
-    const sprint = await createSprint(deps, {
-      actor: actor(),
-      command: {
-        projectId: stored.project.id,
-        name: '第一轮',
-        startDate: toTimestamp('2026-08-24T09:00:00.000Z'),
-        endDate: toTimestamp('2026-09-07T09:00:00.000Z'),
-      },
-    })
-    const [planned] = await planSprint(deps, {
-      actor: actor(),
-      command: {
-        projectId: stored.project.id,
-        sprintId: sprint.id,
-        items: [{ workItemId: story.id, expectedRevision: story.revision }],
-      },
-    })
-    return planned as WorkItem
-  }
+async function plannedStory(deps: TestDependencies, stored: StoredProject): Promise<WorkItem> {
+  const story = await item(deps, stored, { title: 'story' })
+  const sprint = await createSprint(deps, {
+    actor: actor(),
+    command: {
+      projectId: stored.project.id,
+      name: '第一轮',
+      startDate: toTimestamp('2026-08-24T09:00:00.000Z'),
+      endDate: toTimestamp('2026-09-07T09:00:00.000Z'),
+    },
+  })
+  const [planned] = await planSprint(deps, {
+    actor: actor(),
+    command: {
+      projectId: stored.project.id,
+      sprintId: sprint.id,
+      items: [{ workItemId: story.id, expectedRevision: story.revision }],
+    },
+  })
+  return planned as WorkItem
+}
 
+describe('finishing work', () => {
   it('names how the work ended, and restates it afterwards', async () => {
     const deps = dependencies()
     const stored = await project(deps)
@@ -256,5 +258,51 @@ describe('finishing work', () => {
     )
 
     expect(error.code).toBe(ERROR_CODE.validation)
+  })
+})
+
+describe('narrowing the backlog', () => {
+  it('narrows by level, category and outcome', async () => {
+    const deps = dependencies()
+    const stored = await project(deps)
+    const epic = await item(deps, stored, { title: 'epic', type: WORK_ITEM_TYPE.epic })
+    await item(deps, stored, { title: 'debt', category: WORK_ITEM_CATEGORY.techDebt })
+    const list = async (filter: WorkItemFilter) =>
+      await listWorkItems(deps, {
+        actor: actor(),
+        command: { projectId: stored.project.id, filter },
+      })
+
+    expect((await list({ levels: [1] })).map((found) => found.id)).toEqual([epic.id])
+    expect((await list({ categories: [WORK_ITEM_CATEGORY.techDebt] })).map((f) => f.title)).toEqual(
+      ['debt'],
+    )
+    // Unclassified is not silently swept into any bucket, and nothing is
+    // finished yet, so an outcome filter matches nothing at all.
+    expect(await list({ categories: [WORK_ITEM_CATEGORY.feature] })).toEqual([])
+    expect(await list({ resolutions: [WORK_ITEM_RESOLUTION.done] })).toEqual([])
+  })
+
+  it("counts a subtask as being in its parent's sprint", async () => {
+    const deps = dependencies()
+    const stored = await project(deps)
+    const planned = await plannedStory(deps, stored)
+    const subtask = await item(deps, stored, {
+      title: 'subtask',
+      type: WORK_ITEM_TYPE.subtask,
+      parentId: planned.id,
+    })
+
+    const inSprint = await listWorkItems(deps, {
+      actor: actor(),
+      command: { projectId: stored.project.id, filter: { sprintId: planned.sprintId } },
+    })
+    const backlog = await listWorkItems(deps, {
+      actor: actor(),
+      command: { projectId: stored.project.id, filter: { sprintId: null } },
+    })
+
+    expect(inSprint.map((found) => found.id)).toContain(subtask.id)
+    expect(backlog.map((found) => found.id)).not.toContain(subtask.id)
   })
 })
