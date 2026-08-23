@@ -58,6 +58,7 @@ export const SCRUM_ENDPOINT = {
   planSprint: 'sprint.plan',
   startSprint: 'sprint.start',
   closeSprint: 'sprint.close',
+  sprintReport: 'sprint.report',
   activity: 'activity.recent',
 } as const
 
@@ -293,6 +294,7 @@ export const SCRUM_INPUT = {
     resultSummary: z.string().optional(),
     dispositions: z.array(z.object({ ...workItemRef, moveTo: sprintId.nullable() })),
   }),
+  [SCRUM_ENDPOINT.sprintReport]: z.object({ sprintId }),
   // Bounded here rather than by the caller's good manners: a browser asking
   // for every record a three-year-old project holds would read every month
   // file to answer one panel.

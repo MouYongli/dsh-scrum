@@ -106,10 +106,15 @@ describe('from an empty workspace to a closed sprint', () => {
 
     expect(done.status).toBe(WORK_ITEM_STATUS.done)
 
-    const progress = await app.host.progress(sprint.id)
+    const report = await app.host.report(sprint.id)
 
-    expect(progress.total.count).toBe(2)
-    expect(progress.finished.count).toBe(1)
+    expect(report.progress.total.count).toBe(2)
+    expect(report.progress.finished.count).toBe(1)
+    // The sprint is running, so it committed to something: the baseline was
+    // written when it opened and the scope has not moved since.
+    expect(report.baseline?.itemIds).toHaveLength(2)
+    expect(report.scopeChange?.added).toEqual([])
+    expect(report.scopeChange?.removed).toEqual([])
 
     const unfinished = (await items()).find((item) => item.id === second.id)!
     const closed = await app.host.closeSprint({

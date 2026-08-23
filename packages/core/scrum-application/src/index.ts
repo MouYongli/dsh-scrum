@@ -104,6 +104,7 @@ export type {
   RescheduleSprintCommand,
   SprintCommand,
   SprintProgressCommand,
+  SprintReport,
   StartSprintCommand,
   UpdateSprintCommand,
 } from './use-cases/sprint.js'
@@ -112,7 +113,7 @@ export {
   createSprint,
   getSprint,
   listSprints,
-  readSprintProgress,
+  readSprintReport,
   reschedule,
   startSprint,
   updateSprint,

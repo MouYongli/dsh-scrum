@@ -222,3 +222,14 @@ describe('the activity window', () => {
     expect(SCRUM_INPUT[SCRUM_ENDPOINT.activity].safeParse({ limit: 0 }).success).toBe(false)
   })
 })
+
+describe('the sprint report', () => {
+  it('names one sprint, and refuses an identifier no rule knows', () => {
+    expect(
+      SCRUM_INPUT[SCRUM_ENDPOINT.sprintReport].safeParse({ sprintId: 'sprint-3' }).success,
+    ).toBe(true)
+    expect(SCRUM_INPUT[SCRUM_ENDPOINT.sprintReport].safeParse({ sprintId: 'spr_3' }).success).toBe(
+      false,
+    )
+  })
+})

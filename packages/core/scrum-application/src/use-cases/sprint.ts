@@ -24,7 +24,13 @@ import type { ActorContext, UseCaseRequest } from '../actor.js'
 import { recordActivity } from '../activity.js'
 import { authorizeProject } from '../authorization.js'
 import type { ApplicationDependencies } from '../dependencies.js'
-import { sprintProgress, type SprintProgress } from '../sprint-progress.js'
+import {
+  sprintProgress,
+  sprintScopeChange,
+  type SprintProgress,
+  type SprintScopeChange,
+} from '../sprint-progress.js'
+import type { SprintBaseline } from '../ports/sprint-progress-log.js'
 import type { SprintWrite, WorkItemWrite } from '../ports/transactions.js'
 
 type Dependencies = Pick<
@@ -328,15 +334,46 @@ async function acceptingSprint(
 
 export type SprintProgressCommand = SprintCommand
 
-/** Reads a sprint's progress. Derived on every call; nothing is stored. */
-export async function readSprintProgress(
-  deps: Pick<Dependencies, 'projects' | 'members' | 'workItems' | 'sprints' | 'capabilities'>,
+/**
+ * What a sprint looks like now, against what it opened with.
+ *
+ * One read rather than two. Both halves are computed from a single list of the
+ * project's items, so the totals and the scope change cannot come from two
+ * reads taken either side of somebody else's write and disagree about which
+ * items are in the sprint.
+ */
+export interface SprintReport {
+  readonly progress: SprintProgress
+  /**
+   * What the sprint committed to when it opened, or null when it never
+   * opened. Null is the honest answer for a planned sprint: there is no
+   * moment to compare against yet, and a zero baseline would read as a sprint
+   * that promised nothing.
+   */
+  readonly baseline: SprintBaseline | null
+  /** Derived from the baseline, and null for the same reason it is. */
+  readonly scopeChange: SprintScopeChange | null
+}
+
+/** Reads a sprint's progress and its commitment. Derived on every call. */
+export async function readSprintReport(
+  deps: Pick<
+    Dependencies,
+    'projects' | 'members' | 'workItems' | 'sprints' | 'sprintProgressLog' | 'capabilities'
+  >,
   request: UseCaseRequest<SprintProgressCommand>,
-): Promise<SprintProgress> {
+): Promise<SprintReport> {
   const { command } = request
   await authorizeProject(deps, request.actor, command.projectId, PERMISSION.reportView)
   const sprint = await requireSprint(deps, command.projectId, command.sprintId)
-  return sprintProgress(sprint.id, await deps.workItems.list(command.projectId, {}))
+  const items = await deps.workItems.list(command.projectId, {})
+  const entries = await deps.sprintProgressLog.read(sprint.id)
+  const baseline = entries.find((entry) => entry.kind === 'baseline') ?? null
+  return {
+    progress: sprintProgress(sprint.id, items),
+    baseline,
+    scopeChange: baseline === null ? null : sprintScopeChange(baseline, items),
+  }
 }
 
 export async function requireSprint(
