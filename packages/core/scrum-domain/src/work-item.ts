@@ -3,7 +3,7 @@ import type { IdentityId, ProjectId, SprintId, WorkItemId } from './ids.js'
 import { createEntityMetadata, touchEntityMetadata, type EntityMetadata } from './metadata.js'
 import type { Rank } from './rank.js'
 import { requireOptionalText, requireText } from './text.js'
-import type { WorkItemCategory } from './work-category.js'
+import { toWorkItemCategory, type WorkItemCategory } from './work-category.js'
 import {
   toWorkItemDetails,
   type BugDetails,
@@ -202,6 +202,22 @@ export interface CreateWorkItemInput {
  * a second write would leave a subtask belonging to nothing on disk in between,
  * which is the one shape the hierarchy does not admit.
  */
+/**
+ * The category, checked rather than trusted.
+ *
+ * The type is erased at runtime, so an in-process caller — a script, an agent
+ * tool, a composition — hands over whatever string it has. Trusting it writes
+ * a file the codec then refuses on the way back: the item vanishes from every
+ * list, and the next created item collides with its identifier because the
+ * scan that allocates one cannot see it.
+ *
+ * Null passes through. It means nobody has classified this yet, which is a
+ * different answer from a category nobody recognises.
+ */
+function toCategory(value: WorkItemCategory | null | undefined): WorkItemCategory | null {
+  return value === undefined || value === null ? null : toWorkItemCategory(value)
+}
+
 export function createWorkItem(input: CreateWorkItemInput): WorkItem {
   return {
     ...createEntityMetadata(input.now),
@@ -209,7 +225,7 @@ export function createWorkItem(input: CreateWorkItemInput): WorkItem {
     projectId: input.projectId,
     type: input.type,
     level: workItemLevel(input.type),
-    category: input.category ?? null,
+    category: toCategory(input.category),
     title: requireText(input.title, 'Work item title', MAX_TITLE_LENGTH),
     description: requireOptionalText(
       input.description ?? '',
@@ -272,7 +288,7 @@ export function updateWorkItemDetails(
         : requireOptionalText(changes.description, 'Work item description', MAX_DESCRIPTION_LENGTH),
     type,
     level: workItemLevel(type),
-    category: changes.category === undefined ? item.category : changes.category,
+    category: changes.category === undefined ? item.category : toCategory(changes.category),
     priority: changes.priority ?? item.priority,
     assigneeId: changes.assigneeId === undefined ? item.assigneeId : changes.assigneeId,
     estimate: toLevelEstimate(
