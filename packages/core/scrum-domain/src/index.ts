@@ -55,13 +55,15 @@ export type { Edition } from './edition.js'
 export { EDITION, toEdition } from './edition.js'
 export type { Tenant, CreateTenantInput } from './tenant.js'
 export { createTenant, renameTenant } from './tenant.js'
-export type { WorkItemStatus } from './workflow.js'
+export type { WorkItemResolution, WorkItemStatus } from './workflow.js'
 export {
   BOARD_STATUSES,
   DEFAULT_WORKFLOW_STATUSES,
+  WORK_ITEM_RESOLUTION,
   WORK_ITEM_STATUS,
   isBoardStatus,
   statusRank,
+  toWorkItemResolution,
   toWorkItemStatus,
 } from './workflow.js'
 export type { CreateProjectInput, Project, ProjectDetailChanges, ProjectStatus } from './project.js'
@@ -130,6 +132,7 @@ export type {
   WorkItem,
   WorkItemDetailChanges,
   WorkItemLevel,
+  WorkItemStatusMove,
   WorkItemType,
 } from './work-item.js'
 export {
@@ -155,6 +158,7 @@ export {
   moveWorkItemRank,
   moveWorkItemStatus,
   removeWorkItemFromSprint,
+  resolveWorkItem,
   unblockWorkItem,
 } from './work-item.js'
 export type { WorkItemLookup, WorkItemReferences } from './work-item-graph.js'

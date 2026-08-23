@@ -62,6 +62,7 @@ describe('work item persistence contract', () => {
         'projectId',
         'rank',
         'reporterId',
+        'resolution',
         'revision',
         'schemaVersion',
         'sprintId',

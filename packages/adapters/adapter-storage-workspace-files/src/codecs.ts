@@ -1,4 +1,7 @@
 import {
+  ValidationError,
+  WORK_ITEM_RESOLUTION,
+  WORK_ITEM_STATUS,
   assertSupportedSchemaVersion,
   toEdition,
   toEstimationMethod,
@@ -17,6 +20,7 @@ import {
   toWorkItemId,
   toWorkItemStatus,
   toWorkItemCategory,
+  toWorkItemResolution,
   toWorkItemType,
   workItemLevel,
   type AcceptanceCriterion,
@@ -139,7 +143,7 @@ export function decodeWorkItem(raw: unknown): WorkItem {
     category: decodeCategory(record),
     title: stringField(record, 'title'),
     description: stringField(record, 'description'),
-    status: toWorkItemStatus(stringField(record, 'status')),
+    ...decodeOutcome(record),
     priority: toPriority(stringField(record, 'priority')),
     assigneeId: mapNullable(record, 'assigneeId', stringField, toIdentityId),
     reporterId: toIdentityId(stringField(record, 'reporterId')),
@@ -166,6 +170,32 @@ export function decodeWorkItem(raw: unknown): WorkItem {
 function decodeWorkItemType(record: JsonRecord): Pick<WorkItem, 'type' | 'level'> {
   const type = toWorkItemType(stringField(record, 'type'))
   return { type, level: workItemLevel(type) }
+}
+
+/**
+ * The status, and the outcome that has to agree with it.
+ *
+ * Read as a pair, because the two constrain each other: nothing short of
+ * `done` carries an outcome, and everything at `done` carries one. A record
+ * written before the field existed is missing it, and a finished item from
+ * back then can only have meant `done` — there was no other way to close one.
+ * A stored disagreement is a different matter and is refused: this build never
+ * writes one, so a file holding it is damaged rather than old.
+ */
+function decodeOutcome(record: JsonRecord): Pick<WorkItem, 'status' | 'resolution'> {
+  const status = toWorkItemStatus(stringField(record, 'status'))
+  const finished = status === WORK_ITEM_STATUS.done
+  if (!('resolution' in record)) {
+    return { status, resolution: finished ? WORK_ITEM_RESOLUTION.done : null }
+  }
+  const resolution = mapNullable(record, 'resolution', stringField, toWorkItemResolution)
+  if (finished !== (resolution !== null)) {
+    throw new ValidationError('status and resolution disagree about whether the work is finished', {
+      status,
+      resolution,
+    })
+  }
+  return { status, resolution }
 }
 
 /**

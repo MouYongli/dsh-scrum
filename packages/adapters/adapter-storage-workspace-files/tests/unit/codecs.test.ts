@@ -14,6 +14,8 @@ import {
   EDITION,
   ERROR_CODE,
   WORK_ITEM_CATEGORY,
+  WORK_ITEM_RESOLUTION,
+  WORK_ITEM_STATUS,
   WORK_ITEM_TYPE,
   assignWorkItemToSprint,
   createDefaultProjectConfig,
@@ -172,6 +174,38 @@ describe('round trips', () => {
     expect(encoded['category']).toBe(WORK_ITEM_CATEGORY.techDebt)
     expect(decodeWorkItem(older).category).toBeNull()
     expect(decodeWorkItem({ ...encoded, category: null }).category).toBeNull()
+  })
+
+  it('reads a finished work item written before the outcome existed', () => {
+    const encoded = stored(encodeWorkItem(workItem))
+    const older: Record<string, unknown> = { ...encoded, status: WORK_ITEM_STATUS.done }
+    delete older['resolution']
+
+    // Before the field existed there was one way to close an item, so a
+    // finished record from back then can only have meant it was done.
+    expect(decodeWorkItem(older).resolution).toBe(WORK_ITEM_RESOLUTION.done)
+    expect(decodeWorkItem({ ...encoded, status: WORK_ITEM_STATUS.todo }).resolution).toBeNull()
+  })
+
+  // This build never writes a disagreeing pair, so a file holding one is
+  // damaged rather than merely old, and reading it would go on to report the
+  // item as delivered or as unfinished depending on which field was believed.
+  it('refuses a stored status and outcome that disagree', () => {
+    const encoded = stored(encodeWorkItem(workItem))
+
+    expectRejects(
+      () => decodeWorkItem({ ...encoded, status: WORK_ITEM_STATUS.done, resolution: null }),
+      'a finished item with no outcome',
+    )
+    expectRejects(
+      () =>
+        decodeWorkItem({
+          ...encoded,
+          status: WORK_ITEM_STATUS.review,
+          resolution: WORK_ITEM_RESOLUTION.wontFix,
+        }),
+      'an unfinished item with an outcome',
+    )
   })
 
   it('stores the project identifier as projectId and reads it back as id', () => {

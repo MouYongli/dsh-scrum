@@ -99,6 +99,7 @@ export function item(sequence: number, overrides: ItemOverrides = {}): WorkItem 
     title: overrides.title ?? `工作项 ${sequence}`,
     description: overrides.description ?? '',
     status: overrides.status ?? WORK_ITEM_STATUS.backlog,
+    resolution: null,
     priority: overrides.priority ?? PRIORITY.medium,
     assigneeId: null,
     reporterId: REPORTER,

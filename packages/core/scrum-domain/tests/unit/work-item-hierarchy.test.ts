@@ -3,6 +3,7 @@ import {
   ERROR_CODE,
   WORK_ITEM_CATEGORY,
   WORK_ITEM_LEVEL,
+  WORK_ITEM_RESOLUTION,
   WORK_ITEM_STATUS,
   WORK_ITEM_TYPE,
   assertWorkItemTypeChange,
@@ -14,10 +15,12 @@ import {
   moveWorkItemStatus,
   rankBetween,
   recommendedTypeFor,
+  resolveWorkItem,
   removeWorkItemFromSprint,
   toIdentityId,
   toProjectId,
   toWorkItemCategory,
+  toWorkItemResolution,
   toSprintId,
   toTimestamp,
   toWorkItemId,
@@ -150,7 +153,7 @@ describe('board moves by level', () => {
       item(WORK_ITEM_TYPE.subtask),
       WORK_ITEM_STATUS.inProgress,
       T2,
-      SPRINT,
+      { effectiveSprintId: SPRINT },
     )
 
     expect(moved.status).toBe(WORK_ITEM_STATUS.inProgress)
@@ -159,14 +162,20 @@ describe('board moves by level', () => {
 
   it('refuses a subtask whose parent is in no sprint', () => {
     expectRejects(
-      () => moveWorkItemStatus(item(WORK_ITEM_TYPE.subtask), WORK_ITEM_STATUS.inProgress, T2, null),
+      () =>
+        moveWorkItemStatus(item(WORK_ITEM_TYPE.subtask), WORK_ITEM_STATUS.inProgress, T2, {
+          effectiveSprintId: null,
+        }),
       'a subtask under a backlog parent',
     )
   })
 
   it('refuses to advance an epic, which reports its children instead', () => {
     expectRejects(
-      () => moveWorkItemStatus(item(WORK_ITEM_TYPE.epic), WORK_ITEM_STATUS.inProgress, T2, SPRINT),
+      () =>
+        moveWorkItemStatus(item(WORK_ITEM_TYPE.epic), WORK_ITEM_STATUS.inProgress, T2, {
+          effectiveSprintId: SPRINT,
+        }),
       'an epic moved by hand',
     )
   })
@@ -304,5 +313,70 @@ describe('the work category', () => {
   it('accepts only the published category spellings', () => {
     expect(toWorkItemCategory('nfr_visible')).toBe(WORK_ITEM_CATEGORY.nfrVisible)
     expectRejects(() => toWorkItemCategory('chore'), 'a category this build does not know')
+  })
+})
+
+describe('how work ends', () => {
+  function inSprint(): WorkItem {
+    return assignWorkItemToSprint(named('SCR-1', WORK_ITEM_TYPE.story), SPRINT, T2)
+  }
+
+  it('carries no outcome until it is finished, and defaults to done when it is', () => {
+    const planned = inSprint()
+    const working = moveWorkItemStatus(planned, WORK_ITEM_STATUS.inProgress, T2)
+    const finished = moveWorkItemStatus(working, WORK_ITEM_STATUS.done, T2)
+
+    expect(planned.resolution).toBeNull()
+    expect(working.resolution).toBeNull()
+    expect(finished.resolution).toBe(WORK_ITEM_RESOLUTION.done)
+  })
+
+  it('takes the outcome the mover named', () => {
+    const finished = moveWorkItemStatus(inSprint(), WORK_ITEM_STATUS.done, T2, {
+      resolution: WORK_ITEM_RESOLUTION.wontFix,
+    })
+
+    expect(finished.status).toBe(WORK_ITEM_STATUS.done)
+    expect(finished.resolution).toBe(WORK_ITEM_RESOLUTION.wontFix)
+  })
+
+  it('refuses an outcome aimed at any other column', () => {
+    expectRejects(
+      () =>
+        moveWorkItemStatus(inSprint(), WORK_ITEM_STATUS.review, T2, {
+          resolution: WORK_ITEM_RESOLUTION.duplicate,
+        }),
+      'an outcome on an unfinished item',
+    )
+  })
+
+  it('clears the outcome when the work is picked back up', () => {
+    const finished = moveWorkItemStatus(inSprint(), WORK_ITEM_STATUS.done, T2, {
+      resolution: WORK_ITEM_RESOLUTION.cannotReproduce,
+    })
+
+    expect(moveWorkItemStatus(finished, WORK_ITEM_STATUS.inProgress, T2).resolution).toBeNull()
+  })
+
+  it('restates a finished outcome without moving the item again', () => {
+    const finished = moveWorkItemStatus(inSprint(), WORK_ITEM_STATUS.done, T2)
+    const restated = resolveWorkItem(finished, WORK_ITEM_RESOLUTION.duplicate, T2)
+
+    expect(restated.resolution).toBe(WORK_ITEM_RESOLUTION.duplicate)
+    expect(restated.status).toBe(WORK_ITEM_STATUS.done)
+    expect(restated.revision).toBe(finished.revision + 1)
+    expectRejects(
+      () => resolveWorkItem(restated, WORK_ITEM_RESOLUTION.duplicate, T2),
+      'restating the outcome it already has',
+    )
+    expectRejects(
+      () => resolveWorkItem(inSprint(), WORK_ITEM_RESOLUTION.wontFix, T2),
+      'an outcome on work still in progress',
+    )
+  })
+
+  it('accepts only the published outcome spellings', () => {
+    expect(toWorkItemResolution('wont_fix')).toBe(WORK_ITEM_RESOLUTION.wontFix)
+    expectRejects(() => toWorkItemResolution('fixed'), 'an outcome this build does not know')
   })
 })
