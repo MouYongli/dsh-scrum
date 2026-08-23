@@ -16,10 +16,11 @@ import {
  * A Community installation over a real directory, driven the way the shipped
  * bundle drives it.
  *
- * The Harness context is the one thing stubbed, and only because the host has
- * no way to read the open workspace and session for itself — see `todo.md`
- * A14. Everything below it is the code the bundle installs: the workspace file
- * store, the personal identity, the local activity log and the use cases.
+ * The Harness context is the one thing stubbed, and only because the test runs
+ * against a temporary directory instead of an open Harness workspace; the
+ * shell builds the same shape with `scopedHarness`. Everything below it is the
+ * code the bundle installs: the workspace file store, the personal identity,
+ * the local activity log and the use cases.
  */
 export interface Installation {
   readonly root: string

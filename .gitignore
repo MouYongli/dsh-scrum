@@ -14,3 +14,6 @@ coverage/
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# Planning notes kept locally after they left the repository
+.archived/

@@ -5,12 +5,11 @@ import type { ScrumClient } from '@dsh-scrum/scrum-ui'
 /**
  * The interface the screens are built against, over the host API.
  *
- * In process here because the browser channel is not settled yet (`todo.md`
- * A15 names the transport but the host cannot resolve the open workspace and
- * session for itself, which is A14). What this file is for is the other half
- * of the question: that the calls the screens make land on the same use cases
- * an agent's tools land on, against the same workspace, with the same
- * revisions. That part does not depend on how the bytes travel.
+ * In process here on purpose. The shipped path carries the same calls over the
+ * RPC channel in `scrum-harness-host/src/channel.ts`; what this file is for is
+ * the half of the question that does not depend on how the bytes travel: that
+ * the calls the screens make land on the same use cases an agent's tools land
+ * on, against the same workspace, with the same revisions.
  */
 export function clientOver(host: ScrumHostApi): ScrumClient {
   return {
