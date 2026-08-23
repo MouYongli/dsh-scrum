@@ -54,13 +54,42 @@ export interface ActivityEvent extends ActivityDescription {
   readonly sessionId: string | null
 }
 
+/** What a caller wants back out of the log. */
+export interface ActivityWindow {
+  /** At most this many events. The log has no default; the caller decides. */
+  readonly limit: number
+  /** Nothing recorded before this instant. */
+  readonly since?: Timestamp | undefined
+}
+
 /**
- * Where activity goes.
+ * What the log could read back, and what it could not.
+ *
+ * The problems travel with the events rather than being thrown, because a
+ * history that is missing one line is still worth showing — and a history
+ * that quietly returns fewer events than it holds is one that lies about what
+ * happened. Each is a sentence a user can act on; the log's own storage shape
+ * stays behind the port.
+ */
+export interface ActivityHistory {
+  /** Newest first, which is the order anything asking for "recent" wants. */
+  readonly events: readonly ActivityEvent[]
+  readonly problems: readonly string[]
+}
+
+/**
+ * Where activity goes, and where it is read back from.
  *
  * Append-only by contract: there is no method to amend or remove a record,
  * because a correction to an audit trail is another record rather than an edit
  * to the one that was wrong.
+ *
+ * Reading and writing are one port because they are one format. An edition
+ * that ships events to a service queries that service; an edition that appends
+ * to files reads those files. Splitting them would let a composition pair a
+ * writer with a reader that cannot see what it wrote.
  */
-export interface ActivityRecorder {
+export interface ActivityLog {
   record(event: ActivityEvent): Promise<void>
+  read(window: ActivityWindow): Promise<ActivityHistory>
 }

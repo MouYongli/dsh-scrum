@@ -1,5 +1,5 @@
 import type { CapabilitySet, Clock, IdGenerator } from '@dsh-scrum/scrum-domain'
-import type { ActivityRecorder } from './ports/activity.js'
+import type { ActivityLog } from './ports/activity.js'
 import type { IdempotencyStore } from './ports/idempotency.js'
 import type { MemberRepository } from './ports/members.js'
 import type { ProjectRepository } from './ports/projects.js'
@@ -29,7 +29,7 @@ export interface ApplicationDependencies {
   readonly transactions: TransactionPort
   readonly members: MemberRepository
   readonly bindings: WorkspaceBindingRepository
-  readonly activity: ActivityRecorder
+  readonly activity: ActivityLog
   readonly idempotency: IdempotencyStore
   readonly capabilities: CapabilitySet
   readonly clock: Clock

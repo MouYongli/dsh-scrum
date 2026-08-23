@@ -13,8 +13,10 @@ export type { ApplicationDependencies } from './dependencies.js'
 export type {
   ActivityDescription,
   ActivityEvent,
-  ActivityRecorder,
+  ActivityHistory,
+  ActivityLog,
   ActivitySource,
+  ActivityWindow,
 } from './ports/activity.js'
 export { ACTIVITY_SOURCE, ACTIVITY_SOURCES, toActivitySource } from './ports/activity.js'
 export type { IdempotencyKey, IdempotencyRecord, IdempotencyStore } from './ports/idempotency.js'
