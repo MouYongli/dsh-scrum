@@ -24,7 +24,7 @@ import type {
 import { createWorkbenchController, type WorkbenchState } from './controller.js'
 import type { ScrumFailure } from './failure.js'
 import { DraftsProvider, NO_DRAFTS, useDraftGuard, type DraftRegistry } from './drafts.js'
-import { createTranslate, type Translate } from './messages.js'
+import { createTranslate, type MessageKey, type Translate } from './messages.js'
 import { pageFor } from './pages.js'
 
 /**
@@ -596,15 +596,49 @@ function ConnectedSprints(props: {
   })
 }
 
-/** The screens a project has, and which one is showing. */
+/**
+ * The pages a project has, and which one is showing.
+ *
+ * Grouped by time: the backlog is about what is next, the board about what is
+ * happening, the review about what happened, and the work item page carries no
+ * Scrum ceremony at all. The order is the one `docs/product/scrum.md` 5.1
+ * lists, which is the order somebody reads them in.
+ *
+ * The agent is not among them. It opens a conversation rather than a view of
+ * the project, and this strip is about which projection of the project is
+ * showing; it sits in the workbench header beside the way back.
+ */
 const SECTIONS = [
-  { id: 'home', label: 'section.home' },
+  { id: 'dashboard', label: 'section.dashboard' },
+  { id: 'items', label: 'section.items' },
   { id: 'backlog', label: 'section.backlog' },
   { id: 'sprint', label: 'section.sprint' },
-  { id: 'agent', label: 'agent.open' },
+  { id: 'review', label: 'section.review' },
+  { id: 'settings', label: 'section.settings' },
 ] as const
 
 type SectionId = (typeof SECTIONS)[number]['id']
+
+/**
+ * A page that names what it is for before it has anything to show.
+ *
+ * Not an empty frame: somebody who opens the review page before it exists
+ * should read that reports and improvement actions land there, rather than
+ * wonder whether the page failed to load.
+ */
+function Placeholder(props: {
+  readonly t: Translate
+  readonly id: SectionId
+  readonly title: MessageKey
+  readonly body: MessageKey
+}): ReactElement {
+  return createElement(
+    'section',
+    { 'data-scrum-placeholder': props.id },
+    createElement('h3', null, props.t(props.title)),
+    createElement('p', null, props.t(props.body)),
+  )
+}
 
 /**
  * The project surface: a tab strip over two screens.
@@ -622,7 +656,8 @@ function ProjectSurface(props: {
   readonly onProjectUpdated: () => void
   readonly onOpenAgent?: (() => void) | undefined
 }): ReactElement {
-  const [section, setSection] = useState<SectionId>('home')
+  const [section, setSection] = useState<SectionId>('dashboard')
+  const [agentOpened, setAgentOpened] = useState(false)
   return createElement(
     'div',
     { 'data-scrum-surface': section },
@@ -637,16 +672,29 @@ function ProjectSurface(props: {
             type: 'button',
             'aria-pressed': section === entry.id,
             'data-scrum-section': entry.id,
-            'data-scrum-agent': entry.id === 'agent' ? true : undefined,
             onClick: () => {
               setSection(entry.id)
-              if (entry.id === 'agent') props.onOpenAgent?.()
             },
           },
           props.t(entry.label),
         ),
       ),
+      createElement(
+        'button',
+        {
+          type: 'button',
+          'data-scrum-agent': true,
+          onClick: () => {
+            setAgentOpened(true)
+            props.onOpenAgent?.()
+          },
+        },
+        props.t('agent.open'),
+      ),
     ),
+    agentOpened
+      ? createElement('section', { 'data-scrum-agent-panel': true }, props.t('agent.body'))
+      : null,
     surfaceFor(section, props),
   )
 }
@@ -662,14 +710,33 @@ function surfaceFor(
   },
 ): ReactElement {
   switch (section) {
-    case 'home':
+    case 'dashboard':
       return createElement(ConnectedHome, props)
     case 'backlog':
       return createElement(ConnectedBacklog, props)
     case 'sprint':
       return createElement(ConnectedSprints, props)
-    case 'agent':
-      return createElement('section', { 'data-scrum-agent-panel': true }, props.t('agent.body'))
+    case 'items':
+      return createElement(Placeholder, {
+        t: props.t,
+        id: 'items',
+        title: 'items.title',
+        body: 'items.body',
+      })
+    case 'review':
+      return createElement(Placeholder, {
+        t: props.t,
+        id: 'review',
+        title: 'review.title',
+        body: 'review.body',
+      })
+    case 'settings':
+      return createElement(Placeholder, {
+        t: props.t,
+        id: 'settings',
+        title: 'settings.title',
+        body: 'settings.body',
+      })
   }
 }
 
