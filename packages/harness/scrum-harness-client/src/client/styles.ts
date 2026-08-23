@@ -909,4 +909,43 @@ export const SCRUM_STYLES = String.raw`
 [data-scrum-column]:has([data-scrum-over-limit]) {
   border-color: color-mix(in srgb, var(--scrum-warning) 55%, var(--scrum-border));
 }
+
+[data-scrum-settings-page] { display: grid; gap: 14px; max-width: 920px; }
+
+[data-scrum-settings="ready"] { display: grid; gap: 14px; justify-items: start; }
+
+[data-scrum-settings-section] {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+  padding: 16px 18px;
+  border: 1px solid var(--scrum-border);
+  border-radius: var(--scrum-radius);
+  background: var(--scrum-panel);
+}
+[data-scrum-settings-section] legend {
+  padding: 0 6px;
+  font-size: 13px;
+  font-weight: 650;
+}
+[data-scrum-settings-section] p { display: grid; gap: 6px; margin: 0; }
+[data-scrum-settings-section] input[type="number"] { max-width: 140px; }
+[data-scrum-settings-section] textarea { min-height: 90px; }
+[data-scrum-hint] { color: var(--scrum-muted); font-size: 12px; }
+
+[data-scrum-capabilities] { display: flex; flex-wrap: wrap; gap: 6px; }
+[data-scrum-capability] {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--scrum-panel-subtle);
+  font-size: 12px;
+}
+
+[data-scrum-settings-saved] { color: var(--scrum-accent-strong); }
+[data-scrum-settings-failure] {
+  width: 100%;
+  padding: 10px 14px;
+  border-left: 3px solid var(--scrum-danger);
+  background: var(--scrum-panel-subtle);
+}
 `
