@@ -187,12 +187,15 @@ describe('the message above the list', () => {
 })
 
 describe('the toolbar', () => {
-  it('binds every control to a label, so a screen reader announces it', () => {
+  it('narrows through the shared bar, so the same filter holds on the item list', () => {
     const markup = render()
 
-    expect(markup).toContain(`<label for="scrum-backlog-text">${t('backlog.filter.text')}</label>`)
+    expect(markup).toContain(`<label for="scrum-backlog-text">${t('filter.text')}</label>`)
+    expect(markup).toContain('data-scrum-filter="type"')
+    expect(markup).toContain(t('filter.blocked'))
+    // Grouping is not narrowing — it is a way of drawing this list — so it
+    // stays on the backlog's own toolbar.
     expect(markup).toContain('id="scrum-backlog-grouping"')
-    expect(markup).toContain(t('backlog.filter.blocked'))
   })
 
   it('does not offer to widen itself into a list of every work item', () => {
