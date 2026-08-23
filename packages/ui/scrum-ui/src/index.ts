@@ -69,6 +69,19 @@ export {
   statusLabel,
   typeLabel,
 } from './vocabulary.js'
+export type { ListColumn, ListSort, SortDirection } from './list.js'
+export { DEFAULT_SORT, LIST_COLUMN, LIST_COLUMNS, nextSort, sortWorkItems } from './list.js'
+export type { ListActions, ListProps } from './list-view.js'
+export { WorkItemList } from './list-view.js'
+export type { WorkItemQuery } from './work-item-filter.js'
+export {
+  ANY_SPRINT,
+  EMPTY_QUERY,
+  UNPLANNED,
+  isNarrowed,
+  toBacklogQuery,
+  underEpic,
+} from './work-item-filter.js'
 export type { Locale, MessageKey, Translate } from './messages.js'
 export { MESSAGE_KEYS, SCRUM_MESSAGES, SCRUM_NAMESPACE, createTranslate } from './messages.js'
 export type { PageView } from './pages.js'

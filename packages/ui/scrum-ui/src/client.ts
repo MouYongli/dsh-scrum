@@ -1,5 +1,6 @@
 import type {
   AcceptanceCriterion,
+  IdentityId,
   Permission,
   ProjectRole,
   Priority,
@@ -120,7 +121,9 @@ export interface BacklogQuery {
   readonly levels?: readonly WorkItemLevel[] | undefined
   readonly categories?: readonly WorkItemCategory[] | undefined
   readonly resolutions?: readonly WorkItemResolution[] | undefined
+  readonly statuses?: readonly WorkItemStatus[] | undefined
   readonly priorities?: readonly Priority[] | undefined
+  readonly assigneeId?: IdentityId | null | undefined
   readonly labels?: readonly string[] | undefined
   readonly blocked?: boolean | undefined
   readonly sprintId?: SprintId | null | undefined

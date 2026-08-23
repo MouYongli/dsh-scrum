@@ -20,6 +20,7 @@ import {
   type SprintStatus,
   type WorkItem,
   type WorkItemCategory,
+  type WorkItemResolution,
   type WorkItemId,
   type WorkItemStatus,
   type WorkItemType,
@@ -46,6 +47,7 @@ export interface ItemOverrides {
   readonly sprintId?: SprintId | null
   readonly parentId?: WorkItemId | null
   readonly category?: WorkItemCategory | null
+  readonly resolution?: WorkItemResolution | null
   readonly dependsOn?: readonly WorkItemId[]
   readonly blockedReason?: string | null
   readonly labels?: readonly string[]
@@ -103,7 +105,7 @@ export function item(sequence: number, overrides: ItemOverrides = {}): WorkItem 
     title: overrides.title ?? `工作项 ${sequence}`,
     description: overrides.description ?? '',
     status: overrides.status ?? WORK_ITEM_STATUS.backlog,
-    resolution: null,
+    resolution: overrides.resolution ?? null,
     priority: overrides.priority ?? PRIORITY.medium,
     assigneeId: null,
     reporterId: REPORTER,

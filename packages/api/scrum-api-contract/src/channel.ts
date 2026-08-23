@@ -223,7 +223,11 @@ export const SCRUM_INPUT = {
     levels: z.array(z.union([z.literal(1), z.literal(2), z.literal(3)])).optional(),
     categories: z.array(workItemCategory).optional(),
     resolutions: z.array(workItemResolution).optional(),
+    statuses: z.array(workItemStatus).optional(),
     priorities: z.array(priority).optional(),
+    // Three answers, like the sprint: somebody's work, unassigned (`null`),
+    // and anybody's (absent).
+    assigneeId: identityId.nullable().optional(),
     labels: z.array(z.string()).optional(),
     blocked: z.boolean().optional(),
     // Three answers, and the difference matters: a sprint's board, the product

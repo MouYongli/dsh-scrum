@@ -8,8 +8,14 @@ import {
   WORK_ITEM_TYPE,
   toRevision,
 } from '@dsh-scrum/scrum-domain'
-import { BACKLOG_GROUPING, BacklogScreen, backlogPage, createTranslate } from '@dsh-scrum/scrum-ui'
-import type { BacklogActions, BacklogState } from '@dsh-scrum/scrum-ui'
+import {
+  BACKLOG_GROUPING,
+  BacklogScreen,
+  EMPTY_QUERY,
+  backlogPage,
+  createTranslate,
+} from '@dsh-scrum/scrum-ui'
+import type { BacklogActions, BacklogState, WorkItemQuery } from '@dsh-scrum/scrum-ui'
 import { mount, type Mounted } from '../support/dom.js'
 import { item, itemId } from '../support/items.js'
 
@@ -26,7 +32,7 @@ afterEach(() => {
 
 function actions(): BacklogActions {
   return {
-    query: vi.fn(),
+    narrow: vi.fn(),
     group: vi.fn(),
     select: vi.fn(),
     refresh: vi.fn(),
@@ -44,6 +50,7 @@ function actions(): BacklogActions {
 function screen(
   overrides: Partial<BacklogState> = {},
   handlers: BacklogActions = actions(),
+  query: WorkItemQuery = EMPTY_QUERY,
 ): { mounted: Mounted; handlers: BacklogActions } {
   const items = overrides.ordered ?? []
   const state: BacklogState = {
@@ -58,19 +65,19 @@ function screen(
     ...overrides,
   }
   const mounted = mount(
-    createElement(BacklogScreen, { state, actions: handlers, t, readOnly: false }),
+    createElement(BacklogScreen, { state, query, actions: handlers, t, readOnly: false }),
   )
   open = mounted
   return { mounted, handlers }
 }
 
 describe('the toolbar', () => {
-  it('narrows by text as it is typed', () => {
+  it('narrows by text as it is typed, through the shared filter', () => {
     const { mounted, handlers } = screen()
 
     mounted.type('#scrum-backlog-text', '结算')
 
-    expect(handlers.query).toHaveBeenCalledWith({ sprintId: null, text: '结算' })
+    expect(handlers.narrow).toHaveBeenCalledWith({ ...EMPTY_QUERY, text: '结算' })
   })
 
   it('regroups without asking the client for anything', () => {
@@ -81,12 +88,14 @@ describe('the toolbar', () => {
     expect(handlers.group).toHaveBeenCalledWith(BACKLOG_GROUPING.priority)
   })
 
-  it('clears the sprint narrowing rather than setting it to a value', () => {
-    const { mounted, handlers } = screen()
+  it('clears a narrowing rather than setting it to false', () => {
+    const { mounted, handlers } = screen({}, actions(), { ...EMPTY_QUERY, blocked: true })
 
-    mounted.toggle('#scrum-backlog-planned')
+    mounted.toggle('#scrum-backlog-blocked')
 
-    expect(handlers.query).toHaveBeenCalledWith(expect.objectContaining({ sprintId: undefined }))
+    // An absent `blocked` asks for everything; `false` asks for the items that
+    // are explicitly not blocked, and those are different lists.
+    expect(handlers.narrow).toHaveBeenCalledWith(expect.objectContaining({ blocked: undefined }))
   })
 })
 

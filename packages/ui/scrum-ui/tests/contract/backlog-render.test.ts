@@ -2,7 +2,13 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 import { PRIORITY, WORK_ITEM_TYPE } from '@dsh-scrum/scrum-domain'
-import { BACKLOG_GROUPING, BacklogScreen, backlogPage, createTranslate } from '@dsh-scrum/scrum-ui'
+import {
+  BACKLOG_GROUPING,
+  BacklogScreen,
+  EMPTY_QUERY,
+  backlogPage,
+  createTranslate,
+} from '@dsh-scrum/scrum-ui'
 import type { BacklogActions, BacklogState } from '@dsh-scrum/scrum-ui'
 import { item, itemId } from '../support/items.js'
 
@@ -13,7 +19,7 @@ import { item, itemId } from '../support/items.js'
 const t = createTranslate()
 
 const actions: BacklogActions = {
-  query: vi.fn(),
+  narrow: vi.fn(),
   group: vi.fn(),
   select: vi.fn(),
   refresh: vi.fn(),
@@ -43,7 +49,13 @@ function state(overrides: Partial<BacklogState> = {}): BacklogState {
 
 function render(overrides: Partial<BacklogState> = {}): string {
   return renderToStaticMarkup(
-    createElement(BacklogScreen, { state: state(overrides), actions, t, readOnly: false }),
+    createElement(BacklogScreen, {
+      state: state(overrides),
+      query: EMPTY_QUERY,
+      actions,
+      t,
+      readOnly: false,
+    }),
   )
 }
 
@@ -133,6 +145,7 @@ describe('groups', () => {
     const markup = renderToStaticMarkup(
       createElement(BacklogScreen, {
         readOnly: false,
+        query: EMPTY_QUERY,
         state: state({
           grouping: BACKLOG_GROUPING.priority,
           page: backlogPage(
@@ -180,12 +193,12 @@ describe('the toolbar', () => {
     expect(markup).toContain(`<label for="scrum-backlog-text">${t('backlog.filter.text')}</label>`)
     expect(markup).toContain('id="scrum-backlog-grouping"')
     expect(markup).toContain(t('backlog.filter.blocked'))
-    expect(markup).toContain(t('backlog.filter.planned'))
   })
 
-  it('shows the sprint switch as off while the query is narrowed to the backlog', () => {
-    expect(render()).toContain('id="scrum-backlog-planned" type="checkbox"')
-    expect(render({ query: {} })).toContain('checked=""')
+  it('does not offer to widen itself into a list of every work item', () => {
+    // That is the work item page now, and two routes to one screen is one
+    // more than it needs.
+    expect(render()).not.toContain('scrum-backlog-planned')
   })
 })
 
@@ -199,7 +212,13 @@ describe('creating and inspecting a work item', () => {
 
   it('offers no creation entry at all on an archived project', () => {
     const markup = renderToStaticMarkup(
-      createElement(BacklogScreen, { state: state(), actions, t, readOnly: true }),
+      createElement(BacklogScreen, {
+        state: state(),
+        query: EMPTY_QUERY,
+        actions,
+        t,
+        readOnly: true,
+      }),
     )
 
     expect(markup).not.toContain('data-scrum-create-open')
@@ -235,6 +254,7 @@ describe('creating and inspecting a work item', () => {
     const markup = renderToStaticMarkup(
       createElement(BacklogScreen, {
         state: state({ ...loaded(selected), selected }),
+        query: EMPTY_QUERY,
         actions,
         t,
         readOnly: true,
@@ -267,6 +287,7 @@ describe('ordering, hierarchy, dependency and blocking', () => {
     const markup = renderToStaticMarkup(
       createElement(BacklogScreen, {
         state: state(loaded(item(1))),
+        query: EMPTY_QUERY,
         actions,
         t,
         readOnly: true,

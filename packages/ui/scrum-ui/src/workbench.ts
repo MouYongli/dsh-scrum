@@ -26,7 +26,16 @@ import { createWorkbenchController, type WorkbenchState } from './controller.js'
 import type { ScrumFailure } from './failure.js'
 import { DraftsProvider, NO_DRAFTS, useDraftGuard, type DraftRegistry } from './drafts.js'
 import { createTranslate, type MessageKey, type Translate } from './messages.js'
+import { DEFAULT_SORT } from './list.js'
+import { WorkItemList } from './list-view.js'
 import { pageFor } from './pages.js'
+import {
+  ANY_SPRINT,
+  EMPTY_QUERY,
+  UNPLANNED,
+  toBacklogQuery,
+  type WorkItemQuery,
+} from './work-item-filter.js'
 
 /**
  * The Scrum workbench, over a state somebody else resolved.
@@ -527,20 +536,26 @@ function ConnectedBacklog(props: {
   readonly client: ScrumClient
   readonly t: Translate
   readonly readOnly: boolean
+  readonly query: WorkItemQuery
+  readonly onQuery: (query: WorkItemQuery) => void
 }): ReactElement {
   const controller = useMemo(() => createBacklogController(props.client), [props.client])
   const state = useSyncExternalStore(controller.subscribe, controller.state, controller.state)
+  const { query } = props
 
+  // The scope is this page's own: a backlog is the work in no sprint. The rest
+  // of the narrowing is the surface's, and reaches here whichever page set it.
   useEffect(() => {
-    void controller.load()
-  }, [controller])
+    void controller.setQuery(toBacklogQuery(query, UNPLANNED))
+  }, [controller, query])
 
   return createElement(BacklogScreen, {
     state,
+    query,
     t: props.t,
     readOnly: props.readOnly,
     actions: {
-      query: (query) => void controller.setQuery(query),
+      narrow: props.onQuery,
       group: controller.setGrouping,
       select: controller.select,
       refresh: () => void controller.load(),
@@ -554,6 +569,44 @@ function ConnectedBacklog(props: {
       block: (command) => void controller.block(command),
     },
   })
+}
+
+/**
+ * The work item list, wired to a client.
+ *
+ * The same controller as the backlog, opened on the whole project rather than
+ * on the unplanned work. Nothing about this page is Scrum-shaped: it answers
+ * what is in the project, which is a question asked outside the ceremonies.
+ */
+function ConnectedItems(props: {
+  readonly client: ScrumClient
+  readonly t: Translate
+  readonly query: WorkItemQuery
+}): ReactElement {
+  const controller = useMemo(() => createBacklogController(props.client, {}), [props.client])
+  const state = useSyncExternalStore(controller.subscribe, controller.state, controller.state)
+  const [sort, setSort] = useState(DEFAULT_SORT)
+  const { query } = props
+
+  useEffect(() => {
+    void controller.setQuery(toBacklogQuery(query, ANY_SPRINT))
+  }, [controller, query])
+
+  return createElement(
+    'section',
+    { 'data-scrum-items': true },
+    createElement('h3', null, props.t('items.title')),
+    createElement(WorkItemList, {
+      state,
+      sort,
+      t: props.t,
+      actions: {
+        sort: setSort,
+        select: controller.select,
+        refresh: () => void controller.load(),
+      },
+    }),
+  )
 }
 
 /**
@@ -659,6 +712,9 @@ function ProjectSurface(props: {
 }): ReactElement {
   const [section, setSection] = useState<SectionId>('dashboard')
   const [agentOpened, setAgentOpened] = useState(false)
+  // Held here rather than by any page: narrowing to an epic on the list and
+  // finding the backlog wide open again is the thing a shared filter is for.
+  const [query, setQuery] = useState<WorkItemQuery>(EMPTY_QUERY)
   return createElement(
     'div',
     { 'data-scrum-surface': section },
@@ -696,7 +752,7 @@ function ProjectSurface(props: {
     agentOpened
       ? createElement('section', { 'data-scrum-agent-panel': true }, props.t('agent.body'))
       : null,
-    surfaceFor(section, props),
+    surfaceFor(section, { ...props, query, onQuery: setQuery }),
   )
 }
 
@@ -708,6 +764,8 @@ function surfaceFor(
     readonly readOnly: boolean
     readonly project: ProjectView
     readonly onProjectUpdated: () => void
+    readonly query: WorkItemQuery
+    readonly onQuery: (query: WorkItemQuery) => void
   },
 ): ReactElement {
   switch (section) {
@@ -718,12 +776,7 @@ function surfaceFor(
     case 'sprint':
       return createElement(ConnectedSprints, props)
     case 'items':
-      return createElement(Placeholder, {
-        t: props.t,
-        id: 'items',
-        title: 'items.title',
-        body: 'items.body',
-      })
+      return createElement(ConnectedItems, props)
     case 'review':
       return createElement(Placeholder, {
         t: props.t,

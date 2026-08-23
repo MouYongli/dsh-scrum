@@ -63,6 +63,26 @@ describe('a workbench over a bound project', () => {
     expect(mounted.find('[data-scrum-agent]').textContent).toBe('打开 Scrum Agent')
   })
 
+  it('keeps a filter set on one page when another is opened', async () => {
+    const backlog = vi.fn(() => Promise.resolve([]))
+    const mounted = workbench(stubClient({ entry: () => Promise.resolve(BOUND), backlog }))
+    await settle()
+
+    mounted.click('[data-scrum-section="backlog"]')
+    await settle()
+    mounted.type('#scrum-backlog-text', '结算')
+    await settle()
+    mounted.click('[data-scrum-section="items"]')
+    await settle()
+    mounted.click('[data-scrum-section="backlog"]')
+    await settle()
+
+    // The filter belongs to the surface, not to a page: narrowing the backlog
+    // and finding the list wide open is what one shared shape prevents.
+    expect((mounted.find('#scrum-backlog-text') as HTMLInputElement).value).toBe('结算')
+    expect(backlog).toHaveBeenCalledWith(expect.objectContaining({ text: '结算' }))
+  })
+
   it('names what a page not yet built is for', async () => {
     const mounted = workbench(stubClient({ entry: () => Promise.resolve(BOUND) }))
     await settle()

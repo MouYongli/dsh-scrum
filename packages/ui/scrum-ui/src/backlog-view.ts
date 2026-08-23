@@ -4,7 +4,6 @@ import type { BacklogGroup, BacklogRow } from './backlog.js'
 import { BACKLOG_GROUPING, type BacklogGrouping } from './backlog.js'
 import type { BacklogState } from './backlog-controller.js'
 import type {
-  BacklogQuery,
   BlockWorkItem,
   DependWorkItem,
   EditWorkItem,
@@ -17,6 +16,7 @@ import type { MessageKey, Translate } from './messages.js'
 import { categoryLabel, priorityLabel, statusLabel, typeLabel } from './vocabulary.js'
 import { EMPTY_FIELDS, WorkItemForm, toNewWorkItem } from './work-item-form.js'
 import { OrderControls, type RankTarget } from './work-item-links.js'
+import type { WorkItemQuery } from './work-item-filter.js'
 import { WorkItemDetail } from './work-item-detail.js'
 
 /**
@@ -27,7 +27,8 @@ import { WorkItemDetail } from './work-item-detail.js'
  * independently be missing invites a control that renders and does nothing.
  */
 export interface BacklogActions {
-  readonly query: (query: BacklogQuery) => void
+  /** Narrows every view of the work items, not only this one. */
+  readonly narrow: (query: WorkItemQuery) => void
   readonly group: (grouping: BacklogGrouping) => void
   readonly select: (id: WorkItemId | null) => void
   readonly refresh: () => void
@@ -43,6 +44,11 @@ export interface BacklogActions {
 
 export interface BacklogProps {
   readonly state: BacklogState
+  /**
+   * The filters, which belong to the project surface rather than to this page.
+   * Set here they still apply on the work item list, and the other way round.
+   */
+  readonly query: WorkItemQuery
   readonly actions: BacklogActions
   readonly t: Translate
   /**
@@ -184,8 +190,7 @@ function failureBanner(props: BacklogProps): ReactElement | null {
 }
 
 function toolbar(props: BacklogProps): ReactElement {
-  const { state, t } = props
-  const query = state.query
+  const { state, query, t } = props
   return createElement(
     'div',
     { 'data-scrum-toolbar': true },
@@ -196,9 +201,9 @@ function toolbar(props: BacklogProps): ReactElement {
       createElement('input', {
         id: 'scrum-backlog-text',
         type: 'search',
-        value: query.text ?? '',
+        value: query.text,
         onChange: (event: { target: { value: string } }) => {
-          props.actions.query({ ...query, text: event.target.value })
+          props.actions.narrow({ ...query, text: event.target.value })
         },
       }),
     ),
@@ -224,36 +229,24 @@ function toolbar(props: BacklogProps): ReactElement {
         ),
       ),
     ),
+    // The scope is not offered here any more. Turning "only what is unplanned"
+    // off turned the backlog into a list of every work item, which is now a
+    // page of its own; two routes to one screen is one more than it needs.
     checkbox('scrum-backlog-blocked', t('backlog.filter.blocked'), query.blocked === true, (on) => {
-      props.actions.query(on ? { ...query, blocked: true } : without(query, 'blocked'))
+      props.actions.narrow(on ? { ...query, blocked: true } : without(query, 'blocked'))
     }),
-    checkbox(
-      'scrum-backlog-planned',
-      t('backlog.filter.planned'),
-      query.sprintId === undefined,
-      (on) => {
-        props.actions.query(on ? without(query, 'sprintId') : { ...query, sprintId: null })
-      },
-    ),
   )
 }
 
 /**
  * Drops one narrowing.
  *
- * Dropping means clearing the field, not setting it to `false` or `null`: both
- * of those already mean something else here — "only the unblocked ones" and
- * "only the unplanned ones" — and neither is what an unticked box says.
+ * Dropping means clearing the field, not setting it to `false`: an absent
+ * `blocked` asks for everything, while `false` asks for the items that are
+ * explicitly not blocked, and those are different lists.
  */
-function without(query: BacklogQuery, key: 'blocked' | 'sprintId'): BacklogQuery {
-  return {
-    text: query.text,
-    types: query.types,
-    priorities: query.priorities,
-    labels: query.labels,
-    blocked: key === 'blocked' ? undefined : query.blocked,
-    sprintId: key === 'sprintId' ? undefined : query.sprintId,
-  }
+function without(query: WorkItemQuery, key: 'blocked'): WorkItemQuery {
+  return { ...query, [key]: undefined }
 }
 
 function checkbox(
