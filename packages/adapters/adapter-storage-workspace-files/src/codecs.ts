@@ -17,6 +17,7 @@ import {
   toWorkItemId,
   toWorkItemStatus,
   toWorkItemType,
+  workItemLevel,
   type AcceptanceCriterion,
   type Edition,
   type EntityMetadata,
@@ -132,7 +133,7 @@ export function decodeWorkItem(raw: unknown): WorkItem {
     ...metadata(record),
     id: toWorkItemId(stringField(record, 'id')),
     projectId: toProjectId(stringField(record, 'projectId')),
-    type: toWorkItemType(stringField(record, 'type')),
+    ...decodeWorkItemType(record),
     title: stringField(record, 'title'),
     description: stringField(record, 'description'),
     status: toWorkItemStatus(stringField(record, 'status')),
@@ -148,6 +149,20 @@ export function decodeWorkItem(raw: unknown): WorkItem {
     labels: [...stringArrayField(record, 'labels')],
     acceptanceCriteria: decodeAcceptanceCriteria(record),
   }
+}
+
+/**
+ * The type, and the level it decides.
+ *
+ * `level` is derived rather than read back. It is written so that a reader
+ * outside this build can group and filter on one integer, but the type is what
+ * establishes it, and recomputing here means a file whose level was hand-edited
+ * or written by an older layout is repaired on the way in instead of carrying a
+ * disagreement no rule could resolve.
+ */
+function decodeWorkItemType(record: JsonRecord): Pick<WorkItem, 'type' | 'level'> {
+  const type = toWorkItemType(stringField(record, 'type'))
+  return { type, level: workItemLevel(type) }
 }
 
 function decodeAcceptanceCriteria(record: JsonRecord): readonly AcceptanceCriterion[] {
