@@ -84,6 +84,7 @@ export type { SettingsController, SettingsState } from './settings-controller.js
 export { createSettingsController } from './settings-controller.js'
 export type { SettingsActions, SettingsProps } from './settings-view.js'
 export { ProjectSettings } from './settings-view.js'
+export { LoadingSkeleton } from './skeleton.js'
 export type { FilterBarProps } from './filter-bar.js'
 export { FilterBar } from './filter-bar.js'
 export type { DashboardController, DashboardState } from './dashboard-controller.js'

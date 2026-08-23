@@ -4,6 +4,7 @@ import type { ActivityEventView, ProjectView, SprintReportView } from './client.
 import type { DashboardState } from './dashboard-controller.js'
 import type { BurndownView, DashboardSignal, SignalGroup } from './dashboard.js'
 import type { MessageKey, Translate } from './messages.js'
+import { LoadingSkeleton } from './skeleton.js'
 import { statusLabel, typeLabel } from './vocabulary.js'
 
 export interface DashboardActions {
@@ -37,7 +38,14 @@ export function DashboardScreen(props: DashboardProps): ReactElement {
     'section',
     { 'data-scrum-home': true, 'aria-busy': state.phase === 'loading' },
     heading(props),
-    state.phase === 'loading' ? createElement('p', null, t('dashboard.loading')) : null,
+    state.phase === 'loading'
+      ? createElement(
+          'p',
+          { role: 'status' },
+          t('dashboard.loading'),
+          createElement(LoadingSkeleton, { rows: 4 }),
+        )
+      : null,
     state.phase === 'failed'
       ? createElement(
           'p',

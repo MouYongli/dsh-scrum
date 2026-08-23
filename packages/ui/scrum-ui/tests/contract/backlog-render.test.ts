@@ -72,6 +72,8 @@ describe('the three states a backlog can be in', () => {
 
     expect(markup).toContain('aria-busy="true"')
     expect(markup).toContain(t('backlog.loading'))
+    // The rows that are coming, so the arrival is a fill and not a reflow.
+    expect(markup).toContain('data-scrum-skeleton')
     expect(markup).not.toContain('data-scrum-list')
   })
 

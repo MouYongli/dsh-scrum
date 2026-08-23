@@ -1,6 +1,7 @@
 import { createElement, type ReactElement } from 'react'
 import type { BacklogState } from './backlog-controller.js'
 import type { Translate } from './messages.js'
+import { LoadingSkeleton } from './skeleton.js'
 import type { TimelineRow, TimelineView } from './timeline.js'
 import { statusLabel, typeLabel } from './vocabulary.js'
 
@@ -25,6 +26,7 @@ export function WorkItemTimeline(props: TimelineProps): ReactElement {
       'p',
       { role: 'status', 'data-scrum-timeline': 'loading' },
       t('backlog.loading'),
+      createElement(LoadingSkeleton, { rows: 6 }),
     )
   }
   if (state.phase === 'failed') {

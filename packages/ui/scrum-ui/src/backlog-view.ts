@@ -10,6 +10,7 @@ import {
 import type { BacklogGroup, BacklogRow } from './backlog.js'
 import { FilterBar } from './filter-bar.js'
 import { READINESS_LABEL, readinessOf } from './readiness.js'
+import { LoadingSkeleton } from './skeleton.js'
 import { BACKLOG_GROUPING, type BacklogGrouping } from './backlog.js'
 import type { BacklogState } from './backlog-controller.js'
 import type {
@@ -261,7 +262,12 @@ const EMPTY_COPY: Readonly<
 function body(props: BacklogProps): ReactNode {
   const { state, t } = props
   if (state.phase === 'loading') {
-    return createElement('p', { 'data-scrum-loading': true }, t('backlog.loading'))
+    return createElement(
+      'p',
+      { 'data-scrum-loading': true },
+      t('backlog.loading'),
+      createElement(LoadingSkeleton, { rows: 8 }),
+    )
   }
   if (state.phase === 'failed') {
     return null
