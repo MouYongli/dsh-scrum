@@ -203,3 +203,22 @@ describe('the endpoint inputs', () => {
     expect(result.success).toBe(false)
   })
 })
+
+describe('the activity window', () => {
+  it('takes a bounded count and an optional start', () => {
+    expect(
+      SCRUM_INPUT[SCRUM_ENDPOINT.activity].safeParse({
+        limit: 20,
+        since: '2026-09-01T00:00:00.000Z',
+      }).success,
+    ).toBe(true)
+  })
+
+  it('refuses a browser asking for the whole history at once', () => {
+    // A project with three years of records would read every month file to
+    // answer one panel, so the ceiling is the contract's rather than the
+    // caller's good manners.
+    expect(SCRUM_INPUT[SCRUM_ENDPOINT.activity].safeParse({ limit: 5000 }).success).toBe(false)
+    expect(SCRUM_INPUT[SCRUM_ENDPOINT.activity].safeParse({ limit: 0 }).success).toBe(false)
+  })
+})

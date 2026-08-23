@@ -1,4 +1,7 @@
 export type {
+  ActivityEventView,
+  ActivityQuery,
+  ActivityView,
   AuthorizationView,
   BacklogQuery,
   BlockWorkItem,

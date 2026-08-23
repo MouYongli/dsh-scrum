@@ -95,5 +95,6 @@ export function clientOver(host: ScrumHostApi): ScrumClient {
         membership: authorization.membership,
       }
     },
+    activity: async (query) => await host.activity(query),
   }
 }

@@ -16,6 +16,8 @@ import {
 } from '@dsh-scrum/scrum-api-contract'
 import type { Sprint, WorkItem } from '@dsh-scrum/scrum-domain'
 import type {
+  ActivityQuery,
+  ActivityView,
   BacklogQuery,
   BlockWorkItem,
   CloseSprint,
@@ -153,6 +155,8 @@ export function createTransportClient(call: RpcCall, scope: ScopeReader): ScrumC
       await send<Sprint>(SCRUM_ENDPOINT.startSprint, command),
     closeSprint: async (command: CloseSprint) =>
       await send<Sprint>(SCRUM_ENDPOINT.closeSprint, command),
+    activity: async (query: ActivityQuery) =>
+      await send<ActivityView>(SCRUM_ENDPOINT.activity, query),
   }
 }
 
