@@ -129,7 +129,10 @@ describe('round trips', () => {
         statusDisplayNames: { in_progress: '进行中', review: '评审中' },
         permissionPolicy: { 'sprint.transition': ['product_owner'] },
         definitionOfDone: ['已评审'],
+        definitionOfReady: ['有验收标准'],
         workInProgressLimit: 3,
+        velocityBasis: 'finished',
+        stalledAfterDays: 5,
       },
       T2,
     )
@@ -346,5 +349,29 @@ describe('naming the file a failure came from', () => {
         }),
       ),
     ).toBe(thrown)
+  })
+})
+
+describe('a configuration written before the newer fields existed', () => {
+  it('reads back with defaults rather than being refused', () => {
+    const encoded = stored(encodeProjectConfig(config)) as Record<string, unknown>
+    delete encoded['definitionOfReady']
+    delete encoded['velocityBasis']
+    delete encoded['stalledAfterDays']
+
+    const decoded = decodeProjectConfig(encoded)
+
+    // schemaVersion stays 1: nothing already stored means anything different
+    // now, so a file written by an older build is still a valid file.
+    expect(decoded.definitionOfReady).toEqual([])
+    expect(decoded.velocityBasis).toBe('delivered')
+    expect(decoded.stalledAfterDays).toBe(3)
+    expect(decoded.schemaVersion).toBe(1)
+  })
+
+  it('still refuses a velocity basis no rule knows', () => {
+    const encoded = { ...stored(encodeProjectConfig(config)), velocityBasis: 'guessed' }
+
+    expectRejects(() => decodeProjectConfig(encoded), 'an unknown velocity basis')
   })
 })

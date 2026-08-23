@@ -4,7 +4,10 @@ import {
   DEFAULT_PERMISSION_POLICY,
   DEFAULT_WORKFLOW_STATUSES,
   ERROR_CODE,
+  DEFAULT_STALLED_AFTER_DAYS,
   ESTIMATION_METHOD,
+  VELOCITY_BASIS,
+  toVelocityBasis,
   IDENTITY_KIND,
   PERMISSION,
   PROJECT_ROLE,
@@ -84,7 +87,48 @@ describe('project configuration', () => {
     expect(config.workInProgressLimit).toBeNull()
     expect(config.definitionOfDone).toEqual([])
     expect(config.permissionPolicy).toEqual(DEFAULT_PERMISSION_POLICY)
+    expect(config.definitionOfReady).toEqual([])
+    // Velocity is a claim about what a team can deliver, so a sprint rescued
+    // by abandoning half its work must not read as a fast one.
+    expect(config.velocityBasis).toBe(VELOCITY_BASIS.delivered)
+    expect(config.stalledAfterDays).toBe(DEFAULT_STALLED_AFTER_DAYS)
     expect(config.revision).toBe(1)
+  })
+
+  it('holds both checklists to the same limits, because they are one kind of thing', () => {
+    const config = createDefaultProjectConfig(PROJECT, NOW)
+    const tuned = updateProjectConfig(
+      config,
+      { definitionOfReady: ['有验收标准', '已估算'], definitionOfDone: ['已评审'] },
+      LATER,
+    )
+
+    expect(tuned.definitionOfReady).toEqual(['有验收标准', '已估算'])
+    expect(tuned.definitionOfDone).toEqual(['已评审'])
+    for (const entries of [{ definitionOfReady: [''] }, { definitionOfDone: [''] }]) {
+      expectRejects(() => updateProjectConfig(config, entries, LATER), 'a blank entry')
+    }
+    expectRejects(
+      () => updateProjectConfig(config, { definitionOfReady: Array<string>(51).fill('x') }, LATER),
+      'a checklist nobody would read',
+    )
+  })
+
+  it('bounds how long an item may sit before a board calls it stalled', () => {
+    const config = createDefaultProjectConfig(PROJECT, NOW)
+
+    expect(updateProjectConfig(config, { stalledAfterDays: 7 }, LATER).stalledAfterDays).toBe(7)
+    expectRejects(() => updateProjectConfig(config, { stalledAfterDays: 0 }, LATER), 'no wait')
+    expectRejects(() => updateProjectConfig(config, { stalledAfterDays: 61 }, LATER), 'two months')
+  })
+
+  it('takes either velocity basis and refuses anything else', () => {
+    const config = createDefaultProjectConfig(PROJECT, NOW)
+
+    expect(
+      updateProjectConfig(config, { velocityBasis: VELOCITY_BASIS.finished }, LATER).velocityBasis,
+    ).toBe(VELOCITY_BASIS.finished)
+    expect(() => toVelocityBasis('guessed')).toThrow()
   })
 
   it('changes only the fields it is given, advancing the revision once', () => {
