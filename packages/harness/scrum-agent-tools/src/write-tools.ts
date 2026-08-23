@@ -1,6 +1,8 @@
 import { defineTool, type JsonValue, type ToolDefinition } from '@deepseek-ai/dsh-tools'
 import {
   toPriority,
+  toWorkItemCategory,
+  toWorkItemResolution,
   toRank,
   toRevision,
   toSprintId,
@@ -75,6 +77,45 @@ const REVISION = {
   required: true as const,
 }
 
+/**
+ * The fields one type carries, as one nested argument.
+ *
+ * Every type's fields in one shape rather than a branch per type: the tool
+ * list a model reads is the product's surface area, and five near-identical
+ * creation tools cost more to choose between than one object costs to fill.
+ * `type` tags which set is meant, and the domain refuses a tag that disagrees
+ * with the item — without it a bug report filed as an epic would lose every
+ * field in silence.
+ */
+const TYPE_DETAILS = {
+  type: 'object' as const,
+  description: 'The fields this type carries. Tag it with the type they describe.',
+  additionalProperties: false,
+  properties: {
+    type: { type: 'string' as const, description: 'The type these fields describe.' },
+    color: { type: 'string' as const, description: 'Epic: how it is marked on a board.' },
+    timebox: { type: 'integer' as const, description: 'Spike: how many days it may run.' },
+    outcome: { type: 'string' as const, description: 'Spike: the conclusion that ends it.' },
+    severity: {
+      type: 'string' as const,
+      description: 'Bug: one of blocker, major, minor or trivial.',
+    },
+    stepsToReproduce: { type: 'string' as const, description: 'Bug: how to see it happen.' },
+    expected: { type: 'string' as const, description: 'Bug: what should have happened.' },
+    actual: { type: 'string' as const, description: 'Bug: what happened instead.' },
+    environment: { type: 'string' as const, description: 'Bug: where it was seen.' },
+    affectedVersion: { type: 'string' as const, description: 'Bug: the version it appears in.' },
+    isRegression: { type: 'boolean' as const, description: 'Bug: whether it used to work.' },
+    rootCause: { type: 'string' as const, description: 'Bug: why it happens.' },
+  },
+}
+
+const CATEGORY = {
+  type: 'string' as const,
+  description:
+    'What kind of work this is: feature, nfr_visible, nfr_constraint, tech_debt, spike, ops, docs or defect.',
+}
+
 const WORK_ITEM_ID = {
   type: 'string' as const,
   description: 'The work item, such as "SCR-12".',
@@ -97,11 +138,18 @@ export function createWriteTools(api: ScrumAgentApi): readonly ToolDefinition[] 
       parameters: {
         type: {
           type: 'string',
-          description: 'One of epic, story, task or bug.',
+          description: 'One of epic, story, task, bug or subtask.',
           required: true,
         },
         title: { type: 'string', description: 'A short title.', required: true },
         description: { type: 'string', description: 'The body of the item.' },
+        category: CATEGORY,
+        typeDetails: TYPE_DETAILS,
+        parentId: {
+          type: 'string',
+          description:
+            'The item this one sits under, exactly one level above it. Required for a subtask.',
+        },
         priority: { type: 'string', description: 'One of lowest, low, medium, high or highest.' },
       },
       output: OUTPUT,
@@ -114,6 +162,11 @@ export function createWriteTools(api: ScrumAgentApi): readonly ToolDefinition[] 
                   type: toWorkItemType(args.type),
                   title: args.title,
                   ...(args.description === undefined ? {} : { description: args.description }),
+                  ...(args.category === undefined
+                    ? {}
+                    : { category: toWorkItemCategory(args.category) }),
+                  ...(args.typeDetails === undefined ? {} : { typeDetails: args.typeDetails }),
+                  ...(args.parentId === undefined ? {} : { parentId: toWorkItemId(args.parentId) }),
                   ...(args.priority === undefined ? {} : { priority: toPriority(args.priority) }),
                 }),
               ),
@@ -125,7 +178,7 @@ export function createWriteTools(api: ScrumAgentApi): readonly ToolDefinition[] 
     defineTool({
       name: WRITE_TOOL.updateWorkItem,
       description:
-        'Change the title, description, priority or estimate of one work item. Status, sprint and blocking have their own tools.',
+        'Change the title, description, priority, estimate, category or type details of one work item. Status, sprint and blocking have their own tools.',
       parameters: {
         workItemId: WORK_ITEM_ID,
         expectedRevision: REVISION,
@@ -133,6 +186,8 @@ export function createWriteTools(api: ScrumAgentApi): readonly ToolDefinition[] 
         description: { type: 'string', description: 'A new body.' },
         priority: { type: 'string', description: 'One of lowest, low, medium, high or highest.' },
         estimate: { type: 'number', description: 'The estimate, or null to clear it.' },
+        category: CATEGORY,
+        typeDetails: TYPE_DETAILS,
       },
       output: OUTPUT,
       execute: async (args) =>
@@ -148,6 +203,10 @@ export function createWriteTools(api: ScrumAgentApi): readonly ToolDefinition[] 
                     ...(args.description === undefined ? {} : { description: args.description }),
                     ...(args.priority === undefined ? {} : { priority: toPriority(args.priority) }),
                     ...(args.estimate === undefined ? {} : { estimate: args.estimate }),
+                    ...(args.category === undefined
+                      ? {}
+                      : { category: toWorkItemCategory(args.category) }),
+                    ...(args.typeDetails === undefined ? {} : { typeDetails: args.typeDetails }),
                   },
                 }),
               ),
@@ -164,6 +223,11 @@ export function createWriteTools(api: ScrumAgentApi): readonly ToolDefinition[] 
         workItemId: WORK_ITEM_ID,
         expectedRevision: REVISION,
         status: { type: 'string', description: 'The board column to move the card to.' },
+        resolution: {
+          type: 'string',
+          description:
+            'How the work ended, when moving it to done: done, wont_fix, duplicate or cannot_reproduce. Defaults to done.',
+        },
         sprintId: {
           type: 'string',
           description: 'The sprint to plan it into, or "backlog" to take it out of one.',
@@ -191,6 +255,9 @@ export function createWriteTools(api: ScrumAgentApi): readonly ToolDefinition[] 
                     workItemId,
                     expectedRevision,
                     status: toWorkItemStatus(args.status),
+                    ...(args.resolution === undefined
+                      ? {}
+                      : { resolution: toWorkItemResolution(args.resolution) }),
                   }),
                 ),
               )

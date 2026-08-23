@@ -89,6 +89,43 @@ describe('the writing tools', () => {
     expect(created.result['status']).toBe(WORK_ITEM_STATUS.backlog)
   })
 
+  it('file a bug with its severity, and report the card with its level', async () => {
+    const state = store()
+    const api = await writing(state)
+
+    const created = (await call(api, WRITE_TOOL.createWorkItem, {
+      type: WORK_ITEM_TYPE.bug,
+      title: '保存后页面白屏',
+      category: 'defect',
+      typeDetails: {
+        type: WORK_ITEM_TYPE.bug,
+        severity: 'blocker',
+        stepsToReproduce: '打开设置后点击保存',
+        isRegression: true,
+      },
+    })) as { ok: true; result: Record<string, unknown> }
+
+    expect(created.result['category']).toBe('defect')
+    expect(created.result['level']).toBe(2)
+    expect(created.result['resolution']).toBeNull()
+  })
+
+  it('refuse details tagged with a type other than the one being created', async () => {
+    const state = store()
+    const api = await writing(state)
+
+    // Without the tag the fields would be dropped in silence, and an agent
+    // would report a bug it had filed as an empty epic.
+    const error = await call(api, WRITE_TOOL.createWorkItem, {
+      type: WORK_ITEM_TYPE.epic,
+      title: 'x',
+      typeDetails: { type: WORK_ITEM_TYPE.bug, severity: 'blocker' },
+    }).catch((caught: unknown) => caught)
+
+    expect((error as { code?: string }).code).toBe('VALIDATION')
+    expect(state.workItems.size).toBe(0)
+  })
+
   it('update an item at the revision the caller read', async () => {
     const state = store()
     const api = await writing(state)
