@@ -71,6 +71,8 @@ export {
 } from './vocabulary.js'
 export type { ListColumn, ListSort, SortDirection } from './list.js'
 export { DEFAULT_SORT, LIST_COLUMN, LIST_COLUMNS, nextSort, sortWorkItems } from './list.js'
+export type { ListActions, ListProps } from './list-view.js'
+export { WorkItemList } from './list-view.js'
 export type { WorkItemQuery } from './work-item-filter.js'
 export {
   ANY_SPRINT,

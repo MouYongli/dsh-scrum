@@ -26,6 +26,8 @@ import { createWorkbenchController, type WorkbenchState } from './controller.js'
 import type { ScrumFailure } from './failure.js'
 import { DraftsProvider, NO_DRAFTS, useDraftGuard, type DraftRegistry } from './drafts.js'
 import { createTranslate, type MessageKey, type Translate } from './messages.js'
+import { DEFAULT_SORT } from './list.js'
+import { WorkItemList } from './list-view.js'
 import { pageFor } from './pages.js'
 
 /**
@@ -557,6 +559,42 @@ function ConnectedBacklog(props: {
 }
 
 /**
+ * The work item list, wired to a client.
+ *
+ * The same controller as the backlog, opened on the whole project rather than
+ * on the unplanned work. Nothing about this page is Scrum-shaped: it answers
+ * what is in the project, which is a question asked outside the ceremonies.
+ */
+function ConnectedItems(props: {
+  readonly client: ScrumClient
+  readonly t: Translate
+}): ReactElement {
+  const controller = useMemo(() => createBacklogController(props.client, {}), [props.client])
+  const state = useSyncExternalStore(controller.subscribe, controller.state, controller.state)
+  const [sort, setSort] = useState(DEFAULT_SORT)
+
+  useEffect(() => {
+    void controller.load()
+  }, [controller])
+
+  return createElement(
+    'section',
+    { 'data-scrum-items': true },
+    createElement('h3', null, props.t('items.title')),
+    createElement(WorkItemList, {
+      state,
+      sort,
+      t: props.t,
+      actions: {
+        sort: setSort,
+        select: controller.select,
+        refresh: () => void controller.load(),
+      },
+    }),
+  )
+}
+
+/**
  * The sprint screen, wired to a client. A controller of its own for the same
  * reason the backlog has one.
  */
@@ -718,12 +756,7 @@ function surfaceFor(
     case 'sprint':
       return createElement(ConnectedSprints, props)
     case 'items':
-      return createElement(Placeholder, {
-        t: props.t,
-        id: 'items',
-        title: 'items.title',
-        body: 'items.body',
-      })
+      return createElement(ConnectedItems, props)
     case 'review':
       return createElement(Placeholder, {
         t: props.t,
