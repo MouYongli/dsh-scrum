@@ -22,6 +22,8 @@ export interface WorkspaceLayout {
   readonly sprints: string
   readonly comments: string
   readonly activities: string
+  /** What each sprint committed to when it opened, one file per sprint. */
+  readonly sprintProgressLog: string
   /**
    * Where this workspace records which project it is attached to, per Harness
    * installation. The project itself says what it is; the binding also has to
@@ -50,6 +52,7 @@ export function workspaceLayout(workspaceRoot: string): WorkspaceLayout {
     sprints: join(scrum, 'sprints'),
     comments: join(scrum, 'comments'),
     activities: join(scrum, 'activities'),
+    sprintProgressLog: join(scrum, 'sprint-progress'),
     bindings: join(scrum, 'bindings'),
     idempotency: join(scrum, 'idempotency'),
     pendingOperations: join(scrum, 'operations', 'pending'),
@@ -67,6 +70,7 @@ export function layoutDirectories(layout: WorkspaceLayout): readonly string[] {
     layout.sprints,
     layout.comments,
     layout.activities,
+    layout.sprintProgressLog,
     layout.bindings,
     layout.idempotency,
     layout.pendingOperations,
@@ -81,6 +85,10 @@ export function workItemFile(layout: WorkspaceLayout, id: WorkItemId): string {
 
 export function sprintFile(layout: WorkspaceLayout, id: SprintId): string {
   return resolveInside(layout.sprints, `${id}.json`)
+}
+
+export function sprintProgressFile(layout: WorkspaceLayout, id: SprintId): string {
+  return resolveInside(layout.sprintProgressLog, `${id}.jsonl`)
 }
 
 /**

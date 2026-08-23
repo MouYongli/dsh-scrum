@@ -424,16 +424,22 @@ sprint
 因此单独保存一份只追加的 Sprint 进度记录：
 
 ```text
-sprint_progress_entry
+sprint_progress_entry            // 按 kind 区分的两种记录，同一个文件
+  kind                           // baseline | daily
   sprint_id
-  kind                     // baseline | daily
   recorded_at
-  item_ids                 // 仅 baseline
-  total_points             // baseline 为承诺点数
+
+  // kind: baseline
+  item_ids                       // 启动那一刻在 Sprint 里的事项
+  total_points                   // 承诺点数，未估算按 0 计入
+  unestimated_count              // 其中未估算的条数
+
+  // kind: daily
   remaining_points
   completed_points
-  unestimated_count
 ```
+
+两种记录共用一个文件而不是各一个：它们回答的是同一条曲线上的不同点，读取时按 `kind` 分辨。字段不合并成一张平表——那样每一行都会有一半字段恒为空。
 
 启动 Sprint 时写入唯一一条 `baseline`，此后每天追加一条 `daily`，两类记录写入后都不再修改。
 

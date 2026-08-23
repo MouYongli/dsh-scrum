@@ -144,6 +144,7 @@ export function dependencies(store: MemoryStore): ApplicationDependencies {
     sprints: notComposed('sprints'),
     transactions: notComposed('transactions'),
     activity: { record: async () => undefined },
+    sprintProgressLog: notComposed('sprintProgressLog'),
     idempotency: { find: async () => null, save: async () => undefined },
   } as ApplicationDependencies
 }

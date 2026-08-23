@@ -20,6 +20,11 @@ export { ACTIVITY_SOURCE, ACTIVITY_SOURCES, toActivitySource } from './ports/act
 export type { IdempotencyKey, IdempotencyRecord, IdempotencyStore } from './ports/idempotency.js'
 export { toIdempotencyKey } from './ports/idempotency.js'
 export type { MemberRepository } from './ports/members.js'
+export type {
+  SprintBaseline,
+  SprintProgressEntry,
+  SprintProgressLog,
+} from './ports/sprint-progress-log.js'
 export type { SprintRepository } from './ports/sprints.js'
 export type { SprintProgress, StatusTotals } from './sprint-progress.js'
 export { sprintProgress } from './sprint-progress.js'

@@ -4,6 +4,7 @@ import { workspaceLayout } from './paths.js'
 import { memberRepository, projectRepository, type StoredEdition } from './repository-project.js'
 import { sprintRepository, transactionPort, workItemRepository } from './repository-entities.js'
 import { bindingRepository, idempotencyStore } from './repository-local.js'
+import { appendSprintProgress, readSprintProgress } from './sprint-progress-log.js'
 
 /**
  * The application's storage ports over one workspace directory.
@@ -21,7 +22,14 @@ export interface WorkspaceRepositoriesInput {
 
 export type WorkspaceRepositories = Pick<
   ApplicationDependencies,
-  'projects' | 'workItems' | 'sprints' | 'transactions' | 'members' | 'bindings' | 'idempotency'
+  | 'projects'
+  | 'workItems'
+  | 'sprints'
+  | 'sprintProgressLog'
+  | 'transactions'
+  | 'members'
+  | 'bindings'
+  | 'idempotency'
 >
 
 export function createWorkspaceRepositories(
@@ -35,6 +43,17 @@ export function createWorkspaceRepositories(
     projects: projectRepository(root, input.edition, run),
     workItems: workItemRepository(root, layout, run),
     sprints: sprintRepository(root, layout, run),
+    // Through the coordinator like every other write. An append is atomic on
+    // its own, but an entry is written in the same breath as the sprint it
+    // belongs to, and serialising both keeps that pair in one order.
+    sprintProgressLog: {
+      append: async (entry) => {
+        await run(async () => {
+          await appendSprintProgress(layout, entry)
+        })
+      },
+      read: async (sprintId) => (await readSprintProgress(layout, sprintId)).entries,
+    },
     transactions: transactionPort(layout, run),
     members: memberRepository(root),
     bindings: bindingRepository(layout, run),

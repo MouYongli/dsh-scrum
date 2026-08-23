@@ -23,6 +23,7 @@ import {
 import {
   ACTIVITY_SOURCE,
   type ActivityEvent,
+  type SprintProgressEntry,
   type ActorContext,
   type ApplicationDependencies,
   type IdempotencyKey,
@@ -356,6 +357,22 @@ export class FakeIdempotencyStore {
   }
 }
 
+export class FakeSprintProgressLog {
+  readonly entries: SprintProgressEntry[] = []
+  failWith: Error | null = null
+
+  async append(entry: SprintProgressEntry): Promise<void> {
+    if (this.failWith !== null) {
+      throw this.failWith
+    }
+    this.entries.push(entry)
+  }
+
+  async read(sprintId: SprintId): Promise<readonly SprintProgressEntry[]> {
+    return this.entries.filter((entry) => entry.sprintId === sprintId)
+  }
+}
+
 export interface TestDependencies extends ApplicationDependencies {
   readonly projects: FakeProjectRepository
   readonly workItems: FakeWorkItemRepository
@@ -365,6 +382,7 @@ export interface TestDependencies extends ApplicationDependencies {
   readonly members: FakeMemberRepository
   readonly bindings: FakeBindingRepository
   readonly activity: FakeActivityRecorder
+  readonly sprintProgressLog: FakeSprintProgressLog
   readonly idempotency: FakeIdempotencyStore
   readonly clock: Clock & { set(at: Timestamp): void }
 }
@@ -388,6 +406,7 @@ export function dependencies(overrides: Partial<TestDependencies> = {}): TestDep
     members: new FakeMemberRepository(),
     bindings: new FakeBindingRepository(),
     activity: new FakeActivityRecorder(),
+    sprintProgressLog: new FakeSprintProgressLog(),
     idempotency: new FakeIdempotencyStore(),
     capabilities: capabilities(),
     clock: testClock(),
