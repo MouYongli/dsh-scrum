@@ -10,6 +10,7 @@ import {
   toSprintId,
   toTimestamp,
   toWorkItemId,
+  workItemLevel,
   type AcceptanceCriterion,
   type Priority,
   type Revision,
@@ -84,6 +85,7 @@ export function sprint(sequence: number, overrides: SprintOverrides = {}): Sprin
 }
 
 export function item(sequence: number, overrides: ItemOverrides = {}): WorkItem {
+  const type = overrides.type ?? WORK_ITEM_TYPE.story
   return {
     schemaVersion: 1 as WorkItem['schemaVersion'],
     revision: INITIAL_REVISION,
@@ -91,7 +93,8 @@ export function item(sequence: number, overrides: ItemOverrides = {}): WorkItem 
     updatedAt: NOW,
     id: itemId(sequence),
     projectId: PROJECT,
-    type: overrides.type ?? WORK_ITEM_TYPE.story,
+    type,
+    level: workItemLevel(type),
     title: overrides.title ?? `工作项 ${sequence}`,
     description: overrides.description ?? '',
     status: overrides.status ?? WORK_ITEM_STATUS.backlog,

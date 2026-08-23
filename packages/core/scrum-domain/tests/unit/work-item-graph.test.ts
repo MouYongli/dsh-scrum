@@ -16,6 +16,7 @@ import {
   workItemReferences,
   type WorkItem,
   type WorkItemId,
+  type WorkItemType,
 } from '@dsh-scrum/scrum-domain'
 
 const ULID = '01K5TFQ8Z4N7C2M9XPRWD3HABV'
@@ -43,11 +44,15 @@ function expectRejects(run: () => unknown, what: string): void {
   )
 }
 
-function item(key: string, projectId = PROJECT): WorkItem {
+function item(
+  key: string,
+  projectId = PROJECT,
+  type: WorkItemType = WORK_ITEM_TYPE.task,
+): WorkItem {
   return createWorkItem({
     id: toWorkItemId(key),
     projectId,
-    type: WORK_ITEM_TYPE.task,
+    type,
     title: key,
     reporterId: REPORTER,
     rank: rankBetween(null, null),
@@ -63,7 +68,7 @@ function lookup(...items: readonly WorkItem[]): ReadonlyMap<WorkItemId, WorkItem
 
 describe('parent links', () => {
   it('links to a parent and detaches again', () => {
-    const parent = item('SCR-1')
+    const parent = item('SCR-1', PROJECT, WORK_ITEM_TYPE.epic)
     const child = item('SCR-2')
     const linked = setWorkItemParent(child, parent.id, lookup(parent, child), T2)
     const detached = setWorkItemParent(linked, null, lookup(parent, linked), T3)
@@ -95,29 +100,38 @@ describe('parent links', () => {
     )
   })
 
-  // The pair a one-step check would catch is the easy case. This one closes
-  // the loop three links up, which only a walk of the ancestry finds.
+  // Among valid items a parent cycle cannot form at all: the level strictly
+  // decreases on the way up, so a chain cannot come back to where it started.
+  // The walk is there for a store that is already broken, and this is what
+  // being broken looks like — parents hand-set past the level rule, three
+  // links deep, which only a walk of the ancestry finds.
   it('refuses a link that closes a cycle further up the chain', () => {
-    const top = item('SCR-1')
-    const middle = setWorkItemParent(item('SCR-2'), top.id, lookup(top, item('SCR-2')), T2)
-    const bottom = setWorkItemParent(item('SCR-3'), middle.id, lookup(middle, item('SCR-3')), T2)
+    const bottom = item('SCR-3')
+    const middle = { ...item('SCR-2'), parentId: bottom.id }
+    const top = { ...item('SCR-1', PROJECT, WORK_ITEM_TYPE.epic), parentId: middle.id }
 
     const error = caughtFrom(() =>
-      setWorkItemParent(top, bottom.id, lookup(top, middle, bottom), T3),
+      setWorkItemParent(bottom, top.id, lookup(top, middle, bottom), T3),
     )
 
     // The details are asserted, not just the code: every other refusal here is
     // also a validation error, so a code-only check would pass for the wrong
     // reason if the walk were removed.
-    expect(isScrumError(error) && error.details['throughId']).toBe(bottom.id)
+    expect(isScrumError(error) && error.details['throughId']).toBe(top.id)
   })
 
   // The guard exists for a store that is already broken, from a corrupted file
   // or an older build. Without a bound this walk would never return, turning a
   // repairable file into a hung process.
   it('gives up on a parent chain that already contains a cycle', () => {
-    const first = { ...item('SCR-1'), parentId: toWorkItemId('SCR-2') }
-    const second = { ...item('SCR-2'), parentId: toWorkItemId('SCR-1') }
+    const first = {
+      ...item('SCR-1', PROJECT, WORK_ITEM_TYPE.epic),
+      parentId: toWorkItemId('SCR-2'),
+    }
+    const second = {
+      ...item('SCR-2', PROJECT, WORK_ITEM_TYPE.epic),
+      parentId: toWorkItemId('SCR-1'),
+    }
     const fresh = item('SCR-3')
 
     const error = caughtFrom(() =>
@@ -222,7 +236,7 @@ describe('dependency links', () => {
 
 describe('deletion protection', () => {
   it('reports the children and dependants that block a deletion', () => {
-    const target = item('SCR-1')
+    const target = item('SCR-1', PROJECT, WORK_ITEM_TYPE.epic)
     const child = setWorkItemParent(item('SCR-2'), target.id, lookup(target, item('SCR-2')), T2)
     const dependant = addWorkItemDependency(
       item('SCR-3'),

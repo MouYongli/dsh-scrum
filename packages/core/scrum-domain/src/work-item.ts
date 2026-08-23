@@ -17,14 +17,19 @@ const MAX_BLOCKED_REASON_LENGTH = 500
 
 /**
  * The kinds of work a project tracks. Persisted, so the values may be added to
- * but never renamed; the product design already names Feature and Spike as
- * later additions.
+ * but never renamed.
+ *
+ * Five rather than six: a spike is a task carrying the spike category, not a
+ * type of its own. This enum fixes the hierarchy and the fields a type brings
+ * with it, and a semantic distinction worth two extra fields would otherwise
+ * add a branch to every type check and every type selector in the product.
  */
 export const WORK_ITEM_TYPE = {
   epic: 'epic',
   story: 'story',
   task: 'task',
   bug: 'bug',
+  subtask: 'subtask',
 } as const
 
 export type WorkItemType = (typeof WORK_ITEM_TYPE)[keyof typeof WORK_ITEM_TYPE]
@@ -36,6 +41,61 @@ export function toWorkItemType(value: string): WorkItemType {
     throw new ValidationError(`WorkItemType must be one of ${TYPES.join(', ')}`, { value })
   }
   return value as WorkItemType
+}
+
+/** Where an item sits in the hierarchy: an epic is 1, a subtask is 3. */
+export type WorkItemLevel = 1 | 2 | 3
+
+/**
+ * The level each type occupies.
+ *
+ * The three level 2 types are peers. A bug is not filed under the story it
+ * affects: a defect and the requirement it breaks reference one another, and
+ * hanging the first under the second folds the cost of the defect into the
+ * progress of the requirement, which is where defect statistics start to lie.
+ */
+export const WORK_ITEM_LEVEL = {
+  [WORK_ITEM_TYPE.epic]: 1,
+  [WORK_ITEM_TYPE.story]: 2,
+  [WORK_ITEM_TYPE.task]: 2,
+  [WORK_ITEM_TYPE.bug]: 2,
+  [WORK_ITEM_TYPE.subtask]: 3,
+} as const satisfies Record<WorkItemType, WorkItemLevel>
+
+export function workItemLevel(type: WorkItemType): WorkItemLevel {
+  return WORK_ITEM_LEVEL[type]
+}
+
+const SUBTASK_LEVEL = 3
+
+/**
+ * Whether an item at this level is meaningless on its own.
+ *
+ * Only a level 3 item is. An epic tops the hierarchy and a level 2 item is
+ * deliverable by itself, but a subtask is a breakdown of something, so one
+ * with nothing above it names no work anybody agreed to do.
+ */
+export function workItemRequiresParent(level: WorkItemLevel): boolean {
+  return level === SUBTASK_LEVEL
+}
+
+const EPIC_LEVEL = 1
+
+/**
+ * The one level a sprint holds, estimates and ranks.
+ *
+ * An epic spans sprints, so a sprint of its own would give "which round
+ * delivered this" two answers that can disagree; its estimate and progress are
+ * aggregated from its children instead. A subtask is a breakdown of one level 2
+ * item rather than something separately deliverable, and estimating it would
+ * count the same work twice — once on the child and once on the parent —
+ * inflating velocity with nothing but a finer breakdown.
+ */
+const PLANNABLE_LEVEL = 2
+
+/** Whether a sprint can hold this item directly, which only level 2 can. */
+export function isWorkItemPlannable(item: WorkItem): boolean {
+  return item.level === PLANNABLE_LEVEL
 }
 
 export const PRIORITY = {
@@ -77,12 +137,20 @@ export interface AcceptanceCriterion {
  * forbids. `isWorkItemBlocked` derives the flag where a caller wants one.
  *
  * Sprint membership lives here and only here: a sprint never lists its items,
- * so moving one item is one write.
+ * so moving one item is one write. A level 3 item is the documented exception
+ * and holds no sprint of its own — it is read from its parent, because a stored
+ * copy would eventually disagree with the parent and keeping the two in step
+ * would mean rewriting every child file whenever the parent moves.
+ *
+ * `level` is decided by `type` and stored anyway, so that parent checks, view
+ * projections and aggregation each read one integer instead of re-expanding the
+ * type enum. A level added above `epic` later leaves all of them untouched.
  */
 export interface WorkItem extends EntityMetadata {
   readonly id: WorkItemId
   readonly projectId: ProjectId
   readonly type: WorkItemType
+  readonly level: WorkItemLevel
   readonly title: string
   readonly description: string
   readonly status: WorkItemStatus
@@ -103,6 +171,12 @@ export interface CreateWorkItemInput {
   readonly id: WorkItemId
   readonly projectId: ProjectId
   readonly type: WorkItemType
+  /**
+   * Required for a subtask and optional above it. Whether the item named here
+   * really sits one level up is checked by the caller, which can read it;
+   * this only settles whether one had to be named at all.
+   */
+  readonly parentId?: WorkItemId | null | undefined
   readonly title: string
   readonly description?: string | undefined
   readonly priority?: Priority | undefined
@@ -119,6 +193,10 @@ export interface CreateWorkItemInput {
  * A new item always starts in the backlog and in no sprint. Planning it into
  * one is a separate, recorded act rather than something a creation call can do
  * in passing.
+ *
+ * The parent is the exception: a subtask is created under one. Attaching it in
+ * a second write would leave a subtask belonging to nothing on disk in between,
+ * which is the one shape the hierarchy does not admit.
  */
 export function createWorkItem(input: CreateWorkItemInput): WorkItem {
   return {
@@ -126,6 +204,7 @@ export function createWorkItem(input: CreateWorkItemInput): WorkItem {
     id: input.id,
     projectId: input.projectId,
     type: input.type,
+    level: workItemLevel(input.type),
     title: requireText(input.title, 'Work item title', MAX_TITLE_LENGTH),
     description: requireOptionalText(
       input.description ?? '',
@@ -136,9 +215,9 @@ export function createWorkItem(input: CreateWorkItemInput): WorkItem {
     priority: input.priority ?? PRIORITY.medium,
     assigneeId: input.assigneeId ?? null,
     reporterId: input.reporterId,
-    estimate: toEstimate(input.estimate ?? null),
+    estimate: toLevelEstimate(input.type, toEstimate(input.estimate ?? null)),
     sprintId: null,
-    parentId: null,
+    parentId: toCreatedParent(input.type, input.parentId ?? null),
     dependsOn: [],
     rank: input.rank,
     blockedReason: null,
@@ -169,6 +248,7 @@ export function updateWorkItemDetails(
   changes: WorkItemDetailChanges,
   now: Timestamp,
 ): WorkItem {
+  const type = changes.type ?? item.type
   return {
     ...item,
     ...touchEntityMetadata(item, now),
@@ -180,10 +260,14 @@ export function updateWorkItemDetails(
       changes.description === undefined
         ? item.description
         : requireOptionalText(changes.description, 'Work item description', MAX_DESCRIPTION_LENGTH),
-    type: changes.type ?? item.type,
+    type,
+    level: workItemLevel(type),
     priority: changes.priority ?? item.priority,
     assigneeId: changes.assigneeId === undefined ? item.assigneeId : changes.assigneeId,
-    estimate: changes.estimate === undefined ? item.estimate : toEstimate(changes.estimate),
+    estimate: toLevelEstimate(
+      type,
+      changes.estimate === undefined ? item.estimate : toEstimate(changes.estimate),
+    ),
     labels: changes.labels === undefined ? item.labels : toLabels(changes.labels),
     acceptanceCriteria:
       changes.acceptanceCriteria === undefined
@@ -233,6 +317,28 @@ export function isWorkItemAccepted(item: WorkItem): boolean {
  * An estimate of zero is allowed: teams use it for work that is tracked but
  * costs nothing. A negative or fractional-to-the-point-of-noise value is not.
  */
+function toCreatedParent(type: WorkItemType, parentId: WorkItemId | null): WorkItemId | null {
+  if (parentId === null && workItemRequiresParent(workItemLevel(type))) {
+    throw new ValidationError('a subtask is created under the item it breaks down', { type })
+  }
+  return parentId
+}
+
+/**
+ * Keeps an estimate off the two levels that do not carry one.
+ *
+ * A type change that would strand an estimate is refused rather than silently
+ * clearing it: the number came from a planning conversation, and a caller that
+ * really means to drop it can say so by sending `estimate: null` in the same
+ * change.
+ */
+function toLevelEstimate(type: WorkItemType, estimate: number | null): number | null {
+  if (estimate !== null && workItemLevel(type) !== PLANNABLE_LEVEL) {
+    throw new ValidationError('only a story, task or bug carries an estimate', { type, estimate })
+  }
+  return estimate
+}
+
 function toEstimate(value: number | null): number | null {
   if (value === null) {
     return null
@@ -280,33 +386,56 @@ function toAcceptanceCriteria(
  * only be `todo`, `in_progress` or `review` because those are the remaining
  * statuses. Neither rule needs to read the sprint, which the work item cannot
  * see anyway.
+ *
+ * The sprint is passed in rather than read off the item, because a level 3 item
+ * holds none of its own and belongs to whichever sprint its parent is in.
  */
-function assertInASprint(item: WorkItem, action: string): SprintId {
-  if (item.sprintId === null) {
+function assertInASprint(item: WorkItem, sprintId: SprintId | null, action: string): void {
+  if (sprintId === null) {
     throw new ValidationError(`a backlog item cannot ${action}`, {
       workItemId: item.id,
       status: item.status,
     })
   }
-  return item.sprintId
+}
+
+/** Refuses the two levels a sprint does not hold, naming the type it refused. */
+function assertPlannable(item: WorkItem, action: string): void {
+  if (!isWorkItemPlannable(item)) {
+    throw new ValidationError(`only a story, task or bug can ${action}`, {
+      workItemId: item.id,
+      type: item.type,
+    })
+  }
 }
 
 /**
  * Moves an item between the board columns. Reaching `backlog` is not a status
  * move but a removal from the sprint, so it has its own operation; letting it
  * happen here would leave an item in the backlog still pointing at a sprint.
+ *
+ * `effectiveSprintId` defaults to the item's own and is supplied only for a
+ * level 3 item, whose board is its parent's. The caller resolves it, because
+ * the domain cannot read another item from here.
  */
 export function moveWorkItemStatus(
   item: WorkItem,
   status: WorkItemStatus,
   now: Timestamp,
+  effectiveSprintId: SprintId | null = item.sprintId,
 ): WorkItem {
   if (status === WORK_ITEM_STATUS.backlog) {
     throw new ValidationError('returning an item to the backlog removes it from its sprint', {
       workItemId: item.id,
     })
   }
-  assertInASprint(item, 'move across the board')
+  if (item.level === EPIC_LEVEL) {
+    throw new ValidationError('an epic advances through its children', {
+      workItemId: item.id,
+      status,
+    })
+  }
+  assertInASprint(item, effectiveSprintId, 'move across the board')
   if (item.status === status) {
     throw new ValidationError(`item is already ${status}`, { workItemId: item.id, status })
   }
@@ -323,6 +452,7 @@ export function assignWorkItemToSprint(
   sprintId: SprintId,
   now: Timestamp,
 ): WorkItem {
+  assertPlannable(item, 'be planned into a sprint')
   if (item.sprintId === sprintId) {
     throw new ValidationError('item is already in this sprint', {
       workItemId: item.id,
@@ -344,7 +474,8 @@ export function assignWorkItemToSprint(
  * the history the sprint report reads.
  */
 export function removeWorkItemFromSprint(item: WorkItem, now: Timestamp): WorkItem {
-  assertInASprint(item, 'leave a sprint')
+  assertPlannable(item, 'leave a sprint')
+  assertInASprint(item, item.sprintId, 'leave a sprint')
   if (item.status === WORK_ITEM_STATUS.done) {
     throw new ValidationError('a finished item keeps the sprint that delivered it', {
       workItemId: item.id,

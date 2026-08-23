@@ -23,6 +23,7 @@ const TYPE_LABEL: Readonly<Record<WorkItemType, MessageKey>> = {
   [WORK_ITEM_TYPE.story]: 'type.story',
   [WORK_ITEM_TYPE.task]: 'type.task',
   [WORK_ITEM_TYPE.bug]: 'type.bug',
+  [WORK_ITEM_TYPE.subtask]: 'type.subtask',
 }
 
 const PRIORITY_LABEL: Readonly<Record<Priority, MessageKey>> = {

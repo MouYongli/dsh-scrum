@@ -38,8 +38,10 @@ function item(): WorkItem {
 }
 
 // Field names and value spellings here are the persisted format described in
-// docs/development/architecture.md section 10.2. Changing any of them is a
+// docs/development/architecture.md section 10.2. Renaming or removing one is a
 // storage format change and needs a schema version bump plus a migration.
+// Adding a field is additive: a reader of the older shape supplies a default
+// for what is absent, so the version stays where it is and this list grows.
 describe('work item persistence contract', () => {
   it('stores the entity under a fixed set of fields', () => {
     expect(Object.keys(JSON.parse(JSON.stringify(item())) as object).sort()).toEqual(
@@ -53,6 +55,7 @@ describe('work item persistence contract', () => {
         'estimate',
         'id',
         'labels',
+        'level',
         'parentId',
         'priority',
         'projectId',
@@ -115,7 +118,7 @@ describe('work item persistence contract', () => {
 
 describe('published work item string surfaces', () => {
   it('pins the values stored in files', () => {
-    expect(Object.values(WORK_ITEM_TYPE)).toEqual(['epic', 'story', 'task', 'bug'])
+    expect(Object.values(WORK_ITEM_TYPE)).toEqual(['epic', 'story', 'task', 'bug', 'subtask'])
     expect(Object.values(PRIORITY)).toEqual(['low', 'medium', 'high', 'critical'])
   })
 })

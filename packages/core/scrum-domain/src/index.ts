@@ -127,23 +127,28 @@ export type {
   Priority,
   WorkItem,
   WorkItemDetailChanges,
+  WorkItemLevel,
   WorkItemType,
 } from './work-item.js'
 export {
   PRIORITY,
+  WORK_ITEM_LEVEL,
   WORK_ITEM_TYPE,
   createWorkItem,
   isWorkItemAccepted,
+  workItemLevel,
   setAcceptanceCriterionSatisfied,
   toPriority,
   toWorkItemType,
   updateWorkItemDetails,
+  workItemRequiresParent,
 } from './work-item.js'
 export {
   assignWorkItemToSprint,
   blockWorkItem,
   isWorkItemBlocked,
   isWorkItemFinished,
+  isWorkItemPlannable,
   moveWorkItemRank,
   moveWorkItemStatus,
   removeWorkItemFromSprint,
@@ -153,6 +158,8 @@ export type { WorkItemLookup, WorkItemReferences } from './work-item-graph.js'
 export {
   addWorkItemDependency,
   assertWorkItemDeletable,
+  assertWorkItemParent,
+  assertWorkItemTypeChange,
   removeWorkItemDependency,
   setWorkItemParent,
   workItemReferences,

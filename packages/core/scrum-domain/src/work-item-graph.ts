@@ -2,7 +2,13 @@ import { ValidationError } from './errors.js'
 import type { WorkItemId } from './ids.js'
 import { touchEntityMetadata } from './metadata.js'
 import type { Timestamp } from './time.js'
-import type { WorkItem } from './work-item.js'
+import {
+  workItemLevel,
+  workItemRequiresParent,
+  type WorkItem,
+  type WorkItemLevel,
+  type WorkItemType,
+} from './work-item.js'
 
 // A store that already contains a cycle would otherwise walk forever. The
 // bounds turn corrupted data into a rejected write naming the item it gave up
@@ -38,9 +44,41 @@ function requireSameProject(item: WorkItem, other: WorkItem, relation: string): 
 }
 
 /**
+ * Whether a parent sits exactly one level above the child it is proposed for.
+ *
+ * The whole parent rule, in one comparison. Expressing it over levels rather
+ * than over pairs of types is what lets a level be added above `epic` later
+ * without revisiting anything: an epic already cannot have a parent, because
+ * nothing is at level 0 to be one.
+ */
+function isAdjacentLevel(childLevel: WorkItemLevel, parentLevel: WorkItemLevel): boolean {
+  return parentLevel === childLevel - 1
+}
+
+/**
+ * The parent rule, for a caller holding a child that is not stored yet. The
+ * creation path needs it, because the domain settles there only whether a
+ * parent had to be named, not whether the one named can hold this item.
+ */
+export function assertWorkItemParent(childLevel: WorkItemLevel, parent: WorkItem): void {
+  if (!isAdjacentLevel(childLevel, parent.level)) {
+    throw new ValidationError('a parent sits exactly one level above its child', {
+      childLevel,
+      parentId: parent.id,
+      parentLevel: parent.level,
+    })
+  }
+}
+
+/**
  * Links an item to its parent, or detaches it. A cycle is refused by walking
  * the proposed ancestry: if the item is already above the candidate parent,
  * the link would close a loop that no traversal could terminate on.
+ *
+ * The level check is not a second cycle guard but the structural rule: a story
+ * belongs under an epic and a subtask under a story, task or bug, and a link
+ * that skipped a level would leave the epic's roll-up counting work at two
+ * different granularities.
  */
 export function setWorkItemParent(
   item: WorkItem,
@@ -51,15 +89,67 @@ export function setWorkItemParent(
   if (parentId === item.parentId) {
     throw new ValidationError('item already has this parent', { workItemId: item.id, parentId })
   }
-  if (parentId !== null) {
+  if (parentId === null) {
+    if (workItemRequiresParent(item.level)) {
+      throw new ValidationError('a subtask cannot be left without the item it breaks down', {
+        workItemId: item.id,
+      })
+    }
+  } else {
     if (parentId === item.id) {
       throw new ValidationError('an item cannot be its own parent', { workItemId: item.id })
     }
     const parent = requireItem(items, parentId, 'parent')
     requireSameProject(item, parent, 'parent')
+    assertWorkItemParent(item.level, parent)
     assertNotAnAncestor(item.id, parent, items)
   }
   return { ...item, ...touchEntityMetadata(item, now), parentId }
+}
+
+/**
+ * Whether an item can become this type without breaking what hangs off it.
+ *
+ * A type change that stays on one level touches nothing structural and is
+ * always allowed. One that crosses a level is a move within the hierarchy, so
+ * the parent above and the children below have to still sit one level away
+ * afterwards — otherwise a story promoted to an epic would keep a parent epic
+ * above it, and the tree would have two levels of the same kind.
+ *
+ * Checked here rather than in `updateWorkItemDetails`, which cannot read the
+ * items this consults.
+ */
+export function assertWorkItemTypeChange(
+  item: WorkItem,
+  nextType: WorkItemType,
+  items: Iterable<WorkItem>,
+): void {
+  const nextLevel = workItemLevel(nextType)
+  if (nextLevel === item.level) {
+    return
+  }
+  const all = [...items]
+  const parent = all.find((other) => other.id === item.parentId) ?? null
+  if (parent === null) {
+    if (workItemRequiresParent(nextLevel)) {
+      throw new ValidationError('a subtask breaks down an item, so one has to be above it', {
+        workItemId: item.id,
+        nextType,
+      })
+    }
+  } else {
+    assertWorkItemParent(nextLevel, parent)
+  }
+  for (const child of all) {
+    if (child.parentId === item.id && !isAdjacentLevel(child.level, nextLevel)) {
+      throw new ValidationError('an item under this one would no longer sit one level below', {
+        workItemId: item.id,
+        nextType,
+        childId: child.id,
+        childLevel: child.level,
+      })
+    }
+  }
 }
 
 function assertNotAnAncestor(
