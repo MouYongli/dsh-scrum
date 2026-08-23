@@ -80,6 +80,7 @@ cd ~/你的代码项目 && npx @deepseek-ai/dsh web
 - [已知限制](docs/product/known-limitations.md)：本版仍然存在的边界，以及每一条为什么没解决。
 - [Scrum 产品设计](docs/product/scrum.md)：Scrum 概念、角色、产品功能、使用流程和首版范围。
 - [版本设计](docs/product/editions.md)：Community、Teams 与 Enterprise 的定位、能力和授权差异。
+- [Scrum 数据模型导读](docs/product/data-model.md)：Project、Backlog、Sprint 的概念、字段和落盘格式，面向没有背景知识的读者。
 - [Scrum 术语表](docs/product/glossary.md)：产品文档和界面使用的统一术语。
 - [系统架构](docs/development/architecture.md)：运行拓扑、模块、数据模型、存储、一致性、迁移和发布。
 - [DeepSeek Harness Scrum 开发指南](docs/development/dsh-dev-guide.md)：插件、UI、Workspace、Session、Agent 工具和权限集成。
