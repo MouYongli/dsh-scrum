@@ -724,4 +724,60 @@ export const SCRUM_STYLES = String.raw`
 @media (prefers-reduced-motion: reduce) {
   [data-scrum-overlay] * { scroll-behavior: auto !important; transition: none !important; }
 }
+
+[data-scrum-list-bar] {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+[data-scrum-list-bar] > p { margin-right: auto; color: var(--scrum-muted); }
+
+[data-scrum-batch] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 10px 14px;
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--scrum-border);
+  border-radius: var(--scrum-radius);
+  background: var(--scrum-panel-subtle);
+}
+[data-scrum-batch="none"] { color: var(--scrum-muted); font-size: 12px; }
+[data-scrum-batch-count] { margin-right: auto; font-weight: 650; }
+[data-scrum-batch] p { display: grid; gap: 6px; margin: 0; }
+
+/* Every field's control is rendered; only the chosen one is shown. Hiding
+   with CSS keeps each control named apart in the form. */
+[data-scrum-batch-value] { display: none !important; }
+[data-scrum-batch]:has(#scrum-batch-field option[value="status"]:checked)
+  [data-scrum-batch-value="status"],
+[data-scrum-batch]:has(#scrum-batch-field option[value="priority"]:checked)
+  [data-scrum-batch-value="priority"],
+[data-scrum-batch]:has(#scrum-batch-field option[value="sprint"]:checked)
+  [data-scrum-batch-value="sprint"],
+[data-scrum-batch]:has(#scrum-batch-field option[value="assignee"]:checked)
+  [data-scrum-batch-value="assignee"],
+[data-scrum-batch]:has(#scrum-batch-field option[value="addLabel"]:checked)
+  [data-scrum-batch-value="addLabel"],
+[data-scrum-batch]:has(#scrum-batch-field option[value="removeLabel"]:checked)
+  [data-scrum-batch-value="removeLabel"] {
+  display: grid !important;
+}
+
+[data-scrum-batch-outcome] {
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border-left: 3px solid var(--scrum-accent);
+  background: var(--scrum-panel-subtle);
+}
+[data-scrum-batch-outcome][data-scrum-batch-refused="0"] { border-left-color: var(--scrum-accent); }
+[data-scrum-batch-outcome]:not([data-scrum-batch-refused="0"]) {
+  border-left-color: var(--scrum-warning);
+}
+[data-scrum-batch-refusal] { color: var(--scrum-warning); font-size: 12px; }
+
+[data-scrum-list] th[data-scrum-column="mark"],
+[data-scrum-list] td[data-scrum-column="mark"] { width: 32px; text-align: center; }
 `

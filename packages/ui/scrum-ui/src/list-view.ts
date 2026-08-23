@@ -1,6 +1,8 @@
 import { createElement, type ReactElement } from 'react'
-import type { WorkItem } from '@dsh-scrum/scrum-domain'
+import type { Sprint, WorkItem, WorkItemId } from '@dsh-scrum/scrum-domain'
 import type { BacklogState } from './backlog-controller.js'
+import { BATCH_FIELD, isFinishingMove, type BatchChange, type BatchOutcome } from './batch.js'
+import { everyMoveTarget } from './board.js'
 import {
   LIST_COLUMNS,
   LIST_COLUMN,
@@ -9,8 +11,9 @@ import {
   type ListColumn,
   type ListSort,
 } from './list.js'
-import type { Translate } from './messages.js'
+import type { MessageKey, Translate } from './messages.js'
 import {
+  PRIORITIES,
   categoryLabel,
   priorityLabel,
   resolutionLabel,
@@ -22,6 +25,10 @@ export interface ListActions {
   readonly sort: (sort: ListSort) => void
   readonly select: (id: WorkItem['id'] | null) => void
   readonly refresh: () => void
+  /** Which rows the batch panel acts on. */
+  readonly mark: (ids: readonly WorkItemId[]) => void
+  readonly apply: (change: BatchChange) => void
+  readonly exportRows: (rows: readonly WorkItem[]) => void
 }
 
 export interface ListProps {
@@ -29,6 +36,13 @@ export interface ListProps {
   readonly sort: ListSort
   readonly t: Translate
   readonly actions: ListActions
+  /** The rows the batch acts on, held by the page rather than by the table. */
+  readonly marked: readonly WorkItemId[]
+  /** What the last batch did, until the next one replaces it. */
+  readonly outcome: BatchOutcome | null
+  /** The sprints a selection may be planned into. */
+  readonly sprints: readonly Sprint[]
+  readonly readOnly: boolean
 }
 
 /**
@@ -68,7 +82,26 @@ export function WorkItemList(props: ListProps): ReactElement {
   return createElement(
     'div',
     { 'data-scrum-list': 'items' },
-    createElement('p', { 'data-scrum-list-count': true }, `${t('list.count')} ${rows.length}`),
+    createElement(
+      'div',
+      { 'data-scrum-list-bar': true },
+      createElement('p', { 'data-scrum-list-count': true }, `${t('list.count')} ${rows.length}`),
+      props.readOnly
+        ? null
+        : createElement(
+            'button',
+            {
+              type: 'button',
+              'data-scrum-export': true,
+              onClick: () => {
+                props.actions.exportRows(rows)
+              },
+            },
+            t('list.export'),
+          ),
+    ),
+    props.readOnly ? null : batchPanel(rows, props),
+    outcomePanel(props),
     createElement(
       'table',
       null,
@@ -78,6 +111,7 @@ export function WorkItemList(props: ListProps): ReactElement {
         createElement(
           'tr',
           null,
+          props.readOnly ? null : selectAllCell(rows, props),
           LIST_COLUMNS.map((column) => headerCell(column, props)),
         ),
       ),
@@ -127,9 +161,27 @@ function headerCell(
 function rowFor(item: WorkItem, props: ListProps): ReactElement {
   const { t } = props
   const selected = props.state.selected?.id === item.id
+  const marked = props.marked.includes(item.id)
   return createElement(
     'tr',
     { key: item.id, 'data-scrum-list-row': item.id, 'aria-selected': selected },
+    props.readOnly
+      ? null
+      : createElement(
+          'td',
+          { 'data-scrum-column': 'mark' },
+          createElement('input', {
+            type: 'checkbox',
+            'data-scrum-mark': item.id,
+            'aria-label': `${t('list.mark')} ${item.id}`,
+            checked: marked,
+            onChange: () => {
+              props.actions.mark(
+                marked ? props.marked.filter((one) => one !== item.id) : [...props.marked, item.id],
+              )
+            },
+          }),
+        ),
     createElement(
       'td',
       { 'data-scrum-column': LIST_COLUMN.id },
@@ -182,5 +234,200 @@ function rowFor(item: WorkItem, props: ListProps): ReactElement {
       item.sprintId ?? t('list.noSprint'),
     ),
     createElement('td', { 'data-scrum-column': LIST_COLUMN.updated }, item.updatedAt),
+  )
+}
+
+/**
+ * The box that selects every row, and only the rows on screen.
+ *
+ * Narrowing is what makes a batch safe to reason about: "all" has to mean the
+ * rows the user is looking at, never everything the project holds.
+ */
+function selectAllCell(rows: readonly WorkItem[], props: ListProps): ReactElement {
+  const all = rows.length > 0 && rows.every((item) => props.marked.includes(item.id))
+  return createElement(
+    'th',
+    { scope: 'col', 'data-scrum-column': 'mark' },
+    createElement('input', {
+      type: 'checkbox',
+      'data-scrum-mark-all': true,
+      'aria-label': props.t('list.markAll'),
+      checked: all,
+      onChange: () => {
+        props.actions.mark(all ? [] : rows.map((item) => item.id))
+      },
+    }),
+  )
+}
+
+/**
+ * One submitted select, as a string.
+ *
+ * A form entry is a string or a file, and only the selects in this form are
+ * ever read; anything else is a control that does not belong here rather than
+ * a value worth guessing at.
+ */
+function chosen(form: FormData, name: string): string {
+  const entry = form.get(name)
+  return typeof entry === 'string' ? entry : ''
+}
+
+/** The fields a batch can set, and where each one's choices come from. */
+const BATCH_FIELDS: readonly { readonly field: string; readonly label: MessageKey }[] = [
+  { field: BATCH_FIELD.status, label: 'list.batch.status' },
+  { field: BATCH_FIELD.priority, label: 'list.batch.priority' },
+  { field: BATCH_FIELD.sprint, label: 'list.batch.sprint' },
+  { field: BATCH_FIELD.assignee, label: 'list.batch.assignee' },
+  { field: BATCH_FIELD.addLabel, label: 'list.batch.addLabel' },
+  { field: BATCH_FIELD.removeLabel, label: 'list.batch.removeLabel' },
+]
+
+/**
+ * One change, applied to what is marked.
+ *
+ * A form rather than a menu of one-click actions: a batch is the operation
+ * most worth being deliberate about, and a submit gives the user the moment
+ * before it in which to notice they marked the wrong twenty rows.
+ */
+function batchPanel(rows: readonly WorkItem[], props: ListProps): ReactElement {
+  const { t } = props
+  const marked = rows.filter((item) => props.marked.includes(item.id))
+  if (marked.length === 0) {
+    return createElement('p', { 'data-scrum-batch': 'none' }, t('list.batch.none'))
+  }
+  return createElement(
+    'form',
+    {
+      'data-scrum-batch': 'open',
+      onSubmit: (event: { preventDefault: () => void; currentTarget: HTMLFormElement }) => {
+        event.preventDefault()
+        const form = new FormData(event.currentTarget)
+        const field = chosen(form, 'field')
+        props.actions.apply({
+          field: field as BatchChange['field'],
+          value: chosen(form, `value-${field}`),
+        })
+      },
+    },
+    createElement(
+      'p',
+      { 'data-scrum-batch-count': marked.length },
+      `${t('list.batch.selected')} ${marked.length}`,
+    ),
+    createElement('label', { htmlFor: 'scrum-batch-field' }, t('list.batch.field')),
+    createElement(
+      'select',
+      { id: 'scrum-batch-field', name: 'field', defaultValue: BATCH_FIELD.status },
+      BATCH_FIELDS.map((entry) =>
+        createElement('option', { key: entry.field, value: entry.field }, t(entry.label)),
+      ),
+    ),
+    // Every field's control is rendered and named apart, so the form reads
+    // back exactly the one the chosen field owns. A single control that
+    // changed meaning would send a priority where a status was expected the
+    // moment the two got out of step.
+    BATCH_FIELDS.map((entry) => batchValue(entry.field, rows, props)),
+    createElement(
+      'button',
+      { type: 'submit', 'data-scrum-batch-apply': true, disabled: props.state.busy },
+      t('list.batch.apply'),
+    ),
+  )
+}
+
+function batchValue(field: string, rows: readonly WorkItem[], props: ListProps): ReactElement {
+  const { t } = props
+  const id = `scrum-batch-value-${field}`
+  const name = `value-${field}`
+  const options = ((): readonly { readonly value: string; readonly label: string }[] => {
+    switch (field) {
+      case BATCH_FIELD.status:
+        return everyMoveTarget().map((target) => ({
+          value: target.key,
+          label: isFinishingMove(target.key)
+            ? `${t(statusLabel(target.status))} · ${t(target.label)}`
+            : t(statusLabel(target.status)),
+        }))
+      case BATCH_FIELD.priority:
+        return PRIORITIES.map((priority) => ({
+          value: priority,
+          label: t(priorityLabel(priority)),
+        }))
+      case BATCH_FIELD.sprint:
+        return [
+          { value: '', label: t('list.batch.backlog') },
+          ...props.sprints.map((sprint) => ({ value: sprint.id, label: sprint.name })),
+        ]
+      case BATCH_FIELD.assignee:
+        return [
+          { value: '', label: t('filter.assignee.none') },
+          ...[
+            ...new Set(
+              rows
+                .map((item) => item.assigneeId)
+                .filter((one): one is NonNullable<typeof one> => one !== null),
+            ),
+          ].map((one) => ({ value: one, label: one })),
+        ]
+      default:
+        return [...new Set(rows.flatMap((item) => item.labels))]
+          .sort()
+          .map((label) => ({ value: label, label }))
+    }
+  })()
+  return createElement(
+    'p',
+    { key: field, 'data-scrum-batch-value': field },
+    createElement('label', { htmlFor: id }, t('list.batch.value')),
+    createElement(
+      'select',
+      { id, name },
+      options.map((option) =>
+        createElement('option', { key: option.value, value: option.value }, option.label),
+      ),
+    ),
+  )
+}
+
+/**
+ * What the last batch did.
+ *
+ * Written as two counts rather than one verdict. A batch is not a transaction,
+ * so "it failed" would describe a state the store is not in when eighteen of
+ * twenty rows were written.
+ */
+function outcomePanel(props: ListProps): ReactElement | null {
+  const outcome = props.outcome
+  if (outcome === null) {
+    return null
+  }
+  const { t } = props
+  return createElement(
+    'div',
+    {
+      role: 'status',
+      'data-scrum-batch-outcome': true,
+      'data-scrum-batch-written': outcome.written.length,
+      'data-scrum-batch-refused': outcome.refused.length,
+    },
+    createElement('p', null, `${t('list.batch.written')} ${outcome.written.length}`),
+    outcome.refused.length === 0
+      ? null
+      : createElement(
+          'div',
+          null,
+          createElement('p', null, `${t('list.batch.refused')} ${outcome.refused.length}`),
+          createElement(
+            'ul',
+            null,
+            outcome.refused.map((one) =>
+              createElement(
+                'li',
+                { key: one.id, 'data-scrum-batch-refusal': one.id },
+                `${one.id} · ${one.failure.message}`,
+              ),
+            ),
+          ),
+        ),
   )
 }

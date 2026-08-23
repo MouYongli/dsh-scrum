@@ -101,22 +101,36 @@ export interface MoveTarget {
  * asked for, and the common answer sits where the single entry used to.
  */
 export function moveTargets(status: WorkItemStatus): readonly MoveTarget[] {
-  const columns = BOARD_COLUMNS.filter(
-    (column) => column !== status && column !== WORK_ITEM_STATUS.done,
-  ).map((column) => ({
-    key: column,
-    status: column,
-    resolution: null,
-    label: statusLabel(column),
-  }))
+  const targets = everyMoveTarget().filter((target) => target.status !== status)
+  // A card already finished offers only the way back. Restating how something
+  // ended is a different act from finishing it, and it belongs where the rest
+  // of an item's fields are edited rather than on a card.
+  return status === WORK_ITEM_STATUS.done
+    ? targets.filter((target) => target.resolution === null)
+    : targets
+}
+
+/**
+ * Every destination there is, with no card in mind.
+ *
+ * What a batch needs: the selection spans several columns, so there is no one
+ * column to leave out, and a list assembled from the first marked row would
+ * quietly refuse the move for every row already in it.
+ */
+export function everyMoveTarget(): readonly MoveTarget[] {
+  const columns = BOARD_COLUMNS.filter((column) => column !== WORK_ITEM_STATUS.done).map(
+    (column) => ({
+      key: column,
+      status: column,
+      resolution: null,
+      label: statusLabel(column),
+    }),
+  )
   const endings = WORK_ITEM_RESOLUTIONS.map((resolution) => ({
     key: `${WORK_ITEM_STATUS.done}:${resolution}`,
     status: WORK_ITEM_STATUS.done,
     resolution,
     label: resolutionLabel(resolution),
   }))
-  // A card already finished offers only the way back. Restating how something
-  // ended is a different act from finishing it, and it belongs where the rest
-  // of an item's fields are edited rather than on a card.
-  return status === WORK_ITEM_STATUS.done ? columns : [...columns, ...endings]
+  return [...columns, ...endings]
 }

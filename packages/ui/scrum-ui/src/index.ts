@@ -57,6 +57,9 @@ export type {
   DashboardView,
   SignalGroup,
 } from './dashboard.js'
+export type { BatchChange, BatchField, BatchOutcome, BatchRefusal } from './batch.js'
+export { BATCH_FIELD, applyBatch, isFinishingMove } from './batch.js'
+export { downloadCsv, toCsv } from './export.js'
 export type { FilterBarProps } from './filter-bar.js'
 export { FilterBar } from './filter-bar.js'
 export type { DashboardController, DashboardState } from './dashboard-controller.js'
@@ -70,7 +73,7 @@ export {
   currentSprint,
   dashboardView,
 } from './dashboard.js'
-export { boardView, moveTargets } from './board.js'
+export { boardView, everyMoveTarget, moveTargets } from './board.js'
 export type { BoardActions, BoardProps } from './board-view.js'
 export { Board } from './board-view.js'
 export type { BacklogController, BacklogState } from './backlog-controller.js'
