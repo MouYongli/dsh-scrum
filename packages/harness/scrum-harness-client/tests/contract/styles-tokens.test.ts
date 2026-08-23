@@ -26,6 +26,7 @@ const HOST_TOKENS: readonly string[] = [
   '--dsw-alias-bg-layer-2',
   '--dsw-alias-bg-mask-1',
   '--dsw-alias-bg-module-platform',
+  '--dsw-alias-bg-skeleton',
   '--dsw-alias-border-l2',
   '--dsw-alias-button-primary-fill',
   '--dsw-alias-button-primary-hover',
