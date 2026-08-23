@@ -31,6 +31,7 @@ const actions: BacklogActions = {
   parent: vi.fn(),
   dependency: vi.fn(),
   block: vi.fn(),
+  plan: vi.fn(),
 }
 
 function state(overrides: Partial<BacklogState> = {}): BacklogState {
@@ -52,6 +53,8 @@ function render(overrides: Partial<BacklogState> = {}): string {
     createElement(BacklogScreen, {
       state: state(overrides),
       query: EMPTY_QUERY,
+      openSprints: [],
+      definitionOfReady: [],
       actions,
       t,
       readOnly: false,
@@ -146,6 +149,8 @@ describe('groups', () => {
       createElement(BacklogScreen, {
         readOnly: false,
         query: EMPTY_QUERY,
+        openSprints: [],
+        definitionOfReady: [],
         state: state({
           grouping: BACKLOG_GROUPING.priority,
           page: backlogPage(
@@ -218,6 +223,8 @@ describe('creating and inspecting a work item', () => {
       createElement(BacklogScreen, {
         state: state(),
         query: EMPTY_QUERY,
+        openSprints: [],
+        definitionOfReady: [],
         actions,
         t,
         readOnly: true,
@@ -258,6 +265,8 @@ describe('creating and inspecting a work item', () => {
       createElement(BacklogScreen, {
         state: state({ ...loaded(selected), selected }),
         query: EMPTY_QUERY,
+        openSprints: [],
+        definitionOfReady: [],
         actions,
         t,
         readOnly: true,
@@ -291,6 +300,8 @@ describe('ordering, hierarchy, dependency and blocking', () => {
       createElement(BacklogScreen, {
         state: state(loaded(item(1))),
         query: EMPTY_QUERY,
+        openSprints: [],
+        definitionOfReady: [],
         actions,
         t,
         readOnly: true,
@@ -335,5 +346,48 @@ describe('ordering, hierarchy, dependency and blocking', () => {
     expect(markup).toContain('data-scrum-block="true"')
     expect(markup).toContain('value="等待接口"')
     expect(markup).toContain(t('item.unblock'))
+  })
+})
+
+describe('readiness', () => {
+  it('says what a row still needs, and says nothing once it needs nothing', () => {
+    const bare = render(loaded(item(1)))
+    expect(bare).toContain('data-scrum-readiness="incomplete"')
+    expect(bare).toContain(t('readiness.described'))
+
+    const complete = render(
+      loaded(
+        item(1, {
+          description: '按天对账',
+          estimate: 5,
+          acceptanceCriteria: [{ text: '可对账', satisfied: false }],
+        }),
+      ),
+    )
+    expect(complete).toContain('data-scrum-readiness="ready"')
+  })
+
+  it("shows the team's own list once, above the rows, and not as a per-row check", () => {
+    const markup = renderToStaticMarkup(
+      createElement(BacklogScreen, {
+        state: state(loaded(item(1))),
+        query: EMPTY_QUERY,
+        openSprints: [],
+        definitionOfReady: ['接口契约已确认'],
+        actions,
+        t,
+        readOnly: false,
+      }),
+    )
+
+    // Nothing here can evaluate a sentence a team wrote for itself, and
+    // ticking one automatically would claim a verification nobody made.
+    expect(markup).toContain('data-scrum-definition-of-ready="1"')
+    expect(markup).toContain('接口契约已确认')
+    expect(markup).toContain(t('readiness.definition.hint'))
+  })
+
+  it('draws no definition panel at all when the project has not written one', () => {
+    expect(render()).not.toContain('data-scrum-definition-of-ready')
   })
 })

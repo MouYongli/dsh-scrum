@@ -1,7 +1,15 @@
 import { createElement, useState, type ReactElement, type ReactNode } from 'react'
-import { isWorkItemBlocked, type WorkItem, type WorkItemId } from '@dsh-scrum/scrum-domain'
+import {
+  isWorkItemBlocked,
+  isWorkItemPlannable,
+  type Sprint,
+  type SprintId,
+  type WorkItem,
+  type WorkItemId,
+} from '@dsh-scrum/scrum-domain'
 import type { BacklogGroup, BacklogRow } from './backlog.js'
 import { FilterBar } from './filter-bar.js'
+import { READINESS_LABEL, readinessOf } from './readiness.js'
 import { BACKLOG_GROUPING, type BacklogGrouping } from './backlog.js'
 import type { BacklogState } from './backlog-controller.js'
 import type {
@@ -11,6 +19,7 @@ import type {
   NewWorkItem,
   ParentWorkItem,
   RankWorkItem,
+  WorkItemRef,
   SetCriterion,
 } from './client.js'
 import type { MessageKey, Translate } from './messages.js'
@@ -41,6 +50,8 @@ export interface BacklogActions {
   readonly parent: (command: ParentWorkItem) => void
   readonly dependency: (command: DependWorkItem) => void
   readonly block: (command: BlockWorkItem) => void
+  /** Puts one item into a sprint, or takes it back out with `null`. */
+  readonly plan: (item: WorkItemRef, sprintId: SprintId | null) => void
 }
 
 export interface BacklogProps {
@@ -52,6 +63,10 @@ export interface BacklogProps {
   readonly query: WorkItemQuery
   readonly actions: BacklogActions
   readonly t: Translate
+  /** The sprints that can still take work, for the planning control. */
+  readonly openSprints: readonly Sprint[]
+  /** The team's own readiness list, shown as the reminder it is. */
+  readonly definitionOfReady: readonly string[]
   /**
    * An archived project. The writing controls are not drawn, which is a
    * courtesy and not a check: the host refuses the write either way, and this
@@ -79,6 +94,7 @@ export function BacklogScreen(props: BacklogProps): ReactElement {
     },
     createElement('h2', null, t('backlog.title')),
     toolbar(props),
+    definitionOfReady(props),
     failureBanner(props),
     props.readOnly ? null : createElement(CreatePanel, props),
     body(props),
@@ -389,6 +405,8 @@ function rowItem(row: BacklogRow, props: BacklogProps): ReactElement {
     row.blocked
       ? createElement('span', { 'data-scrum-blocked': true }, t('backlog.blocked'))
       : null,
+    readinessBadge(item, props),
+    props.readOnly ? null : planControl(item, props),
     subtaskList(row, props),
     props.readOnly
       ? null
@@ -405,5 +423,106 @@ function rowItem(row: BacklogRow, props: BacklogProps): ReactElement {
             })
           },
         }),
+  )
+}
+
+/**
+ * How ready an item is, as far as anything here can tell.
+ *
+ * Advice rather than a gate. A team that decides to take an unready item into
+ * a sprint is making a call, and a tool that refused would only teach them to
+ * write a placeholder description to get past it.
+ *
+ * Drawn only where the question applies: an epic is never planned and a
+ * subtask rides on its parent.
+ */
+function readinessBadge(item: WorkItem, props: BacklogProps): ReactElement | null {
+  const readiness = readinessOf(item)
+  if (readiness === null) {
+    return null
+  }
+  const { t } = props
+  if (readiness.ready) {
+    return createElement(
+      'span',
+      { 'data-scrum-readiness': 'ready' },
+      `${t('readiness.title')} ${t('readiness.ready')}`,
+    )
+  }
+  return createElement(
+    'span',
+    {
+      'data-scrum-readiness': 'incomplete',
+      'data-scrum-readiness-missing': readiness.missing.length,
+    },
+    `${t('readiness.missing')} ${readiness.missing.map((check) => t(READINESS_LABEL[check])).join('、')}`,
+  )
+}
+
+/**
+ * Puts one item into a sprint without leaving for the sprint page.
+ *
+ * Only sprints that can still take work are offered, and only for the level a
+ * sprint can hold. A closed sprint in the list would be a choice that is
+ * always refused.
+ */
+function planControl(item: WorkItem, props: BacklogProps): ReactElement | null {
+  if (!isWorkItemPlannable(item)) {
+    return null
+  }
+  const { t } = props
+  const id = `scrum-plan-${item.id}`
+  if (props.openSprints.length === 0) {
+    return createElement('span', { 'data-scrum-plan-empty': true }, t('backlog.plan.empty'))
+  }
+  return createElement(
+    'span',
+    { 'data-scrum-plan-field': true },
+    createElement('label', { htmlFor: id }, t('backlog.plan')),
+    createElement(
+      'select',
+      {
+        id,
+        'data-scrum-plan': item.id,
+        value: item.sprintId ?? '',
+        disabled: props.state.busy,
+        onChange: (event: { target: { value: string } }) => {
+          const value = event.target.value
+          props.actions.plan(
+            { workItemId: item.id, expectedRevision: item.revision },
+            value === '' ? null : (value as SprintId),
+          )
+        },
+      },
+      createElement('option', { value: '' }, t('backlog.plan.none')),
+      props.openSprints.map((sprint) =>
+        createElement('option', { key: sprint.id, value: sprint.id }, sprint.name),
+      ),
+    ),
+  )
+}
+
+/**
+ * The project's own Definition of Ready.
+ *
+ * Shown once above the list rather than checked per row: these are sentences a
+ * team wrote for itself, and nothing here can evaluate one. Ticking them
+ * automatically would be claiming to have verified something nobody verified.
+ */
+function definitionOfReady(props: BacklogProps): ReactElement | null {
+  if (props.definitionOfReady.length === 0) {
+    return null
+  }
+  const { t } = props
+  return createElement(
+    'section',
+    { 'data-scrum-definition-of-ready': props.definitionOfReady.length },
+    createElement('h4', null, t('readiness.definition')),
+    createElement('p', null, t('readiness.definition.hint')),
+    createElement(
+      'ul',
+      null,
+      props.definitionOfReady.map((entry) => createElement('li', { key: entry }, entry)),
+    ),
   )
 }

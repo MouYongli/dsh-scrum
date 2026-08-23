@@ -8,7 +8,13 @@ import {
   type ReactElement,
   type ReactNode,
 } from 'react'
-import { PERMISSION, toProjectKey, type Sprint, type WorkItemId } from '@dsh-scrum/scrum-domain'
+import {
+  PERMISSION,
+  SPRINT_STATUS,
+  toProjectKey,
+  type Sprint,
+  type WorkItemId,
+} from '@dsh-scrum/scrum-domain'
 import { createBacklogController } from './backlog-controller.js'
 import { applyBatch, type BatchChange, type BatchOutcome } from './batch.js'
 import { createDashboardController } from './dashboard-controller.js'
@@ -548,7 +554,29 @@ function ConnectedBacklog(props: {
 }): ReactElement {
   const controller = useMemo(() => createBacklogController(props.client), [props.client])
   const state = useSyncExternalStore(controller.subscribe, controller.state, controller.state)
+  const [openSprints, setOpenSprints] = useState<readonly Sprint[]>([])
+  const [definitionOfReady, setDefinitionOfReady] = useState<readonly string[]>([])
   const { query } = props
+
+  // Both are about the project rather than about the list, so they are read
+  // once and survive every refresh the list does.
+  useEffect(() => {
+    let current = true
+    void Promise.all([props.client.sprints(), props.client.settings()])
+      .then(([sprints, settings]) => {
+        if (!current) return
+        setOpenSprints(sprints.filter((sprint) => sprint.status !== SPRINT_STATUS.closed))
+        setDefinitionOfReady(settings.definitionOfReady)
+      })
+      .catch(() => {
+        if (!current) return
+        setOpenSprints([])
+        setDefinitionOfReady([])
+      })
+    return () => {
+      current = false
+    }
+  }, [props.client])
 
   // The scope is this page's own: a backlog is the work in no sprint. The rest
   // of the narrowing is the surface's, and reaches here whichever page set it.
@@ -559,6 +587,8 @@ function ConnectedBacklog(props: {
   return createElement(BacklogScreen, {
     state,
     query,
+    openSprints,
+    definitionOfReady,
     t: props.t,
     readOnly: props.readOnly,
     actions: {
@@ -574,6 +604,7 @@ function ConnectedBacklog(props: {
       parent: (command) => void controller.setParent(command),
       dependency: (command) => void controller.setDependency(command),
       block: (command) => void controller.block(command),
+      plan: (item, sprintId) => void controller.plan(item, sprintId),
     },
   })
 }

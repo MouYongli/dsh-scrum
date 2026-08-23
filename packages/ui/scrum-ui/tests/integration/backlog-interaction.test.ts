@@ -7,6 +7,7 @@ import {
   WORK_ITEM_CATEGORY,
   WORK_ITEM_TYPE,
   toRevision,
+  type Sprint,
 } from '@dsh-scrum/scrum-domain'
 import {
   BACKLOG_GROUPING,
@@ -17,7 +18,7 @@ import {
 } from '@dsh-scrum/scrum-ui'
 import type { BacklogActions, BacklogState, WorkItemQuery } from '@dsh-scrum/scrum-ui'
 import { mount, type Mounted } from '../support/dom.js'
-import { item, itemId } from '../support/items.js'
+import { item, itemId, sprint } from '../support/items.js'
 
 // What an interaction does, which markup cannot show. The render tests already
 // assert what each state draws; these press the controls.
@@ -44,6 +45,7 @@ function actions(): BacklogActions {
     parent: vi.fn(),
     dependency: vi.fn(),
     block: vi.fn(),
+    plan: vi.fn(),
   }
 }
 
@@ -51,6 +53,7 @@ function screen(
   overrides: Partial<BacklogState> = {},
   handlers: BacklogActions = actions(),
   query: WorkItemQuery = EMPTY_QUERY,
+  openSprints: readonly Sprint[] = [],
 ): { mounted: Mounted; handlers: BacklogActions } {
   const items = overrides.ordered ?? []
   const state: BacklogState = {
@@ -65,7 +68,15 @@ function screen(
     ...overrides,
   }
   const mounted = mount(
-    createElement(BacklogScreen, { state, query, actions: handlers, t, readOnly: false }),
+    createElement(BacklogScreen, {
+      state,
+      query,
+      openSprints,
+      definitionOfReady: [],
+      actions: handlers,
+      t,
+      readOnly: false,
+    }),
   )
   open = mounted
   return { mounted, handlers }
@@ -301,5 +312,46 @@ describe('the message above the list', () => {
 
     mounted.click('[data-scrum-dismiss]')
     expect(handlers.dismiss).toHaveBeenCalled()
+  })
+})
+
+describe('planning from a row', () => {
+  it('puts the item into the sprint that was chosen, and takes it back out', () => {
+    const open = sprint(1)
+    const row = item(1)
+    const { mounted, handlers } = screen({ ordered: [row] }, actions(), EMPTY_QUERY, [open])
+
+    mounted.choose(`[data-scrum-plan="${itemId(1)}"]`, open.id)
+    expect(handlers.plan).toHaveBeenCalledWith(
+      { workItemId: itemId(1), expectedRevision: row.revision },
+      open.id,
+    )
+
+    mounted.choose(`[data-scrum-plan="${itemId(1)}"]`, '')
+    expect(handlers.plan).toHaveBeenCalledWith(
+      { workItemId: itemId(1), expectedRevision: row.revision },
+      null,
+    )
+  })
+
+  it('says there is nowhere to plan into rather than offering an empty picker', () => {
+    const { mounted } = screen({ ordered: [item(1)] })
+
+    expect(mounted.container.querySelector('[data-scrum-plan-empty]')).not.toBeNull()
+    expect(mounted.container.querySelector('[data-scrum-plan]')).toBeNull()
+  })
+
+  it('offers no planning for a level a sprint cannot hold', () => {
+    const { mounted } = screen(
+      { ordered: [item(1, { type: WORK_ITEM_TYPE.epic })] },
+      actions(),
+      EMPTY_QUERY,
+      [sprint(1)],
+    )
+
+    expect(mounted.container.querySelector('[data-scrum-plan]')).toBeNull()
+    // Nor a readiness badge: an epic is never taken into a sprint, so the
+    // question does not apply to it.
+    expect(mounted.container.querySelector('[data-scrum-readiness]')).toBeNull()
   })
 })
