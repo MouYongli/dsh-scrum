@@ -57,6 +57,8 @@ export type {
   DashboardView,
   SignalGroup,
 } from './dashboard.js'
+export type { FilterBarProps } from './filter-bar.js'
+export { FilterBar } from './filter-bar.js'
 export type { DashboardController, DashboardState } from './dashboard-controller.js'
 export { ACTIVITY_WINDOW, createDashboardController } from './dashboard-controller.js'
 export type { DashboardActions, DashboardProps } from './dashboard-view.js'
