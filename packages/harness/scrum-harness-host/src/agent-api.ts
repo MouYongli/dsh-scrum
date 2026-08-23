@@ -126,8 +126,11 @@ export function createAgentApi(
     sprints: async () => await reading(PERMISSION.projectView, async () => await api.sprints()),
     sprint: async (id: SprintId) =>
       await reading(PERMISSION.projectView, async () => await api.sprint(id)),
+    // The agent asks about progress, not about the commitment: a summary it
+    // reads aloud is about where the sprint stands. The report carries both;
+    // only the half that was asked for is handed on.
     progress: async (id: SprintId) =>
-      await reading(PERMISSION.reportView, async () => await api.progress(id)),
+      await reading(PERMISSION.reportView, async () => (await api.report(id)).progress),
 
     createWorkItem: async (command) =>
       await writing(PERMISSION.workItemWrite, async () => await api.createWorkItem(command)),

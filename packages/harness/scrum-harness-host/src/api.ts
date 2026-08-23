@@ -29,7 +29,7 @@ import {
   resolveWorkItem,
   moveWorkItemToRank,
   planSprint,
-  readSprintProgress,
+  readSprintReport,
   recentActivity,
   startSprint,
   updateWorkItem,
@@ -53,7 +53,7 @@ import {
   type PlanSprintCommand,
   type SetAcceptanceCriterionCommand,
   type SetWorkItemParentCommand,
-  type SprintProgress,
+  type SprintReport,
   type StartSprintCommand,
   type UpdateWorkItemCommand,
   type UpdateProjectDetailsCommand,
@@ -233,7 +233,8 @@ export interface ScrumHostApi {
   workItem(id: WorkItemId): Promise<WorkItem>
   sprints(): Promise<readonly Sprint[]>
   sprint(id: SprintId): Promise<Sprint>
-  progress(id: SprintId): Promise<SprintProgress>
+  /** A sprint's progress beside what it committed to when it opened. */
+  report(id: SprintId): Promise<SprintReport>
   /** The most recent changes to the bound project, newest first. */
   activity(window: ActivityWindow): Promise<ActivityHistory>
   createWorkItem(command: WorkOf<CreateWorkItemCommand>): Promise<WorkItem>
@@ -485,9 +486,9 @@ export function createHostApi(
       })
     },
 
-    async progress(id: SprintId): Promise<SprintProgress> {
+    async report(id: SprintId): Promise<SprintReport> {
       const request = await resolveRequest(harness, source, activitySource)
-      return await readSprintProgress(request.deps, {
+      return await readSprintReport(request.deps, {
         actor: request.actor,
         command: { projectId: await boundProjectId(request), sprintId: id },
       })

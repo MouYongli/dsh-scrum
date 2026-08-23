@@ -11,7 +11,7 @@ import {
   closeSprint,
   createSprint,
   planSprint,
-  readSprintProgress,
+  readSprintReport,
   startSprint,
   type StoredProject,
 } from '@dsh-scrum/scrum-application'
@@ -258,13 +258,13 @@ describe('closeSprint', () => {
   })
 })
 
-describe('readSprintProgress', () => {
+describe('readSprintReport', () => {
   it('counts by status and separates the unestimated items', async () => {
     const deps = dependencies()
     const stored = await project(deps)
     const { sprint: active, items } = await running(deps, stored)
 
-    const progress = await readSprintProgress(deps, {
+    const { progress } = await readSprintReport(deps, {
       actor: actor(),
       command: { projectId: stored.project.id, sprintId: active.id },
     })
@@ -281,7 +281,7 @@ describe('readSprintProgress', () => {
     const { sprint: active } = await running(deps, stored)
     await item(deps, stored, { title: 'still in the backlog' })
 
-    const progress = await readSprintProgress(deps, {
+    const { progress } = await readSprintReport(deps, {
       actor: actor(),
       command: { projectId: stored.project.id, sprintId: active.id },
     })

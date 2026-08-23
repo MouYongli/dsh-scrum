@@ -15,7 +15,7 @@ import {
   listWorkItems,
   moveWorkItemStatus,
   planSprint,
-  readSprintProgress,
+  readSprintReport,
   startSprint,
   updateWorkItem,
 } from '@dsh-scrum/scrum-application'
@@ -115,10 +115,12 @@ describe('the first scrum loop', () => {
       })
     }
 
-    const midway = await readSprintProgress(deps, {
-      actor: actor(),
-      command: { projectId, sprintId: sprint.id },
-    })
+    const midway = (
+      await readSprintReport(deps, {
+        actor: actor(),
+        command: { projectId, sprintId: sprint.id },
+      })
+    ).progress
     expect(midway.total).toEqual({ count: 2, estimate: 6 })
     expect(midway.finished).toEqual({ count: 1, estimate: 3 })
     expect(midway.unestimated).toBe(0)
@@ -155,10 +157,12 @@ describe('the first scrum loop', () => {
     })
     expect(backlog.map((found) => found.id)).toEqual([unfinished.id, created[2]!.id])
 
-    const after = await readSprintProgress(deps, {
-      actor: actor(),
-      command: { projectId, sprintId: sprint.id },
-    })
+    const after = (
+      await readSprintReport(deps, {
+        actor: actor(),
+        command: { projectId, sprintId: sprint.id },
+      })
+    ).progress
     expect(after.total).toEqual({ count: 1, estimate: 3 })
     expect(after.finished).toEqual({ count: 1, estimate: 3 })
 

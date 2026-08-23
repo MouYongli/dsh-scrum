@@ -106,7 +106,7 @@ describe('from an empty workspace to a closed sprint', () => {
 
     expect(done.status).toBe(WORK_ITEM_STATUS.done)
 
-    const progress = await app.host.progress(sprint.id)
+    const { progress } = await app.host.report(sprint.id)
 
     expect(progress.total.count).toBe(2)
     expect(progress.finished.count).toBe(1)

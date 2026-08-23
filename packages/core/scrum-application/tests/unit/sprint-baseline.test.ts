@@ -11,6 +11,7 @@ import {
   moveWorkItemStatus,
   planSprint,
   sprintProgress,
+  readSprintReport,
   sprintScopeChange,
   startSprint,
   updateWorkItem,
@@ -255,5 +256,90 @@ describe('what a sprint delivered', () => {
     // it must not read as having gone faster.
     expect(progress.finished).toEqual({ count: 2, estimate: 13 })
     expect(progress.delivered).toEqual({ count: 1, estimate: 5 })
+  })
+})
+
+describe('the report a screen reads', () => {
+  it('says a planned sprint has no commitment yet rather than a commitment of zero', async () => {
+    const deps = dependencies()
+    const stored = await project(deps)
+    const opening = await sprint(deps, stored)
+
+    const report = await readSprintReport(deps, {
+      actor: actor(),
+      command: { projectId: stored.project.id, sprintId: opening.id },
+    })
+
+    // Zero would read as a sprint that promised nothing, which is a different
+    // claim from one that has not promised anything yet.
+    expect(report.baseline).toBeNull()
+    expect(report.scopeChange).toBeNull()
+    expect(report.progress.total.count).toBe(0)
+  })
+
+  it('carries the progress and what changed since the start in one read', async () => {
+    const deps = dependencies()
+    const stored = await project(deps)
+    const committed = await sized(deps, stored, 'committed', 3)
+    const later = await sized(deps, stored, 'later', 8)
+    const opening = await sprint(deps, stored)
+    await plan(deps, stored, opening, [committed])
+    const started = await startSprint(deps, {
+      actor: actor(),
+      command: {
+        projectId: stored.project.id,
+        sprintId: opening.id,
+        expectedRevision: opening.revision,
+      },
+    })
+    await plan(deps, stored, started, [later])
+
+    const report = await readSprintReport(deps, {
+      actor: actor(),
+      command: { projectId: stored.project.id, sprintId: started.id },
+    })
+
+    expect(report.progress.total).toEqual({ count: 2, estimate: 11 })
+    expect(report.baseline?.totalPoints).toBe(3)
+    expect(report.scopeChange?.added).toEqual([later.id])
+    expect(report.scopeChange?.removed).toEqual([])
+    // Both halves come from one list of items, so they cannot disagree about
+    // which items the sprint holds.
+    expect(report.scopeChange?.committedPoints).toBe(3)
+  })
+
+  it('reports work taken back out, not only work that arrived', async () => {
+    const deps = dependencies()
+    const stored = await project(deps)
+    const committed = await sized(deps, stored, 'committed', 3)
+    const opening = await sprint(deps, stored)
+    await plan(deps, stored, opening, [committed])
+    const started = await startSprint(deps, {
+      actor: actor(),
+      command: {
+        projectId: stored.project.id,
+        sprintId: opening.id,
+        expectedRevision: opening.revision,
+      },
+    })
+    const inSprint = (await deps.workItems.list(stored.project.id, {})).find(
+      (one) => one.id === committed.id,
+    )!
+    await planSprint(deps, {
+      actor: actor(),
+      command: {
+        projectId: stored.project.id,
+        sprintId: null,
+        items: [{ workItemId: inSprint.id, expectedRevision: inSprint.revision }],
+      },
+    })
+
+    const report = await readSprintReport(deps, {
+      actor: actor(),
+      command: { projectId: stored.project.id, sprintId: started.id },
+    })
+
+    expect(report.scopeChange?.removed).toEqual([committed.id])
+    expect(report.progress.total.count).toBe(0)
   })
 })
