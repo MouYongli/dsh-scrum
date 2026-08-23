@@ -1,7 +1,7 @@
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
-import { SPRINT_STATUS, WORK_ITEM_STATUS } from '@dsh-scrum/scrum-domain'
+import { SPRINT_STATUS, WORK_ITEM_RESOLUTION, WORK_ITEM_STATUS } from '@dsh-scrum/scrum-domain'
 import { SprintScreen, boardView, createTranslate } from '@dsh-scrum/scrum-ui'
 import type { SprintActions, SprintState } from '@dsh-scrum/scrum-ui'
 import { item, sprint } from '../support/items.js'
@@ -176,8 +176,10 @@ describe('the board', () => {
 
     expect(markup).toContain('data-scrum-move="SCR-1"')
     expect(markup).toContain(`<label for="scrum-move-SCR-1">${t('board.moveTo')}</label>`)
-    // Every other column is offered, not only the next one.
-    expect(markup).toContain(`value="${WORK_ITEM_STATUS.done}"`)
+    // Every other column is offered, not only the next one, and the last one
+    // is offered once per way of ending rather than once.
+    expect(markup).toContain(`value="${WORK_ITEM_STATUS.review}"`)
+    expect(markup).toContain(`value="${WORK_ITEM_STATUS.done}:${WORK_ITEM_RESOLUTION.wontFix}"`)
     expect(markup).not.toContain(`value="${WORK_ITEM_STATUS.todo}"`)
   })
 

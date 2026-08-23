@@ -1,11 +1,14 @@
 import {
+  WORK_ITEM_STATUS,
   isWorkItemBlocked,
   isWorkItemFinished,
   type WorkItem,
+  type WorkItemResolution,
   type WorkItemStatus,
 } from '@dsh-scrum/scrum-domain'
 import type { GroupTotals } from './backlog.js'
-import { BOARD_COLUMNS } from './vocabulary.js'
+import type { MessageKey } from './messages.js'
+import { BOARD_COLUMNS, WORK_ITEM_RESOLUTIONS, resolutionLabel, statusLabel } from './vocabulary.js'
 
 export interface BoardCard {
   readonly item: WorkItem
@@ -76,13 +79,44 @@ export function boardView(items: readonly WorkItem[]): BoardView {
   }
 }
 
+/** Somewhere a card can be moved to, and how the work ended if that is it. */
+export interface MoveTarget {
+  readonly key: string
+  readonly status: WorkItemStatus
+  readonly resolution: WorkItemResolution | null
+  readonly label: MessageKey
+}
+
 /**
  * Where one card may go next.
  *
  * Every other column, not only the neighbouring one: work goes back to review
  * as often as it goes forward, and a board that only moved rightwards would be
  * describing a process nobody runs.
+ *
+ * The last column is offered once per way of ending rather than once. Every
+ * other answer — a dialog after the move, or a silent default corrected later
+ * — either interrupts the ordinary case or records "delivered" for work that
+ * was abandoned. Listing them costs the same one choice the board already
+ * asked for, and the common answer sits where the single entry used to.
  */
-export function moveTargets(status: WorkItemStatus): readonly WorkItemStatus[] {
-  return BOARD_COLUMNS.filter((column) => column !== status)
+export function moveTargets(status: WorkItemStatus): readonly MoveTarget[] {
+  const columns = BOARD_COLUMNS.filter(
+    (column) => column !== status && column !== WORK_ITEM_STATUS.done,
+  ).map((column) => ({
+    key: column,
+    status: column,
+    resolution: null,
+    label: statusLabel(column),
+  }))
+  const endings = WORK_ITEM_RESOLUTIONS.map((resolution) => ({
+    key: `${WORK_ITEM_STATUS.done}:${resolution}`,
+    status: WORK_ITEM_STATUS.done,
+    resolution,
+    label: resolutionLabel(resolution),
+  }))
+  // A card already finished offers only the way back. Restating how something
+  // ended is a different act from finishing it, and it belongs where the rest
+  // of an item's fields are edited rather than on a card.
+  return status === WORK_ITEM_STATUS.done ? columns : [...columns, ...endings]
 }

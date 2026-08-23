@@ -5,6 +5,7 @@ import {
   type SprintId,
   type WorkItem,
   type WorkItemId,
+  type WorkItemResolution,
   type WorkItemStatus,
 } from '@dsh-scrum/scrum-domain'
 import { boardView, type BoardView } from './board.js'
@@ -56,7 +57,12 @@ export interface SprintController {
   readonly dismiss: () => void
   readonly create: (input: NewSprint) => Promise<void>
   readonly plan: (items: readonly WorkItemRef[], into: SprintId | null) => Promise<void>
-  readonly move: (item: WorkItemRef, status: WorkItemStatus) => Promise<void>
+  readonly move: (
+    item: WorkItemRef,
+    status: WorkItemStatus,
+    /** Absent leaves it to the domain, which reads an unnamed outcome as done. */
+    resolution?: WorkItemResolution | null,
+  ) => Promise<void>
   readonly edit: (command: EditWorkItem) => Promise<void>
   readonly setCriterion: (command: SetCriterion) => Promise<void>
   readonly setParent: (command: ParentWorkItem) => Promise<void>
@@ -211,8 +217,21 @@ export function createSprintController(client: ScrumClient): SprintController {
     plan: async (items: readonly WorkItemRef[], into: SprintId | null) => {
       await write(async () => await client.planSprint({ sprintId: into, items }))
     },
-    move: async (item: WorkItemRef, status: WorkItemStatus) => {
-      await write(async () => await client.moveWorkItemStatus({ ...item, status }))
+    move: async (
+      item: WorkItemRef,
+      status: WorkItemStatus,
+      resolution: WorkItemResolution | null = null,
+    ) => {
+      await write(
+        async () =>
+          await client.moveWorkItemStatus({
+            ...item,
+            status,
+            // Absent rather than null: the domain defaults an unnamed outcome
+            // to done, and refuses one aimed at any other column.
+            ...(resolution === null ? {} : { resolution }),
+          }),
+      )
     },
     edit: async (command: EditWorkItem) => {
       await write(async () => await client.updateWorkItem(command))

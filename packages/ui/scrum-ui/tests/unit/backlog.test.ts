@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { PRIORITY, WORK_ITEM_TYPE } from '@dsh-scrum/scrum-domain'
+import { PRIORITY, WORK_ITEM_CATEGORY, WORK_ITEM_TYPE } from '@dsh-scrum/scrum-domain'
 import { BACKLOG_GROUPING, backlogPage, priorityLabel, typeLabel } from '@dsh-scrum/scrum-ui'
 import { item, itemId } from '../support/items.js'
 
@@ -130,5 +130,60 @@ describe('an empty list', () => {
 
   it('reports items as present the moment there is one', () => {
     expect(backlogPage([item(1)], 'none', true).emptiness).toBe('items')
+  })
+})
+
+describe('subtasks in the list', () => {
+  it('folds a subtask into its parent rather than beside it', () => {
+    const page = backlogPage(
+      [
+        item(1, { title: '结算', type: WORK_ITEM_TYPE.story }),
+        item(2, { title: '拆一半', type: WORK_ITEM_TYPE.subtask, parentId: itemId(1) }),
+      ],
+      BACKLOG_GROUPING.none,
+      false,
+    )
+    const [row] = page.groups[0]?.rows ?? []
+
+    // A subtask is a breakdown of one item. Listed beside the things it breaks
+    // down, the order the product owner set would read as ranking both.
+    expect(page.groups[0]?.rows).toHaveLength(1)
+    expect(row?.item.id).toBe(itemId(1))
+    expect(row?.subtasks.map((one) => one.id)).toEqual([itemId(2)])
+  })
+
+  it('keeps a subtask visible when its parent was filtered out', () => {
+    const page = backlogPage(
+      [item(2, { type: WORK_ITEM_TYPE.subtask, parentId: itemId(9) })],
+      BACKLOG_GROUPING.none,
+      true,
+    )
+
+    // Folding it under a parent nobody can see would hide it; dropping it
+    // would report a shorter backlog than the project has.
+    expect(page.groups[0]?.rows.map((row) => row.item.id)).toEqual([itemId(2)])
+  })
+})
+
+describe('grouping by the kind of work', () => {
+  it('puts each category in the documented order and names the unclassified', () => {
+    const page = backlogPage(
+      [
+        item(1, { category: WORK_ITEM_CATEGORY.techDebt }),
+        item(2, {}),
+        item(3, { category: WORK_ITEM_CATEGORY.feature }),
+      ],
+      BACKLOG_GROUPING.category,
+      false,
+    )
+
+    expect(page.groups.map((group) => group.key)).toEqual([
+      WORK_ITEM_CATEGORY.feature,
+      WORK_ITEM_CATEGORY.techDebt,
+      'uncategorised',
+    ])
+    // An item nobody classified is still work; a grouping that dropped it
+    // would report a backlog shorter than the one the project has.
+    expect(page.groups.at(-1)?.rows.map((row) => row.item.id)).toEqual([itemId(2)])
   })
 })

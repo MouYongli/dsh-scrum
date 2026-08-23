@@ -579,7 +579,7 @@ function ConnectedSprints(props: {
       select: (sprintId) => void controller.select(sprintId),
       create: (input) => void controller.create(input),
       plan: (items, into) => void controller.plan(items, into),
-      move: (item, status) => void controller.move(item, status),
+      move: (item, status, resolution) => void controller.move(item, status, resolution),
       detail: controller.openDetail,
       refresh: () => void controller.load(),
       dismiss: controller.dismiss,
