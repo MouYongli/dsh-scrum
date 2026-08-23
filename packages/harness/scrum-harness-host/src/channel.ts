@@ -157,6 +157,8 @@ async function dispatch(api: ScrumHostApi, call: Dispatchable): Promise<unknown>
       return api.startSprint(call.input)
     case SCRUM_ENDPOINT.closeSprint:
       return api.closeSprint(call.input)
+    case SCRUM_ENDPOINT.activity:
+      return api.activity(call.input)
   }
 }
 

@@ -231,6 +231,37 @@ export interface CloseSprint extends SprintRef {
   readonly dispositions: readonly Disposition[]
 }
 
+/**
+ * One recorded change, as a screen reads it.
+ *
+ * Declared here rather than imported from the application: this package knows
+ * the domain and a client interface, and nothing else. The source is a plain
+ * string for the same reason — a screen groups by it and labels it, and a
+ * second copy of the application's union here would be one that can disagree.
+ */
+export interface ActivityEventView {
+  readonly at: Timestamp
+  readonly actorId: IdentityId
+  readonly source: string
+  readonly sessionId: string | null
+  readonly action: string
+  readonly targetType: string
+  readonly targetId: string
+  readonly revision: Revision | null
+}
+
+export interface ActivityView {
+  /** Newest first. */
+  readonly events: readonly ActivityEventView[]
+  /** What the log holds but could not read back. */
+  readonly problems: readonly string[]
+}
+
+export interface ActivityQuery {
+  readonly limit: number
+  readonly since?: Timestamp | undefined
+}
+
 export interface ScrumClient {
   /** What the current user may do in the bound project, resolved on every call. */
   authorization(): Promise<AuthorizationView>
@@ -255,4 +286,5 @@ export interface ScrumClient {
   planSprint(command: PlanSprint): Promise<readonly WorkItem[]>
   startSprint(command: SprintRef): Promise<Sprint>
   closeSprint(command: CloseSprint): Promise<Sprint>
+  activity(query: ActivityQuery): Promise<ActivityView>
 }

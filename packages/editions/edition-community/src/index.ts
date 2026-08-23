@@ -11,7 +11,7 @@ import {
   type TenantId,
 } from '@dsh-scrum/scrum-domain'
 import type { ApplicationDependencies } from '@dsh-scrum/scrum-application'
-import { createLocalActivityRecorder } from '@dsh-scrum/adapter-audit-local'
+import { createLocalActivityLog } from '@dsh-scrum/adapter-audit-local'
 import { createPersonalIdentity } from '@dsh-scrum/adapter-identity-personal'
 import {
   createDirectoryLockPort,
@@ -92,7 +92,7 @@ export function createCommunityRuntime(input: CommunityRuntimeInput = {}): Scrum
         coordinator: createWriteCoordinator(workspaceLayout(root), lock),
         edition: EDITION.community,
       }),
-      activity: createLocalActivityRecorder(root),
+      activity: createLocalActivityLog(root),
       capabilities: communityCapabilities,
       clock,
       ids,

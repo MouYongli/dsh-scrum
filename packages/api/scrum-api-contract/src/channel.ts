@@ -58,6 +58,7 @@ export const SCRUM_ENDPOINT = {
   planSprint: 'sprint.plan',
   startSprint: 'sprint.start',
   closeSprint: 'sprint.close',
+  activity: 'activity.recent',
 } as const
 
 export type ScrumEndpoint = (typeof SCRUM_ENDPOINT)[keyof typeof SCRUM_ENDPOINT]
@@ -291,6 +292,13 @@ export const SCRUM_INPUT = {
     ...sprintRef,
     resultSummary: z.string().optional(),
     dispositions: z.array(z.object({ ...workItemRef, moveTo: sprintId.nullable() })),
+  }),
+  // Bounded here rather than by the caller's good manners: a browser asking
+  // for every record a three-year-old project holds would read every month
+  // file to answer one panel.
+  [SCRUM_ENDPOINT.activity]: z.object({
+    limit: z.int().positive().max(200),
+    since: timestamp.optional(),
   }),
 } as const satisfies Record<ScrumEndpoint, z.ZodType>
 

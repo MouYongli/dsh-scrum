@@ -23,6 +23,8 @@ import {
 import {
   ACTIVITY_SOURCE,
   type ActivityEvent,
+  type ActivityHistory,
+  type ActivityWindow,
   type SprintProgressEntry,
   type ActorContext,
   type ApplicationDependencies,
@@ -330,8 +332,9 @@ function keyOf(workspace: WorkspaceRef): string {
   return `${workspace.instanceId}/${workspace.workspaceId}`
 }
 
-export class FakeActivityRecorder {
+export class FakeActivityLog {
   readonly events: ActivityEvent[] = []
+  readonly problems: string[] = []
   failWith: Error | null = null
 
   async record(event: ActivityEvent): Promise<void> {
@@ -339,6 +342,14 @@ export class FakeActivityRecorder {
       throw this.failWith
     }
     this.events.push(event)
+  }
+
+  async read(window: ActivityWindow): Promise<ActivityHistory> {
+    const events = this.events
+      .filter((event) => window.since === undefined || event.at >= window.since)
+      .sort((left, right) => right.at.localeCompare(left.at))
+      .slice(0, window.limit)
+    return await Promise.resolve({ events, problems: this.problems })
   }
 }
 
@@ -381,7 +392,7 @@ export interface TestDependencies extends ApplicationDependencies {
   readonly writes: WriteHook
   readonly members: FakeMemberRepository
   readonly bindings: FakeBindingRepository
-  readonly activity: FakeActivityRecorder
+  readonly activity: FakeActivityLog
   readonly sprintProgressLog: FakeSprintProgressLog
   readonly idempotency: FakeIdempotencyStore
   readonly clock: Clock & { set(at: Timestamp): void }
@@ -405,7 +416,7 @@ export function dependencies(overrides: Partial<TestDependencies> = {}): TestDep
     transactions: new FakeTransactions(workItems, sprints, writes),
     members: new FakeMemberRepository(),
     bindings: new FakeBindingRepository(),
-    activity: new FakeActivityRecorder(),
+    activity: new FakeActivityLog(),
     sprintProgressLog: new FakeSprintProgressLog(),
     idempotency: new FakeIdempotencyStore(),
     capabilities: capabilities(),

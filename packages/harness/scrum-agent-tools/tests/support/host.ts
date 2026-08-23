@@ -190,6 +190,7 @@ function dependencies(state: Store): ApplicationDependencies {
           targetId: event.targetId,
         })
       },
+      read: async () => ({ events: [], problems: [] }),
     },
     sprintProgressLog: {
       append: async (commitment) => {

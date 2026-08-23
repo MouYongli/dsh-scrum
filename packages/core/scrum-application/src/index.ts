@@ -13,8 +13,10 @@ export type { ApplicationDependencies } from './dependencies.js'
 export type {
   ActivityDescription,
   ActivityEvent,
-  ActivityRecorder,
+  ActivityHistory,
+  ActivityLog,
   ActivitySource,
+  ActivityWindow,
 } from './ports/activity.js'
 export { ACTIVITY_SOURCE, ACTIVITY_SOURCES, toActivitySource } from './ports/activity.js'
 export type { IdempotencyKey, IdempotencyRecord, IdempotencyStore } from './ports/idempotency.js'
@@ -43,6 +45,8 @@ export type {
   WorkspaceRef,
 } from './ports/workspace.js'
 export { toWorkspaceRef } from './ports/workspace.js'
+export type { RecentActivityCommand } from './use-cases/activity.js'
+export { recentActivity } from './use-cases/activity.js'
 export type {
   ConfigureProjectCommand,
   CreateProjectCommand,

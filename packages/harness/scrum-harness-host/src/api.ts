@@ -30,6 +30,7 @@ import {
   moveWorkItemToRank,
   planSprint,
   readSprintProgress,
+  recentActivity,
   startSprint,
   updateWorkItem,
   updateProjectDetails,
@@ -59,7 +60,9 @@ import {
   type WorkItemDependencyCommand,
   type WorkItemFilter,
   type ActorContext,
+  type ActivityHistory,
   type ActivitySource,
+  type ActivityWindow,
   type ApplicationDependencies,
   type CreateProjectCommand,
   type StoredProject,
@@ -231,6 +234,8 @@ export interface ScrumHostApi {
   sprints(): Promise<readonly Sprint[]>
   sprint(id: SprintId): Promise<Sprint>
   progress(id: SprintId): Promise<SprintProgress>
+  /** The most recent changes to the bound project, newest first. */
+  activity(window: ActivityWindow): Promise<ActivityHistory>
   createWorkItem(command: WorkOf<CreateWorkItemCommand>): Promise<WorkItem>
   updateWorkItem(command: WorkOf<UpdateWorkItemCommand>): Promise<WorkItem>
   moveWorkItemToRank(command: WorkOf<MoveWorkItemRankCommand>): Promise<WorkItem>
@@ -485,6 +490,14 @@ export function createHostApi(
       return await readSprintProgress(request.deps, {
         actor: request.actor,
         command: { projectId: await boundProjectId(request), sprintId: id },
+      })
+    },
+
+    async activity(window: ActivityWindow): Promise<ActivityHistory> {
+      const request = await resolveRequest(harness, source, activitySource)
+      return await recentActivity(request.deps, {
+        actor: request.actor,
+        command: { ...window, projectId: await boundProjectId(request) },
       })
     },
 

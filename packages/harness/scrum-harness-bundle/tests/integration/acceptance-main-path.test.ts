@@ -155,6 +155,23 @@ describe('from an empty workspace to a closed sprint', () => {
     expect(records.some((record) => record.targetId === created.id)).toBe(true)
   })
 
+  it('reads that history back through the same API the screens call', async () => {
+    await app.host.initialise({ key: toProjectKey('SCR'), name: 'shop-service' })
+    const created = await app.host.createWorkItem({
+      type: WORK_ITEM_TYPE.story,
+      title: '结算对账',
+    })
+
+    const history = await app.host.activity({ limit: 10 })
+
+    // Newest first, so the panel that shows three lines shows the last three
+    // things that happened rather than the first three ever recorded.
+    expect(history.problems).toEqual([])
+    expect(history.events[0]?.action).toBe('workItem.create')
+    expect(history.events[0]?.targetId).toBe(created.id)
+    expect(history.events.map((event) => event.action)).toContain('project.create')
+  })
+
   it('keeps everything inside .scrum, and nothing anywhere else', async () => {
     await app.host.initialise({ key: toProjectKey('SCR'), name: 'shop-service' })
     await app.host.createWorkItem({ type: WORK_ITEM_TYPE.bug, title: '对账差异' })

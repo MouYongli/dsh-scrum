@@ -122,6 +122,7 @@ describe('the session behind a change', () => {
             record: async (event) => {
               recorded.push(String(event.sessionId))
             },
+            read: async () => ({ events: [], problems: [] }),
           },
         }
       },
@@ -147,6 +148,7 @@ describe('the session behind a change', () => {
             record: async (event) => {
               recorded.push(String(event.sessionId))
             },
+            read: async () => ({ events: [], problems: [] }),
           },
         }
       },
