@@ -46,6 +46,7 @@ export const SCRUM_STYLES = String.raw`
    * blur, so they read as one light source rather than as haze.
    */
   --scrum-panel-raised: var(--dsw-alias-bg-layer-2, color-mix(in srgb, CanvasText 4%, Canvas));
+  --scrum-mask: var(--dsw-alias-bg-mask-1, rgb(0 0 0 / 24%));
   --scrum-shadow-sm: 0 2px 3px rgb(0 0 0 / 6%);
   --scrum-shadow-lg: 0 6px 8px rgb(0 0 0 / 6%), 0 24px 40px rgb(0 0 0 / 14%);
 
@@ -856,6 +857,28 @@ export const SCRUM_STYLES = String.raw`
 }
 
 [data-scrum-leave] { z-index: var(--scrum-z-alert); }
+
+/*
+ * The backdrop both dialogs declare and neither had.
+ *
+ * They render aria-modal, and until now the page behind stayed visible,
+ * clickable and scrollable -- a modality announced to screen readers that
+ * nothing else honoured. A fixed layer over the whole shell separates them
+ * visually and stops the clicks in one go.
+ *
+ * It hangs off the overlay rather than off the dialogs: those are centred with
+ * a transform, which makes them the containing block for anything fixed inside
+ * them, so a backdrop of their own would cover only themselves. It sits above
+ * the drawer as well, because a question raised over an open drawer is asked
+ * about that drawer too.
+ */
+[data-scrum-overlay]:has([data-scrum-leave], [data-scrum-confirm])::before {
+  content: "";
+  position: fixed;
+  z-index: var(--scrum-z-mask);
+  inset: 0;
+  background: var(--scrum-mask);
+}
 
 [data-scrum-leave] h2, [data-scrum-confirm] h3 { margin-bottom: 8px; }
 [data-scrum-leave] p, [data-scrum-confirm] > p { margin-bottom: 18px; color: var(--scrum-muted); }
