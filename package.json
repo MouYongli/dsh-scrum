@@ -26,10 +26,14 @@
     "lint:deps": "depcruise packages tests",
     "lint:publish": "pnpm -r exec publint --level error",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "seed:demo": "node scripts/seed-demo-project.js"
   },
   "devDependencies": {
+    "@dsh-scrum/adapter-storage-workspace-files": "workspace:*",
+    "@dsh-scrum/edition-community": "workspace:*",
     "@dsh-scrum/scrum-application": "workspace:*",
+    "@dsh-scrum/scrum-domain": "workspace:*",
     "@dsh-scrum/scrum-harness-host": "workspace:*",
     "@dsh-scrum/scrum-ui": "workspace:*",
     "@eslint/js": "^10.0.1",

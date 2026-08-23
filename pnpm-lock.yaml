@@ -8,9 +8,18 @@ importers:
 
   .:
     devDependencies:
+      '@dsh-scrum/adapter-storage-workspace-files':
+        specifier: workspace:*
+        version: link:packages/adapters/adapter-storage-workspace-files
+      '@dsh-scrum/edition-community':
+        specifier: workspace:*
+        version: link:packages/editions/edition-community
       '@dsh-scrum/scrum-application':
         specifier: workspace:*
         version: link:packages/core/scrum-application
+      '@dsh-scrum/scrum-domain':
+        specifier: workspace:*
+        version: link:packages/core/scrum-domain
       '@dsh-scrum/scrum-harness-host':
         specifier: workspace:*
         version: link:packages/harness/scrum-harness-host

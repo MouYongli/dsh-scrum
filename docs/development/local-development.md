@@ -106,6 +106,19 @@ npx @deepseek-ai/dsh plugin --profile web remove @dsh-scrum/scrum-harness-bundle
 - **挂载不需要手工改 profile 的 `dsh.profile.bundles`**。CLI 会按已安装状态自动并入声明了 `dsh.bundle` 的依赖，卸载时自动摘掉。
 - **`--dump-config` 是 launcher 标志**，要写在 `--profile web` 后面。`dsh web --dump-config` 里的 `--dump-config` 可能被当作 web app 自己的参数。
 
+### 4.1 给工作区填一份示例数据
+
+空项目只能看到六个页面的空状态。挂进 Harness 之前，先往工作区里写一份示例数据：
+
+```bash
+pnpm build                                   # 脚本引用的是构建产物
+node scripts/seed-demo-project.js ~/DSH/YouTube_DSH
+```
+
+写入内容覆盖到每个页面都有东西可看：三个 Epic 加十条工作项（含 Subtask、Spike、Bug）、一个已关闭的 Sprint（有承诺基线、有交付也有 `wont_fix`）、一个进行中的 Sprint（启动后新增过事项，看板多列都有卡，有阻塞和未估算），以及留在 Backlog 的几条。
+
+脚本全部通过 `ScrumHostApi` 写入，与界面和 Agent 工具走同一条路。工作区里已经有工作项时它会拒绝执行，不会翻倍。
+
 ## 5. 改了代码之后
 
 `link:` 依赖指向工作区，因此改代码不必重新挂载：
