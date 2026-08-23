@@ -131,23 +131,24 @@ export type {
   Priority,
   WorkItem,
   WorkItemDetailChanges,
-  WorkItemLevel,
   WorkItemStatusMove,
-  WorkItemType,
 } from './work-item.js'
+export type { WorkItemLevel, WorkItemType } from './work-item-type.js'
 export {
-  PRIORITY,
   WORK_ITEM_LEVEL,
   WORK_ITEM_TYPE,
+  recommendedTypeFor,
+  toWorkItemType,
+  workItemLevel,
+  workItemRequiresParent,
+} from './work-item-type.js'
+export {
+  PRIORITY,
   createWorkItem,
   isWorkItemAccepted,
-  recommendedTypeFor,
-  workItemLevel,
   setAcceptanceCriterionSatisfied,
   toPriority,
-  toWorkItemType,
   updateWorkItemDetails,
-  workItemRequiresParent,
 } from './work-item.js'
 export {
   assignWorkItemToSprint,
