@@ -11,6 +11,7 @@ import {
   rankBetween,
   removeWorkItemDependency,
   removeWorkItemFromSprint,
+  resolveWorkItem as resolveWorkItemEntity,
   setWorkItemParent as setWorkItemParentEntity,
   unblockWorkItem as unblockWorkItemEntity,
   workItemReferences,
@@ -21,7 +22,9 @@ import {
   type WorkItem,
   type WorkItemId,
   type WorkItemReferences,
+  type WorkItemResolution,
   type WorkItemStatus,
+  workItemRequiresParent,
 } from '@dsh-scrum/scrum-domain'
 import type { UseCaseRequest } from '../actor.js'
 import { authorizeProject } from '../authorization.js'
@@ -80,6 +83,8 @@ export async function moveWorkItemToRank(
 export interface MoveWorkItemStatusCommand extends WorkItemCommand {
   readonly expectedRevision: Revision
   readonly status: WorkItemStatus
+  /** How the work ended. Only meaningful on the move to `done`. */
+  readonly resolution?: WorkItemResolution | undefined
 }
 
 /**
@@ -104,10 +109,65 @@ export async function moveWorkItemStatus(
       ? PERMISSION.workItemUpdateOwnStatus
       : PERMISSION.workItemUpdateAnyStatus,
   )
-  const moved = moveWorkItemStatusEntity(current, command.status, deps.clock.now())
+  const moved = moveWorkItemStatusEntity(current, command.status, deps.clock.now(), {
+    effectiveSprintId: await effectiveSprintOf(deps, command.projectId, current),
+    resolution: command.resolution,
+  })
   await deps.workItems.save(moved, current.revision)
   await report(deps, actor, 'workItem.status', moved)
   return moved
+}
+
+/**
+ * Which sprint's board this item moves on.
+ *
+ * Its own, except for a level 3 item, which holds none and follows its parent.
+ * `docs/development/architecture.md` 7.5 records that derivation as the one
+ * exception to sprint membership living in `sprintId` alone; storing a copy on
+ * the child instead would put the two out of step the moment the parent moved.
+ */
+async function effectiveSprintOf(
+  deps: Pick<Dependencies, 'workItems'>,
+  projectId: ProjectId,
+  item: WorkItem,
+): Promise<SprintId | null> {
+  if (!workItemRequiresParent(item.level) || item.parentId === null) {
+    return item.sprintId
+  }
+  const parent = await deps.workItems.find(projectId, item.parentId)
+  return parent?.sprintId ?? null
+}
+
+export interface ResolveWorkItemCommand extends WorkItemCommand {
+  readonly expectedRevision: Revision
+  readonly resolution: WorkItemResolution
+}
+
+/**
+ * Restates how a finished item ended.
+ *
+ * Governed by the same permission as a board move, and for the same reason:
+ * saying an item was a duplicate rather than delivered is a statement about
+ * the same work, made by whoever may say where that work stands.
+ */
+export async function resolveWorkItem(
+  deps: Dependencies,
+  request: UseCaseRequest<ResolveWorkItemCommand>,
+): Promise<WorkItem> {
+  const { actor, command } = request
+  const authorized = await authorizeProject(deps, actor, command.projectId, PERMISSION.backlogView)
+  const current = await requireWorkItem(deps, command.projectId, command.workItemId)
+  assertExpectedRevision(current, command.expectedRevision)
+  assertHeld(
+    authorized,
+    current.assigneeId === actor.identityId
+      ? PERMISSION.workItemUpdateOwnStatus
+      : PERMISSION.workItemUpdateAnyStatus,
+  )
+  const resolved = resolveWorkItemEntity(current, command.resolution, deps.clock.now())
+  await deps.workItems.save(resolved, current.revision)
+  await report(deps, actor, 'workItem.resolution', resolved)
+  return resolved
 }
 
 export interface BlockWorkItemCommand extends WorkItemCommand {

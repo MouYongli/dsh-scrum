@@ -10,6 +10,7 @@ import {
   toTimestamp,
   toWorkItemCategory,
   toWorkItemId,
+  toWorkItemResolution,
   toWorkItemStatus,
   toWorkItemType,
   type ScrumError,
@@ -51,6 +52,7 @@ export const SCRUM_ENDPOINT = {
   setWorkItemDependency: 'workItem.dependency',
   blockWorkItem: 'workItem.block',
   moveWorkItemStatus: 'workItem.status',
+  resolveWorkItem: 'workItem.resolution',
   sprints: 'sprint.list',
   createSprint: 'sprint.create',
   planSprint: 'sprint.plan',
@@ -100,6 +102,7 @@ const workItemType = domain(toWorkItemType, 'a work item type')
 const workItemCategory = domain(toWorkItemCategory, 'a work category')
 const bugSeverity = domain(toBugSeverity, 'a bug severity')
 const workItemStatus = domain(toWorkItemStatus, 'a work item status')
+const workItemResolution = domain(toWorkItemResolution, 'a work item resolution')
 const projectKey = domain(toProjectKey, 'a project key')
 const identityId = domain(toIdentityId, 'an identity id')
 
@@ -256,7 +259,15 @@ export const SCRUM_INPUT = {
     linked: z.boolean(),
   }),
   [SCRUM_ENDPOINT.blockWorkItem]: z.object({ ...workItemRef, reason: z.string().nullable() }),
-  [SCRUM_ENDPOINT.moveWorkItemStatus]: z.object({ ...workItemRef, status: workItemStatus }),
+  [SCRUM_ENDPOINT.moveWorkItemStatus]: z.object({
+    ...workItemRef,
+    status: workItemStatus,
+    resolution: workItemResolution.optional(),
+  }),
+  [SCRUM_ENDPOINT.resolveWorkItem]: z.object({
+    ...workItemRef,
+    resolution: workItemResolution,
+  }),
   [SCRUM_ENDPOINT.sprints]: empty,
   [SCRUM_ENDPOINT.createSprint]: z.object({
     name: z.string(),

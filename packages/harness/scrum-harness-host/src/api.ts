@@ -26,6 +26,7 @@ import {
   listSprints,
   listWorkItems,
   moveWorkItemStatus,
+  resolveWorkItem,
   moveWorkItemToRank,
   planSprint,
   readSprintProgress,
@@ -47,6 +48,7 @@ import {
   type DeleteWorkItemCommand,
   type MoveWorkItemRankCommand,
   type MoveWorkItemStatusCommand,
+  type ResolveWorkItemCommand,
   type PlanSprintCommand,
   type SetAcceptanceCriterionCommand,
   type SetWorkItemParentCommand,
@@ -233,6 +235,7 @@ export interface ScrumHostApi {
   updateWorkItem(command: WorkOf<UpdateWorkItemCommand>): Promise<WorkItem>
   moveWorkItemToRank(command: WorkOf<MoveWorkItemRankCommand>): Promise<WorkItem>
   moveWorkItemStatus(command: WorkOf<MoveWorkItemStatusCommand>): Promise<WorkItem>
+  resolveWorkItem(command: WorkOf<ResolveWorkItemCommand>): Promise<WorkItem>
   blockWorkItem(command: WorkOf<BlockWorkItemCommand>): Promise<WorkItem>
   /**
    * The three edits the detail panel makes that `updateWorkItem` deliberately
@@ -512,6 +515,14 @@ export function createHostApi(
     async moveWorkItemStatus(command: WorkOf<MoveWorkItemStatusCommand>): Promise<WorkItem> {
       const request = await resolveRequest(harness, source, activitySource)
       return await moveWorkItemStatus(request.deps, {
+        actor: request.actor,
+        command: { ...command, projectId: await boundProjectId(request) },
+      })
+    },
+
+    async resolveWorkItem(command: WorkOf<ResolveWorkItemCommand>): Promise<WorkItem> {
+      const request = await resolveRequest(harness, source, activitySource)
+      return await resolveWorkItem(request.deps, {
         actor: request.actor,
         command: { ...command, projectId: await boundProjectId(request) },
       })

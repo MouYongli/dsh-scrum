@@ -2,12 +2,24 @@ import { describe, expect, it } from 'vitest'
 import {
   ERROR_CODE,
   WORK_ITEM_CATEGORY,
+  WORK_ITEM_RESOLUTION,
+  WORK_ITEM_STATUS,
   WORK_ITEM_TYPE,
   bugDetails,
+  toTimestamp,
   toWorkItemId,
+  type WorkItem,
 } from '@dsh-scrum/scrum-domain'
-import { setWorkItemParent, updateWorkItem } from '@dsh-scrum/scrum-application'
-import { actor, dependencies } from '../support/fakes.js'
+import {
+  createSprint,
+  moveWorkItemStatus,
+  planSprint,
+  resolveWorkItem,
+  setWorkItemParent,
+  updateWorkItem,
+  type StoredProject,
+} from '@dsh-scrum/scrum-application'
+import { actor, dependencies, type TestDependencies } from '../support/fakes.js'
 import { item, project } from '../support/project.js'
 
 async function caught(run: Promise<unknown>): Promise<{ code?: string }> {
@@ -139,5 +151,110 @@ describe('changing a type across levels', () => {
     expect(changed.level).toBe(2)
     // The details are rebuilt for the new type rather than carried across.
     expect(bugDetails(changed)).not.toBeNull()
+  })
+})
+
+describe('finishing work', () => {
+  async function plannedStory(deps: TestDependencies, stored: StoredProject) {
+    const story = await item(deps, stored, { title: 'story' })
+    const sprint = await createSprint(deps, {
+      actor: actor(),
+      command: {
+        projectId: stored.project.id,
+        name: '第一轮',
+        startDate: toTimestamp('2026-08-24T09:00:00.000Z'),
+        endDate: toTimestamp('2026-09-07T09:00:00.000Z'),
+      },
+    })
+    const [planned] = await planSprint(deps, {
+      actor: actor(),
+      command: {
+        projectId: stored.project.id,
+        sprintId: sprint.id,
+        items: [{ workItemId: story.id, expectedRevision: story.revision }],
+      },
+    })
+    return planned as WorkItem
+  }
+
+  it('names how the work ended, and restates it afterwards', async () => {
+    const deps = dependencies()
+    const stored = await project(deps)
+    const planned = await plannedStory(deps, stored)
+
+    const finished = await moveWorkItemStatus(deps, {
+      actor: actor(),
+      command: {
+        projectId: stored.project.id,
+        workItemId: planned.id,
+        expectedRevision: planned.revision,
+        status: WORK_ITEM_STATUS.done,
+        resolution: WORK_ITEM_RESOLUTION.wontFix,
+      },
+    })
+    const restated = await resolveWorkItem(deps, {
+      actor: actor(),
+      command: {
+        projectId: stored.project.id,
+        workItemId: finished.id,
+        expectedRevision: finished.revision,
+        resolution: WORK_ITEM_RESOLUTION.duplicate,
+      },
+    })
+
+    expect(finished.resolution).toBe(WORK_ITEM_RESOLUTION.wontFix)
+    expect(restated.resolution).toBe(WORK_ITEM_RESOLUTION.duplicate)
+    expect(restated.status).toBe(WORK_ITEM_STATUS.done)
+  })
+
+  it('moves a subtask on the board of the sprint its parent is in', async () => {
+    const deps = dependencies()
+    const stored = await project(deps)
+    const planned = await plannedStory(deps, stored)
+    const subtask = await item(deps, stored, {
+      title: 'subtask',
+      type: WORK_ITEM_TYPE.subtask,
+      parentId: planned.id,
+    })
+
+    const moved = await moveWorkItemStatus(deps, {
+      actor: actor(),
+      command: {
+        projectId: stored.project.id,
+        workItemId: subtask.id,
+        expectedRevision: subtask.revision,
+        status: WORK_ITEM_STATUS.inProgress,
+      },
+    })
+
+    // The subtask holds no sprint of its own; the board it moved on is its
+    // parent's, and nothing was copied onto the child to say so.
+    expect(moved.status).toBe(WORK_ITEM_STATUS.inProgress)
+    expect(moved.sprintId).toBeNull()
+  })
+
+  it('refuses a subtask whose parent is still in the backlog', async () => {
+    const deps = dependencies()
+    const stored = await project(deps)
+    const story = await item(deps, stored, { title: 'story' })
+    const subtask = await item(deps, stored, {
+      title: 'subtask',
+      type: WORK_ITEM_TYPE.subtask,
+      parentId: story.id,
+    })
+
+    const error = await caught(
+      moveWorkItemStatus(deps, {
+        actor: actor(),
+        command: {
+          projectId: stored.project.id,
+          workItemId: subtask.id,
+          expectedRevision: subtask.revision,
+          status: WORK_ITEM_STATUS.inProgress,
+        },
+      }),
+    )
+
+    expect(error.code).toBe(ERROR_CODE.validation)
   })
 })

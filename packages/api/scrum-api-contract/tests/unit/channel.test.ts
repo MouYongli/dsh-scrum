@@ -129,6 +129,31 @@ describe('the endpoint inputs', () => {
     expect(result.success).toBe(false)
   })
 
+  it('parses an outcome on the way to done, and on its own', () => {
+    expect(
+      SCRUM_INPUT[SCRUM_ENDPOINT.moveWorkItemStatus].safeParse({
+        workItemId: 'SCR-1',
+        expectedRevision: 1,
+        status: 'done',
+        resolution: 'wont_fix',
+      }).success,
+    ).toBe(true)
+    expect(
+      SCRUM_INPUT[SCRUM_ENDPOINT.resolveWorkItem].safeParse({
+        workItemId: 'SCR-1',
+        expectedRevision: 1,
+        resolution: 'duplicate',
+      }).success,
+    ).toBe(true)
+    expect(
+      SCRUM_INPUT[SCRUM_ENDPOINT.resolveWorkItem].safeParse({
+        workItemId: 'SCR-1',
+        expectedRevision: 1,
+        resolution: 'shipped',
+      }).success,
+    ).toBe(false)
+  })
+
   it('refuses a board column that is not a status', () => {
     const result = SCRUM_INPUT[SCRUM_ENDPOINT.moveWorkItemStatus].safeParse({
       workItemId: 'SCR-1',

@@ -24,6 +24,7 @@ import type {
   EditWorkItem,
   EntryView,
   MoveWorkItemStatus,
+  ResolveWorkItem,
   NewSprint,
   NewWorkItem,
   ParentWorkItem,
@@ -141,6 +142,8 @@ export function createTransportClient(call: RpcCall, scope: ScopeReader): ScrumC
       await send<WorkItem>(SCRUM_ENDPOINT.blockWorkItem, command),
     moveWorkItemStatus: async (command: MoveWorkItemStatus) =>
       await send<WorkItem>(SCRUM_ENDPOINT.moveWorkItemStatus, command),
+    resolveWorkItem: async (command: ResolveWorkItem) =>
+      await send<WorkItem>(SCRUM_ENDPOINT.resolveWorkItem, command),
     sprints: async () => await send<readonly Sprint[]>(SCRUM_ENDPOINT.sprints, {}),
     createSprint: async (input: NewSprint) =>
       await send<Sprint>(SCRUM_ENDPOINT.createSprint, input),
