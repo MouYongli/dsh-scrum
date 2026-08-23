@@ -3,7 +3,7 @@ import { createElement } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { PERMISSION, PROJECT_ROLES, SPRINT_STATUS, toRevision } from '@dsh-scrum/scrum-domain'
 import { ConnectedWorkbench, createTranslate } from '@dsh-scrum/scrum-ui'
-import type { EntryView, ScrumClient } from '@dsh-scrum/scrum-ui'
+import type { EntryView, ProjectSettingsView, ScrumClient } from '@dsh-scrum/scrum-ui'
 import { stubClient } from '../support/client.js'
 import { mount, type Mounted } from '../support/dom.js'
 import { item, sprint } from '../support/items.js'
@@ -30,6 +30,19 @@ const BOUND: EntryView = {
     description: '',
   },
   moved: false,
+}
+
+const SETTINGS: ProjectSettingsView = {
+  revision: toRevision(1),
+  statuses: [],
+  statusDisplayNames: {},
+  estimationMethod: 'story_points',
+  sprintLengthInDays: 14,
+  definitionOfReady: [],
+  definitionOfDone: [],
+  workInProgressLimit: null,
+  velocityBasis: 'delivered',
+  stalledAfterDays: 3,
 }
 
 /** Settles the effects each connected screen runs when it appears. */
@@ -110,23 +123,31 @@ describe('a workbench over a bound project', () => {
     expect(mounted.container.textContent).toContain(t('agent.body'))
   })
 
-  it('opens on the dashboard and loads the backlog when its tab is selected', async () => {
-    const backlog = vi.fn(() => Promise.resolve([item(1, { title: '结算对账' })]))
-    const mounted = workbench(stubClient({ entry: () => Promise.resolve(BOUND), backlog }))
+  it('opens on the dashboard and shows the backlog only once its tab is selected', async () => {
+    const mounted = workbench(
+      stubClient({
+        entry: () => Promise.resolve(BOUND),
+        backlog: () => Promise.resolve([item(1, { title: '结算对账' })]),
+        sprints: () => Promise.resolve([]),
+        settings: () => Promise.resolve(SETTINGS),
+        activity: () => Promise.resolve({ events: [], problems: [] }),
+      }),
+    )
 
     await settle()
 
-    expect(backlog).not.toHaveBeenCalled()
     expect(mounted.find('[data-scrum-surface]').dataset['scrumSurface']).toBe('dashboard')
     expect(mounted.container.querySelector('[data-scrum-home]')).not.toBeNull()
+    // The backlog's own screen is not mounted, so its rows are not on the page
+    // even though the dashboard reads the same items to build its signals.
+    expect(mounted.container.querySelector('[data-scrum-row="SCR-1"]')).toBeNull()
 
     mounted.click('[data-scrum-section="backlog"]')
     await settle()
-    expect(backlog).toHaveBeenCalled()
     expect(mounted.container.textContent).toContain('SCR-1 · 结算对账')
   })
 
-  it('describes a personal Community owner without offering role editing', async () => {
+  it('describes a personal Community owner on the settings page, without role editing', async () => {
     const mounted = workbench(
       stubClient({
         entry: () => Promise.resolve(BOUND),
@@ -139,6 +160,9 @@ describe('a workbench over a bound project', () => {
           }),
       }),
     )
+    await settle()
+
+    mounted.click('[data-scrum-section="settings"]')
     await settle()
 
     expect(mounted.container.querySelector('[data-scrum-personal-owner]')).not.toBeNull()

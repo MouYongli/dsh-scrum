@@ -38,7 +38,6 @@ export const SCRUM_MESSAGES = {
     'section.review': '回顾',
     'section.settings': '设置',
     'dashboard.title': '项目概览',
-    'dashboard.body': '这里会汇总当前 Sprint 的进度、需要关注的事项和最近的活动。',
     'dashboard.loading': '正在读取项目概览……',
     'dashboard.noSprint.title': '当前没有进行中的 Sprint',
     'dashboard.noSprint.body': '到 Sprint 页面开始一轮，这里会显示进度、需要关注的事项和燃尽。',
@@ -303,8 +302,6 @@ export const SCRUM_MESSAGES = {
     'section.review': 'Review',
     'section.settings': 'Settings',
     'dashboard.title': 'Project overview',
-    'dashboard.body':
-      'This will gather the current sprint\u2019s progress, what needs attention and recent activity.',
     'dashboard.loading': 'Reading the project overview…',
     'dashboard.noSprint.title': 'No sprint is running',
     'dashboard.noSprint.body':

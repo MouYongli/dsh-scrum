@@ -10,6 +10,8 @@ import {
 } from 'react'
 import { PERMISSION, toProjectKey } from '@dsh-scrum/scrum-domain'
 import { createBacklogController } from './backlog-controller.js'
+import { createDashboardController } from './dashboard-controller.js'
+import { DashboardScreen } from './dashboard-view.js'
 import { BacklogScreen } from './backlog-view.js'
 import { createSprintController } from './sprint-controller.js'
 import { SprintScreen } from './sprint-view.js'
@@ -816,7 +818,7 @@ function useAuthorization(client: ScrumClient): AuthorizationView | null {
 }
 
 /**
- * The dashboard: what this project is, and eventually how it is going.
+ * The dashboard, wired to a client.
  *
  * Read-only. Changing the project's own details is a settings act, and a
  * heading somebody edits in passing on the page they open every morning is
@@ -826,38 +828,20 @@ function ConnectedHome(props: {
   readonly client: ScrumClient
   readonly t: Translate
   readonly project: ProjectView
-  readonly readOnly: boolean
-  readonly onProjectUpdated: () => void
 }): ReactElement {
-  const authorization = useAuthorization(props.client)
-  return createElement(
-    'section',
-    { 'data-scrum-home': true },
-    createElement(
-      'div',
-      { 'data-scrum-project-heading': true },
-      createElement('h2', null, props.project.name),
-      createElement('p', { 'data-scrum-project': props.project.key }, props.project.key),
-    ),
-    props.project.description === ''
-      ? null
-      : createElement('p', { 'data-scrum-project-description': true }, props.project.description),
-    createElement('h3', null, props.t('dashboard.title')),
-    createElement('p', null, props.t('dashboard.body')),
-    authorization?.membership.mode === 'personal'
-      ? createElement(
-          'aside',
-          { 'data-scrum-personal-owner': true },
-          createElement('h3', null, props.t('membership.personal.title')),
-          createElement('p', null, props.t('membership.personal.body')),
-          createElement(
-            'p',
-            { 'data-scrum-owner-roles': true },
-            authorization.membership.roles.join(', '),
-          ),
-        )
-      : null,
-  )
+  const controller = useMemo(() => createDashboardController(props.client), [props.client])
+  const state = useSyncExternalStore(controller.subscribe, controller.state, controller.state)
+
+  useEffect(() => {
+    void controller.load()
+  }, [controller])
+
+  return createElement(DashboardScreen, {
+    state,
+    project: props.project,
+    t: props.t,
+    actions: { refresh: () => void controller.load() },
+  })
 }
 
 /** The settings page, which for now is the project's own details. */
@@ -957,6 +941,23 @@ function ConnectedSettings(props: {
       : props.project.description === ''
         ? null
         : createElement('p', { 'data-scrum-project-description': true }, props.project.description),
+    // Membership belongs on the page that configures the project rather than
+    // on the one somebody opens every morning. Community has no `rbac`
+    // capability, so this says who the owner is and why there is nothing to
+    // edit — a role editor that refused every save would be worse.
+    authorization?.membership.mode === 'personal'
+      ? createElement(
+          'aside',
+          { 'data-scrum-personal-owner': true },
+          createElement('h4', null, props.t('membership.personal.title')),
+          createElement('p', null, props.t('membership.personal.body')),
+          createElement(
+            'p',
+            { 'data-scrum-owner-roles': true },
+            authorization.membership.roles.join(', '),
+          ),
+        )
+      : null,
   )
 }
 
