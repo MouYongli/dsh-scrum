@@ -71,7 +71,7 @@
 6. 实现 Remote Gateway Port、远程 Adapter、Contract 兼容和故障处理。
 7. 增加迁移、导入导出、本地审计和恢复测试。
 
-版本范围和 Capability 规则见[版本设计](docs/product/editions.md)，产品首版范围见 [Scrum 产品设计](docs/product/scrum.md#6-首个版本范围)。
+版本范围和 Capability 规则见[版本设计](docs/product/editions.md)，产品首版范围见 [Scrum 产品设计](docs/product/scrum.md#7-首个版本范围)。
 
 ## 测试要求
 

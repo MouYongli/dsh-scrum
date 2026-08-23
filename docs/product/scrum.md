@@ -451,9 +451,100 @@ Todo → In Progress → Review → Done
 
 报表用于发现趋势和风险，不应将故事点、完成事项数或工时直接作为个人绩效指标。
 
-## 5. 如何使用系统管理项目
+## 5. 页面结构与视图
 
-### 5.1 初始化项目
+### 5.1 六个页面
+
+```text
+仪表盘 │ 工作项 │ Backlog │ Sprint │ 回顾 │ 设置
+         ├ Timeline                    ├ Reports
+         └ List                        └ 改进行动
+```
+
+分组依据是时间态：Backlog 面向未来，Sprint 看板面向现在，回顾面向过去；工作项页面不带 Scrum 语义，覆盖全周期；仪表盘是每天进入系统的第一眼。
+
+| 页面 | 时间态 | 对应场景 | 内容 |
+|---|---|---|---|
+| 仪表盘 | 现在 | 每日打开系统 | 项目与当前 Sprint 概览、需要关注的信号、燃尽趋势、最近活动与改进行动 |
+| 工作项 | 全周期 | 沟通汇报、数据检索 | Timeline 与 List 两个投影，与 Scrum 仪式解耦 |
+| Backlog | 未来 | Sprint Planning、Refinement | Rank 排序、创建与启动 Sprint、Definition of Ready 检查、点数徽章 |
+| Sprint | 现在 | Daily Scrum | 看板：状态流转、WIP 上限、泳道 |
+| 回顾 | 过去 | Sprint Review、Retrospective | 报表与改进行动跟踪 |
+| 设置 | 无 | 项目配置 | 成员与权限、版本与能力、工作流显示名、Definition of Ready 与 Definition of Done、估算方式与 Velocity 策略 |
+
+Backlog 和 Sprint 看板分成两个页面而不是一个页面的两个标签页，因为它们服务两个不同的仪式：Planning 时在意的是取哪些事项、够不够一轮，Daily Scrum 时在意的是手上这些事项卡在哪。把它们并在一起，两种场景都要先切一次标签页。
+
+Calendar 不在首版之列：它与 Timeline 的信息大量重合，而 Scrum 的工作项通常没有自己的截止日期，日程感主要来自 Sprint 的起止时间，Timeline 已经表达了。
+
+### 5.2 仪表盘
+
+首屏回答三个问题：这个项目在做什么，当前 Sprint 进行到哪，有什么需要马上处理。前两个由项目信息、Sprint 目标和进度条回答，第三个由「需要关注」的四类信号回答：
+
+| 信号 | 判据 | 数据来源 |
+|---|---|---|
+| 阻塞事项 | `blockedReason` 非空 | 工作项字段 |
+| 停滞事项 | 在同一状态停留超过阈值 | Activity 中的状态变更时刻 |
+| 未估算事项 | 已进入 Sprint 但 `estimate` 为 `null` | 工作项字段 |
+| Sprint 启动后新增 | 不在 Sprint 的承诺基线里 | Sprint 承诺基线，见 5.4 |
+
+这四类信号都指向一个明确的动作：阻塞要有人去解，停滞要问一句为什么，未估算要在 Planning 补上，范围变化要在 Review 时说明。仪表盘不列举无法处理的数字。
+
+### 5.3 工作项：Timeline 与 List
+
+Timeline、List、Backlog 和 Sprint 看板不是四份数据，而是同一次查询的四种画法。它们共用同一组过滤条件：
+
+```text
+type · category · status · assignee · epic · sprint · label · 全文
+```
+
+过滤条件属于视图状态，在页面之间保持：在 List 里筛出某个 Epic 下未估算的 Story，切到 Timeline 看到的仍是这一批。共用一套过滤模型也意味着筛选行为只需要定义一次，而不是每个视图各写一遍、各有各的口径。
+
+**Timeline** 用于沟通和汇报：谁在哪个时间段做什么，Epic 推进到哪里。甘特条的日期按顺序降级取得：
+
+```text
+1. 工作项自己的开始与结束日期
+2. 否则取它所属 Sprint 的起止日期
+3. 否则归入「未排期」分组，不画条
+```
+
+Scrum 的工作项通常不填自己的日期，所以第二条是主路径。没有这条降级链，Timeline 在真实项目里会是一片空白。
+
+Epic 行的条覆盖其子项的最早开始到最晚结束，进度按点数聚合，未估算的子项按 0 计入分母。底部一条泳道把 Sprint 的时间栅格画出来，作为所有条的参照：
+
+```text
+                        │ 8 月     │ 9 月    │ 10 月   │ 11 月   │
+────────────────────────┼──────────┼─────────┼─────────┼─────────┤
+▼ TTD-1 任务管理         ████████████░░░░              60%
+   ├ TTD-11 创建任务      ██████
+   ├ TTD-12 编辑与删除    ────██████
+   └ TTD-19 优先级排序          ████████
+▼ TTD-2 番茄钟执行             ██████████████████      35%
+   ├ TTD-23 启动番茄钟          ██████
+   └ TTD-58 托盘漂移 (Bug)            ██
+────────────────────────┴──────────┴─────────┴─────────┴─────────┤
+Sprints                  │Sprint 3 │Sprint 4 │Sprint 5 │Sprint 6 │
+```
+
+首版不画依赖箭头、不支持拖拽改期、不显示 Release 里程碑。依赖箭头需要一套避免连线交叉的布局算法和循环检测，而且在没有日期的条目之间无从画起；Release 里程碑需要一个当前还不存在的实体。`dependsOn` 照常存储，在 List 和工作项详情里展示。
+
+**List** 是属性投影：筛选、排序、批量修改和导出的入口，也是唯一能一次看到全部字段的地方。它是其余三个视图的数据底座，因此优先级最高。
+
+### 5.4 Sprint 承诺基线
+
+「Sprint 启动之后加进来了什么」和「燃尽图的基线在哪」是同一个问题的两种问法，都需要知道 Sprint 启动那一刻承诺了哪些事项。这件事只能在启动时记下来：事后无法反推，因为一条现在属于某个 Sprint 的事项，从当前数据看不出它是启动时就在里面，还是后来加进去的。
+
+因此 Sprint 在启动时保存一份承诺基线——当时的事项集合与点数合计，此后不再修改。基于它：
+
+- 范围变化是当前事项集合与基线的差集，进出双向都能说清；
+- 燃尽图的起点是基线点数，每日剩余由 Activity 事件流重放得出，不另存每日快照。
+
+### 5.5 回顾
+
+回顾页面装两类内容。一类是报表，口径见 4.7。另一类是改进行动：Retrospective 得出的结论如果只写在会议纪要里，下一轮就没人记得，所以它是有状态、跨 Sprint 跟踪的记录，而不是一段文本。仪表盘上的「最近改进行动」由它供数。
+
+## 6. 如何使用系统管理项目
+
+### 6.1 初始化项目
 
 ```text
 创建或打开 Harness Workspace
@@ -466,7 +557,7 @@ Todo → In Progress → Review → Done
 
 系统在用户首次明确创建项目、Sprint 或工作项时才写入 Scrum 数据。仅打开页面不应污染工作区。
 
-### 5.2 建立 Product Backlog
+### 6.2 建立 Product Backlog
 
 Product Owner 收集需求并创建工作项：
 
@@ -481,7 +572,7 @@ Product Owner 收集需求并创建工作项：
 
 Backlog 的排序表达业务优先级，不等同于固定交付承诺。
 
-### 5.3 进行 Sprint Planning
+### 6.3 进行 Sprint Planning
 
 ```text
 创建 planned Sprint
@@ -502,7 +593,7 @@ Backlog 的排序表达业务优先级，不等同于固定交付承诺。
 - 是否存在循环依赖；
 - 是否存在需要用户注意的阻塞或容量风险。
 
-### 5.4 执行 Sprint
+### 6.4 执行 Sprint
 
 Sprint 开始后，团队围绕 Sprint Goal 工作：
 
@@ -525,7 +616,7 @@ Daily Scrum 用于检查 Sprint Goal，而不是逐人汇报工时。系统应�
 - 剩余工作与剩余时间的偏差；
 - 可能影响 Sprint Goal 的依赖。
 
-### 5.5 结束 Sprint
+### 6.5 结束 Sprint
 
 ```text
 检查 Done 事项
@@ -545,7 +636,7 @@ Daily Scrum 用于检查 Sprint Goal，而不是逐人汇报工时。系统应�
 
 系统不得静默删除、自动完成或擅自迁移未完成事项。
 
-### 5.6 持续改进
+### 6.6 持续改进
 
 Retrospective 产生的改进行动应具有：
 
@@ -558,7 +649,7 @@ Retrospective 产生的改进行动应具有：
 
 下一 Sprint 应主动展示尚未完成的改进行动。
 
-## 6. 首个版本范围
+## 7. 首个版本范围
 
 首个可用版本优先完成以下闭环：
 
@@ -576,10 +667,11 @@ Retrospective 产生的改进行动应具有：
 首个版本包括：
 
 - 一个 Workspace 对应一个 Scrum Project；
-- Epic、Story、Task 和 Bug；
+- Epic、Story、Task、Bug 和 Subtask 三个层级；
+- 工作类别与自由标签；
 - Product Backlog；
-- planned、active、closed Sprint；
-- Backlog、Todo、In Progress、Review、Done 状态；
+- planned、active、closed Sprint，以及启动时的承诺基线；
+- Backlog、Todo、In Progress、Review、Done 状态与结束方式；
 - 工作项详情、估算、负责人、验收标准和依赖；
 - Agent 的结构化读写；
 - Revision 并发控制；
@@ -587,8 +679,22 @@ Retrospective 产生的改进行动应具有：
 - 本地持久化；
 - 基础 Sprint 进度。
 
+页面按第 5 节的六个页面组织。各视图的首版范围：
+
+| 视图 | 首版做什么 | 首版不做什么 |
+|---|---|---|
+| 仪表盘 | 项目与 Sprint 概览、四类关注信号、燃尽趋势 | 自定义卡片与布局 |
+| List | 共享过滤模型、排序、批量修改、导出 | 保存的自定义视图 |
+| Timeline | 时间栅格、Sprint 泳道、Epic 与子项两层条、按点数聚合的进度 | 依赖箭头、拖拽改期、Release 里程碑 |
+| Backlog | Rank 拖拽排序、创建与启动 Sprint、Definition of Ready 检查 | 多 Sprint 并行规划 |
+| Sprint 看板 | 状态流转、WIP 上限、按负责人或 Epic 的泳道 | 自定义列 |
+| 回顾 | 基础报表、改进行动跟踪 | Review 与 Retrospective 会议模式 |
+| 设置 | 成员与权限、版本与能力、工作流显示名、估算与 Velocity 策略 | 自定义工作流 |
+
 以下功能可以后续增加：
 
+- Calendar 视图；
+- Timeline 上的依赖箭头、拖拽改期与 Release 里程碑；
 - 多人实时协作；
 - 评论、提及和通知；
 - Daily Scrum 专用视图；
