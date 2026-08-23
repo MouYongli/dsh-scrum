@@ -581,10 +581,23 @@ export const SCRUM_STYLES = String.raw`
 [data-scrum-card] {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--scrum-space-2);
   min-width: 0;
-  padding: 12px 16px;
+  padding: var(--scrum-space-3) var(--scrum-space-4);
   border-top: 1px solid var(--scrum-border);
+  transition: background var(--scrum-motion), border-color var(--scrum-motion);
+}
+
+/*
+ * A row lies straight on a panel with no fill of its own, so it takes the
+ * host's translucent hover tint. A board card brings its own fill, and a
+ * translucent tint would replace that rather than sit over it, so what moves
+ * there is the border.
+ */
+[data-scrum-row]:hover { background: var(--scrum-hover); }
+
+[data-scrum-column] [data-scrum-card]:hover {
+  border-color: color-mix(in srgb, var(--scrum-accent) 45%, var(--scrum-border));
 }
 
 [data-scrum-row] > button:first-child,
@@ -621,8 +634,10 @@ export const SCRUM_STYLES = String.raw`
 }
 
 [data-scrum-empty],
-[data-scrum-loading] {
-  padding: 44px 24px;
+[data-scrum-loading],
+[data-scrum-list="empty"],
+[data-scrum-list="loading"] {
+  padding: var(--scrum-space-7) var(--scrum-space-5);
   border: 1px dashed var(--scrum-border);
   border-radius: var(--scrum-radius);
   text-align: center;
@@ -732,6 +747,7 @@ export const SCRUM_STYLES = String.raw`
 [data-scrum-failure],
 [data-scrum-error],
 [data-scrum-create-failure],
+[data-scrum-list="failed"],
 [data-scrum-moved] {
   padding: 13px 15px;
   border: 1px solid color-mix(in srgb, var(--scrum-danger) 35%, var(--scrum-border));
