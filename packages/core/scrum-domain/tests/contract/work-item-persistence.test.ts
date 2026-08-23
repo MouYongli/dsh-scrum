@@ -49,6 +49,7 @@ describe('work item persistence contract', () => {
         'acceptanceCriteria',
         'assigneeId',
         'blockedReason',
+        'category',
         'createdAt',
         'dependsOn',
         'description',

@@ -16,6 +16,7 @@ import {
   toTimestamp,
   toWorkItemId,
   toWorkItemStatus,
+  toWorkItemCategory,
   toWorkItemType,
   workItemLevel,
   type AcceptanceCriterion,
@@ -25,6 +26,7 @@ import {
   type ProjectConfig,
   type Sprint,
   type WorkItem,
+  type WorkItemCategory,
   type WorkItemStatus,
 } from '@dsh-scrum/scrum-domain'
 import {
@@ -134,6 +136,7 @@ export function decodeWorkItem(raw: unknown): WorkItem {
     id: toWorkItemId(stringField(record, 'id')),
     projectId: toProjectId(stringField(record, 'projectId')),
     ...decodeWorkItemType(record),
+    category: decodeCategory(record),
     title: stringField(record, 'title'),
     description: stringField(record, 'description'),
     status: toWorkItemStatus(stringField(record, 'status')),
@@ -163,6 +166,22 @@ export function decodeWorkItem(raw: unknown): WorkItem {
 function decodeWorkItemType(record: JsonRecord): Pick<WorkItem, 'type' | 'level'> {
   const type = toWorkItemType(stringField(record, 'type'))
   return { type, level: workItemLevel(type) }
+}
+
+/**
+ * The work category, absent from every record written before it existed.
+ *
+ * `nullableField` refuses a missing key on purpose, so that a file which lost
+ * one during a partial write cannot pass as a deliberate absence. That
+ * guarantee is about fields the writer always wrote. A field added afterwards
+ * is legitimately missing from every earlier record, and here its absence
+ * means exactly what a stored `null` means: nobody classified this item.
+ */
+function decodeCategory(record: JsonRecord): WorkItemCategory | null {
+  if (!('category' in record)) {
+    return null
+  }
+  return mapNullable(record, 'category', stringField, toWorkItemCategory)
 }
 
 function decodeAcceptanceCriteria(record: JsonRecord): readonly AcceptanceCriterion[] {

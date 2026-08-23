@@ -119,6 +119,8 @@ export {
   toPermission,
   toPermissionPolicy,
 } from './permissions.js'
+export type { WorkItemCategory } from './work-category.js'
+export { WORK_ITEM_CATEGORY, toWorkItemCategory } from './work-category.js'
 export type { Rank } from './rank.js'
 export { compareRanks, rankBetween, toRank } from './rank.js'
 export type {
@@ -136,6 +138,7 @@ export {
   WORK_ITEM_TYPE,
   createWorkItem,
   isWorkItemAccepted,
+  recommendedTypeFor,
   workItemLevel,
   setAcceptanceCriterionSatisfied,
   toPriority,

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   ERROR_CODE,
+  WORK_ITEM_CATEGORY,
   WORK_ITEM_LEVEL,
   WORK_ITEM_STATUS,
   WORK_ITEM_TYPE,
@@ -12,9 +13,11 @@ import {
   isWorkItemPlannable,
   moveWorkItemStatus,
   rankBetween,
+  recommendedTypeFor,
   removeWorkItemFromSprint,
   toIdentityId,
   toProjectId,
+  toWorkItemCategory,
   toSprintId,
   toTimestamp,
   toWorkItemId,
@@ -264,5 +267,42 @@ describe('type changes across levels', () => {
       () => assertWorkItemTypeChange(story, WORK_ITEM_TYPE.subtask, [story]),
       'a subtask with nothing above it',
     )
+  })
+})
+
+describe('the work category', () => {
+  it('suggests a type for every category without insisting on it', () => {
+    expect(recommendedTypeFor(WORK_ITEM_CATEGORY.feature)).toBe(WORK_ITEM_TYPE.story)
+    expect(recommendedTypeFor(WORK_ITEM_CATEGORY.nfrVisible)).toBe(WORK_ITEM_TYPE.story)
+    expect(recommendedTypeFor(WORK_ITEM_CATEGORY.techDebt)).toBe(WORK_ITEM_TYPE.task)
+    expect(recommendedTypeFor(WORK_ITEM_CATEGORY.spike)).toBe(WORK_ITEM_TYPE.task)
+    expect(recommendedTypeFor(WORK_ITEM_CATEGORY.defect)).toBe(WORK_ITEM_TYPE.bug)
+
+    // The suggestion is not a constraint: a team that files a spike as a story
+    // is describing its own convention, not breaking a rule.
+    const filed = updateWorkItemDetails(
+      named('SCR-1', WORK_ITEM_TYPE.story),
+      { category: WORK_ITEM_CATEGORY.spike },
+      T2,
+    )
+    expect(filed.category).toBe(WORK_ITEM_CATEGORY.spike)
+  })
+
+  it('leaves an item nobody classified as unclassified, and takes one back', () => {
+    const created = named('SCR-1', WORK_ITEM_TYPE.task)
+    const classified = updateWorkItemDetails(created, { category: WORK_ITEM_CATEGORY.techDebt }, T2)
+
+    expect(created.category).toBeNull()
+    expect(classified.category).toBe(WORK_ITEM_CATEGORY.techDebt)
+    expect(updateWorkItemDetails(classified, { category: null }, T2).category).toBeNull()
+    // An edit that says nothing about the category leaves it where it was.
+    expect(updateWorkItemDetails(classified, { title: '换个标题' }, T2).category).toBe(
+      WORK_ITEM_CATEGORY.techDebt,
+    )
+  })
+
+  it('accepts only the published category spellings', () => {
+    expect(toWorkItemCategory('nfr_visible')).toBe(WORK_ITEM_CATEGORY.nfrVisible)
+    expectRejects(() => toWorkItemCategory('chore'), 'a category this build does not know')
   })
 })

@@ -13,6 +13,7 @@ import {
 import {
   EDITION,
   ERROR_CODE,
+  WORK_ITEM_CATEGORY,
   WORK_ITEM_TYPE,
   assignWorkItemToSprint,
   createDefaultProjectConfig,
@@ -153,6 +154,24 @@ describe('round trips', () => {
       () => decodeWorkItem({ ...encoded, acceptanceCriteria: [{ text: 'x', satisfied: 'yes' }] }),
       'a criterion whose state is not a boolean',
     )
+  })
+
+  // Records written before a field existed are missing it entirely, which is
+  // not the same as a partial write dropping one. Every field added after the
+  // first release has to name what its absence meant back then.
+  it('reads a work item written before the category existed', () => {
+    const classified = updateWorkItemDetails(
+      workItem,
+      { category: WORK_ITEM_CATEGORY.techDebt },
+      T2,
+    )
+    const encoded = stored(encodeWorkItem(classified))
+    const older = { ...encoded }
+    delete older['category']
+
+    expect(encoded['category']).toBe(WORK_ITEM_CATEGORY.techDebt)
+    expect(decodeWorkItem(older).category).toBeNull()
+    expect(decodeWorkItem({ ...encoded, category: null }).category).toBeNull()
   })
 
   it('stores the project identifier as projectId and reads it back as id', () => {

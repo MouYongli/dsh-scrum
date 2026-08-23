@@ -3,6 +3,7 @@ import type { IdentityId, ProjectId, SprintId, WorkItemId } from './ids.js'
 import { createEntityMetadata, touchEntityMetadata, type EntityMetadata } from './metadata.js'
 import type { Rank } from './rank.js'
 import { requireOptionalText, requireText } from './text.js'
+import { WORK_ITEM_CATEGORY, type WorkItemCategory } from './work-category.js'
 import type { Timestamp } from './time.js'
 import { WORK_ITEM_STATUS, type WorkItemStatus } from './workflow.js'
 
@@ -82,6 +83,30 @@ export function workItemRequiresParent(level: WorkItemLevel): boolean {
 const EPIC_LEVEL = 1
 
 /**
+ * The type each category suggests when an item is created.
+ *
+ * A suggestion and not a rule. The judgement behind it — whether the work is
+ * visible to a user and separately deliverable — falls differently between
+ * teams on the boundary cases, and "the page loads within three seconds" is a
+ * story in one team and a task in the next. Enforcing it would turn a team
+ * convention into a form somebody cannot complete.
+ */
+const RECOMMENDED_TYPE = {
+  [WORK_ITEM_CATEGORY.feature]: WORK_ITEM_TYPE.story,
+  [WORK_ITEM_CATEGORY.nfrVisible]: WORK_ITEM_TYPE.story,
+  [WORK_ITEM_CATEGORY.nfrConstraint]: WORK_ITEM_TYPE.task,
+  [WORK_ITEM_CATEGORY.techDebt]: WORK_ITEM_TYPE.task,
+  [WORK_ITEM_CATEGORY.spike]: WORK_ITEM_TYPE.task,
+  [WORK_ITEM_CATEGORY.ops]: WORK_ITEM_TYPE.task,
+  [WORK_ITEM_CATEGORY.docs]: WORK_ITEM_TYPE.task,
+  [WORK_ITEM_CATEGORY.defect]: WORK_ITEM_TYPE.bug,
+} as const satisfies Record<WorkItemCategory, WorkItemType>
+
+export function recommendedTypeFor(category: WorkItemCategory): WorkItemType {
+  return RECOMMENDED_TYPE[category]
+}
+
+/**
  * The one level a sprint holds, estimates and ranks.
  *
  * An epic spans sprints, so a sprint of its own would give "which round
@@ -151,6 +176,13 @@ export interface WorkItem extends EntityMetadata {
   readonly projectId: ProjectId
   readonly type: WorkItemType
   readonly level: WorkItemLevel
+  /**
+   * What kind of work this is. `null` means nobody said, which is a state the
+   * field has to be able to hold: the statistic it serves — how much of a
+   * sprint went into one kind of work — is worth less if unclassified items
+   * are quietly counted as features.
+   */
+  readonly category: WorkItemCategory | null
   readonly title: string
   readonly description: string
   readonly status: WorkItemStatus
@@ -177,6 +209,7 @@ export interface CreateWorkItemInput {
    * this only settles whether one had to be named at all.
    */
   readonly parentId?: WorkItemId | null | undefined
+  readonly category?: WorkItemCategory | null | undefined
   readonly title: string
   readonly description?: string | undefined
   readonly priority?: Priority | undefined
@@ -205,6 +238,7 @@ export function createWorkItem(input: CreateWorkItemInput): WorkItem {
     projectId: input.projectId,
     type: input.type,
     level: workItemLevel(input.type),
+    category: input.category ?? null,
     title: requireText(input.title, 'Work item title', MAX_TITLE_LENGTH),
     description: requireOptionalText(
       input.description ?? '',
@@ -230,6 +264,7 @@ export interface WorkItemDetailChanges {
   readonly title?: string | undefined
   readonly description?: string | undefined
   readonly type?: WorkItemType | undefined
+  readonly category?: WorkItemCategory | null | undefined
   readonly priority?: Priority | undefined
   readonly assigneeId?: IdentityId | null | undefined
   readonly estimate?: number | null | undefined
@@ -262,6 +297,7 @@ export function updateWorkItemDetails(
         : requireOptionalText(changes.description, 'Work item description', MAX_DESCRIPTION_LENGTH),
     type,
     level: workItemLevel(type),
+    category: changes.category === undefined ? item.category : changes.category,
     priority: changes.priority ?? item.priority,
     assigneeId: changes.assigneeId === undefined ? item.assigneeId : changes.assigneeId,
     estimate: toLevelEstimate(

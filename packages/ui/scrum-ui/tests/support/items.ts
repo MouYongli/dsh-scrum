@@ -95,6 +95,7 @@ export function item(sequence: number, overrides: ItemOverrides = {}): WorkItem 
     projectId: PROJECT,
     type,
     level: workItemLevel(type),
+    category: null,
     title: overrides.title ?? `工作项 ${sequence}`,
     description: overrides.description ?? '',
     status: overrides.status ?? WORK_ITEM_STATUS.backlog,
