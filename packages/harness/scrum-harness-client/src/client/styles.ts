@@ -33,7 +33,21 @@ export const SCRUM_STYLES = String.raw`
   --scrum-danger: var(--dsw-alias-state-error-primary, #ec1313);
   --scrum-warning: var(--dsw-alias-state-warn-primary, #f59e0b);
   --scrum-success: var(--dsw-alias-state-success-primary, #22c55e);
-  --scrum-shadow: 0 16px 50px color-mix(in srgb, #111827 16%, transparent);
+  /*
+   * Height, told twice.
+   *
+   * A shadow is the light theme's half of it. The dark theme's half is the
+   * surface itself getting lighter, which is how the host's own layers work --
+   * bg-layer-2 sits above bg-layer-1 sits above the page -- and it is the half
+   * this sheet was missing, so a drawer over a near-black page was carrying a
+   * near-black shadow and reading as flat.
+   *
+   * Both steps are lit from directly above, and each offset clears half its own
+   * blur, so they read as one light source rather than as haze.
+   */
+  --scrum-panel-raised: var(--dsw-alias-bg-layer-2, color-mix(in srgb, CanvasText 4%, Canvas));
+  --scrum-shadow-sm: 0 2px 3px rgb(0 0 0 / 6%);
+  --scrum-shadow-lg: 0 6px 8px rgb(0 0 0 / 6%), 0 24px 40px rgb(0 0 0 / 14%);
 
   /*
    * Spacing on a 4px step, so that two gaps either read as the same
@@ -195,9 +209,9 @@ export const SCRUM_STYLES = String.raw`
   width: auto;
   max-width: min(240px, 25vw);
   min-height: 32px;
-  padding: 4px 28px 4px 8px;
+  padding: var(--scrum-space-1) 28px var(--scrum-space-1) var(--scrum-space-2);
   border: 0;
-  border-radius: 12px;
+  border-radius: var(--scrum-radius-md);
   background-color: transparent;
   font-size: 14px;
   font-weight: 500;
@@ -688,7 +702,7 @@ export const SCRUM_STYLES = String.raw`
   display: grid;
   grid-template-columns: 1fr auto;
   border: 1px solid var(--scrum-border);
-  border-radius: 11px;
+  border-radius: var(--scrum-radius-md);
   background: var(--scrum-panel);
 }
 
@@ -714,11 +728,11 @@ export const SCRUM_STYLES = String.raw`
   bottom: 16px;
   width: min(520px, calc(100vw - 32px));
   overflow: auto;
-  padding: 24px;
+  padding: var(--scrum-space-5);
   border: 1px solid var(--scrum-border);
-  border-radius: 18px;
-  background: var(--scrum-panel);
-  box-shadow: var(--scrum-shadow);
+  border-radius: var(--scrum-radius-lg);
+  background: var(--scrum-panel-raised);
+  box-shadow: var(--scrum-shadow-lg);
 }
 
 [data-scrum-detail] > h3 { max-width: calc(100% - 90px); margin-bottom: 20px; }
@@ -735,23 +749,28 @@ export const SCRUM_STYLES = String.raw`
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 4px 9px;
-  padding: 14px;
+  padding: var(--scrum-space-4);
   border: 1px solid var(--scrum-border);
-  border-radius: 11px;
+  border-radius: var(--scrum-radius-md);
   background: var(--scrum-panel-subtle);
 }
 
 [data-scrum-access-modes] p span { grid-column: 2; color: var(--scrum-muted); font-size: 12px; }
-[data-scrum-access-effective] { width: fit-content; padding: 8px 11px; border-radius: 9px; background: var(--scrum-panel-subtle); }
+[data-scrum-access-effective] {
+  width: fit-content;
+  padding: var(--scrum-space-2) var(--scrum-space-3);
+  border-radius: var(--scrum-radius-md);
+  background: var(--scrum-panel-subtle);
+}
 
 [data-scrum-failure],
 [data-scrum-error],
 [data-scrum-create-failure],
 [data-scrum-list="failed"],
 [data-scrum-moved] {
-  padding: 13px 15px;
+  padding: var(--scrum-space-3) var(--scrum-space-4);
   border: 1px solid color-mix(in srgb, var(--scrum-danger) 35%, var(--scrum-border));
-  border-radius: 11px;
+  border-radius: var(--scrum-radius-md);
   background: color-mix(in srgb, var(--scrum-danger) 8%, var(--scrum-panel));
 }
 
@@ -764,11 +783,11 @@ export const SCRUM_STYLES = String.raw`
   top: 50%;
   left: 50%;
   width: min(460px, calc(100vw - 32px));
-  padding: 24px;
+  padding: var(--scrum-space-5);
   border: 1px solid var(--scrum-border);
-  border-radius: 18px;
-  background: var(--scrum-panel);
-  box-shadow: var(--scrum-shadow);
+  border-radius: var(--scrum-radius-lg);
+  background: var(--scrum-panel-raised);
+  box-shadow: var(--scrum-shadow-lg);
   transform: translate(-50%, -50%);
 }
 
@@ -894,6 +913,7 @@ export const SCRUM_STYLES = String.raw`
   border-top: 0;
   border-bottom: 1px solid var(--scrum-border);
   background: var(--scrum-panel-subtle);
+  box-shadow: var(--scrum-shadow-sm);
   color: var(--scrum-muted);
   font-size: var(--scrum-text-xs);
   font-weight: 650;
