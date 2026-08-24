@@ -3,6 +3,7 @@ import type { Sprint, WorkItem, WorkItemId } from '@dsh-scrum/scrum-domain'
 import type { BacklogState } from './backlog-controller.js'
 import { BATCH_FIELD, isFinishingMove, type BatchChange, type BatchOutcome } from './batch.js'
 import { everyMoveTarget } from './board.js'
+import { LoadingSkeleton } from './skeleton.js'
 import {
   LIST_COLUMNS,
   LIST_COLUMN,
@@ -61,6 +62,7 @@ export function WorkItemList(props: ListProps): ReactElement {
       'p',
       { role: 'status', 'data-scrum-list': 'loading' },
       t('backlog.loading'),
+      createElement(LoadingSkeleton, { rows: 8 }),
     )
   }
   if (state.phase === 'failed') {

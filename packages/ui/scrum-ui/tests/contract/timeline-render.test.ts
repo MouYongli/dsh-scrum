@@ -44,6 +44,7 @@ describe('the states the timeline can be in', () => {
     const markup = render([], [FIRST], 'loading')
 
     expect(markup).toContain('data-scrum-timeline="loading"')
+    expect(markup).toContain('data-scrum-skeleton')
     expect(markup).not.toContain('data-scrum-timeline-axis')
   })
 

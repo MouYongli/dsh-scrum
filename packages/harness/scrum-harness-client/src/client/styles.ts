@@ -61,6 +61,7 @@ export const SCRUM_STYLES = String.raw`
   --scrum-primary-hover: var(--dsw-alias-button-primary-hover, color-mix(in srgb, CanvasText 85%, Canvas));
   --scrum-primary-label: var(--dsw-alias-label-primary-foreground, Canvas);
   --scrum-mask: var(--dsw-alias-bg-mask-1, rgb(0 0 0 / 24%));
+  --scrum-skeleton: var(--dsw-alias-bg-skeleton, color-mix(in srgb, CanvasText 8%, transparent));
   --scrum-shadow-sm: 0 2px 3px rgb(0 0 0 / 6%);
   --scrum-shadow-lg: 0 6px 8px rgb(0 0 0 / 6%), 0 24px 40px rgb(0 0 0 / 14%);
 
@@ -701,9 +702,7 @@ export const SCRUM_STYLES = String.raw`
 }
 
 [data-scrum-empty],
-[data-scrum-loading],
-[data-scrum-list="empty"],
-[data-scrum-list="loading"] {
+[data-scrum-list="empty"] {
   padding: var(--scrum-space-7) var(--scrum-space-5);
   border: 1px dashed var(--scrum-border);
   border-radius: var(--scrum-radius);
@@ -711,7 +710,40 @@ export const SCRUM_STYLES = String.raw`
   color: var(--scrum-muted);
 }
 
-[data-scrum-empty] h3 { margin-bottom: 7px; color: inherit; }
+[data-scrum-empty] h3 { margin-bottom: var(--scrum-space-2); color: inherit; }
+
+/*
+ * Loading is not an empty state and no longer borrows its card. An empty page
+ * is an outcome and is worth framing; a page still arriving is a page, and the
+ * skeleton under the message is already saying so.
+ */
+[data-scrum-loading],
+[data-scrum-list="loading"],
+[data-scrum-timeline="loading"] {
+  display: block;
+  color: var(--scrum-muted);
+}
+
+[data-scrum-skeleton] {
+  display: grid;
+  gap: var(--scrum-space-2);
+  margin-top: var(--scrum-space-3);
+}
+
+[data-scrum-skeleton-row] {
+  height: 14px;
+  border-radius: var(--scrum-radius-sm);
+  background: var(--scrum-skeleton);
+  animation: scrum-skeleton-pulse 1.6s var(--ds-ease-in-out, ease-in-out) infinite;
+}
+
+/* Bars of one length read as a chart. Ragged ends read as text not yet here. */
+[data-scrum-skeleton-row]:nth-child(3n) { width: 78%; }
+[data-scrum-skeleton-row]:nth-child(3n + 2) { width: 91%; }
+
+@keyframes scrum-skeleton-pulse {
+  50% { opacity: 0.5; }
+}
 
 [data-scrum-sprint-body] { display: grid; gap: 18px; }
 [data-scrum-sprint-picker] { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 3px; }
@@ -871,6 +903,13 @@ export const SCRUM_STYLES = String.raw`
 [data-scrum-failure] { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 [data-scrum-failure] p:nth-child(2) { flex: 1; min-width: 240px; }
 
+[data-scrum-overlay] [data-scrum-refresh],
+[data-scrum-overlay] [data-scrum-dismiss] {
+  min-height: 32px;
+  padding: var(--scrum-space-1) var(--scrum-space-3);
+  font-size: var(--scrum-text-sm);
+}
+
 [data-scrum-leave], [data-scrum-confirm] {
   position: fixed;
   z-index: var(--scrum-z-dialog);
@@ -933,7 +972,11 @@ export const SCRUM_STYLES = String.raw`
 }
 
 @media (prefers-reduced-motion: reduce) {
-  [data-scrum-overlay] * { scroll-behavior: auto !important; transition: none !important; }
+  [data-scrum-overlay] * {
+    scroll-behavior: auto !important;
+    transition: none !important;
+    animation: none !important;
+  }
 }
 
 [data-scrum-list-bar] {
