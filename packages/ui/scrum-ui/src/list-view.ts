@@ -17,9 +17,12 @@ import {
   PRIORITIES,
   categoryLabel,
   priorityLabel,
+  priorityTone,
   resolutionLabel,
   statusLabel,
+  statusTone,
   typeLabel,
+  type Tone,
 } from './vocabulary.js'
 
 export interface ListActions {
@@ -215,18 +218,26 @@ function rowFor(item: WorkItem, props: ListProps): ReactElement {
       t(categoryLabel(item.category)),
     ),
     // The outcome sits with the status, because on a finished item it is the
-    // half of "done" that says whether the work was actually delivered.
+    // half of "done" that says whether the work was actually delivered. The
+    // status is what carries the tone; the outcome trails it quietly, since
+    // two coloured words in one cell would be two things asking to be read
+    // first.
     createElement(
       'td',
       { 'data-scrum-column': LIST_COLUMN.status },
+      badge(t(statusLabel(item.status)), statusTone(item.status)),
       item.resolution === null
-        ? t(statusLabel(item.status))
-        : `${t(statusLabel(item.status))} · ${t(resolutionLabel(item.resolution))}`,
+        ? null
+        : createElement(
+            'span',
+            { 'data-scrum-outcome': true },
+            ` · ${t(resolutionLabel(item.resolution))}`,
+          ),
     ),
     createElement(
       'td',
       { 'data-scrum-column': LIST_COLUMN.priority },
-      t(priorityLabel(item.priority)),
+      badge(t(priorityLabel(item.priority)), priorityTone(item.priority)),
     ),
     createElement(
       'td',
@@ -299,6 +310,17 @@ const BATCH_FIELDS: readonly { readonly field: string; readonly label: MessageKe
  * most worth being deliberate about, and a submit gives the user the moment
  * before it in which to notice they marked the wrong twenty rows.
  */
+/**
+ * A value that is worth telling apart at a glance.
+ *
+ * The word stays: colour is the second channel and never the only one, so the
+ * cell reads the same to somebody who cannot separate the tones and to
+ * anybody reading it in a CSV.
+ */
+function badge(text: string, tone: Tone): ReactElement {
+  return createElement('span', { 'data-scrum-badge': tone }, text)
+}
+
 /** What is marked and still on screen; a filtered-out mark is not in play. */
 function markedIn(rows: readonly WorkItem[], props: ListProps): readonly WorkItem[] {
   return rows.filter((item) => props.marked.includes(item.id))

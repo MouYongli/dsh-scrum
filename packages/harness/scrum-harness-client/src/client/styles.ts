@@ -1237,6 +1237,43 @@ export const SCRUM_STYLES = String.raw`
 
 [data-scrum-list] td[data-scrum-column="updated"] { color: var(--scrum-muted); }
 
+/*
+ * Status and priority, told apart at a glance.
+ *
+ * Ten columns of the same grey is a table that has to be read a word at a
+ * time. A fill behind the two columns that answer "where is this" and "does
+ * it matter" gives the eye something to sort rows by before it reads them.
+ *
+ * The word stays inside the fill rather than being replaced by it: colour is
+ * the second channel, never the only one. The fills are the semantic tokens
+ * mixed into the page rather than the tokens themselves, so the text on them
+ * stays the body colour and keeps its contrast in both themes -- a saturated
+ * fill would need a foreground of its own, and would shout across a table
+ * where most rows are unremarkable.
+ */
+[data-scrum-badge] {
+  display: inline-block;
+  padding: 2px var(--scrum-space-2);
+  border-radius: var(--scrum-radius-sm);
+  font-size: var(--scrum-text-xs);
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+/* Most work is unremarkable, and unremarkable is the absence of a fill. */
+[data-scrum-badge="quiet"] { padding-inline: 0; color: var(--scrum-muted); }
+[data-scrum-badge="active"] { background: color-mix(in srgb, var(--scrum-accent) 16%, transparent); }
+[data-scrum-badge="attention"] {
+  background: color-mix(in srgb, var(--scrum-warning) 20%, transparent);
+}
+[data-scrum-badge="urgent"] { background: color-mix(in srgb, var(--scrum-danger) 18%, transparent); }
+[data-scrum-badge="complete"] {
+  background: color-mix(in srgb, var(--scrum-success) 18%, transparent);
+}
+
+/* The outcome answers a question the status has already raised, so it trails. */
+[data-scrum-outcome] { color: var(--scrum-muted); font-size: var(--scrum-text-xs); }
+
 [data-scrum-list] tbody tr:hover { background: var(--scrum-hover); }
 [data-scrum-list] tbody tr[aria-selected="true"] {
   background: color-mix(in srgb, var(--scrum-accent) 10%, transparent);

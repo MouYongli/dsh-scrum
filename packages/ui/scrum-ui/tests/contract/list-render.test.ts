@@ -1,7 +1,7 @@
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
-import { WORK_ITEM_RESOLUTION, WORK_ITEM_STATUS } from '@dsh-scrum/scrum-domain'
+import { PRIORITY, WORK_ITEM_RESOLUTION, WORK_ITEM_STATUS } from '@dsh-scrum/scrum-domain'
 import {
   DEFAULT_SORT,
   LIST_COLUMN,
@@ -77,7 +77,42 @@ describe('the work item list', () => {
       ]),
     })
 
-    expect(markup).toContain(`${t('status.done')} · ${t('resolution.wontFix')}`)
+    // The status carries the tone and the outcome trails it, so the two are
+    // separate elements rather than one string.
+    expect(markup).toContain(`<span data-scrum-badge="complete">${t('status.done')}</span>`)
+    expect(markup).toContain(` · ${t('resolution.wontFix')}`)
+  })
+
+  it('does not answer "done" with the word done twice', () => {
+    const markup = render({
+      state: state([
+        item(1, { status: WORK_ITEM_STATUS.done, resolution: WORK_ITEM_RESOLUTION.done }),
+      ]),
+    })
+
+    // The outcome is the half of "done" that says whether the work was
+    // delivered. Spelling both halves the same way spends a column saying
+    // nothing.
+    expect(t('resolution.done')).not.toBe(t('status.done'))
+    expect(markup).toContain(` · ${t('resolution.done')}`)
+  })
+
+  it('tones the status and the priority, without dropping either word', () => {
+    const markup = render({
+      state: state([item(1, { status: WORK_ITEM_STATUS.inProgress, priority: PRIORITY.critical })]),
+    })
+
+    expect(markup).toContain(`<span data-scrum-badge="active">${t('status.inProgress')}</span>`)
+    expect(markup).toContain(`<span data-scrum-badge="urgent">${t('priority.critical')}</span>`)
+  })
+
+  it('leaves the ordinary rows unmarked, so a mark still means something', () => {
+    const markup = render({
+      state: state([item(1, { status: WORK_ITEM_STATUS.todo, priority: PRIORITY.medium })]),
+    })
+
+    expect(markup).toContain(`<span data-scrum-badge="quiet">${t('status.todo')}</span>`)
+    expect(markup).toContain(`<span data-scrum-badge="quiet">${t('priority.medium')}</span>`)
   })
 
   it('names what is missing rather than leaving a cell blank', () => {
