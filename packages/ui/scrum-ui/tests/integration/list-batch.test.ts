@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { createElement } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { PRIORITY, WORK_ITEM_STATUS } from '@dsh-scrum/scrum-domain'
+import { PRIORITY, WORK_ITEM_STATUS, WORK_ITEM_TYPE } from '@dsh-scrum/scrum-domain'
 import { DEFAULT_SORT, WorkItemList, backlogPage, createTranslate } from '@dsh-scrum/scrum-ui'
 import type { ListProps } from '@dsh-scrum/scrum-ui'
 import { mount, type Mounted } from '../support/dom.js'
@@ -24,7 +24,6 @@ function list(props: Partial<ListProps> = {}): { mounted: Mounted; actions: List
     refresh: vi.fn(),
     mark: vi.fn(),
     apply: vi.fn(),
-    exportRows: vi.fn(),
   }
   const mounted = mount(
     createElement(WorkItemList, {
@@ -102,14 +101,27 @@ describe('applying a change', () => {
   })
 })
 
-describe('exporting', () => {
-  it('hands over the rows the table is showing, not everything loaded', () => {
-    const { mounted, actions } = list()
+describe('the hierarchy', () => {
+  it('shows one level by default and reveals grandchildren on demand', () => {
+    const epic = item(1, { type: WORK_ITEM_TYPE.epic })
+    const story = item(2, { type: WORK_ITEM_TYPE.story, parentId: epic.id })
+    const subtask = item(3, { type: WORK_ITEM_TYPE.subtask, parentId: story.id })
+    const hierarchy = [epic, story, subtask]
+    const { mounted } = list({
+      state: {
+        phase: 'ready',
+        query: {},
+        grouping: 'none',
+        page: backlogPage(hierarchy, 'none', false),
+        ordered: hierarchy,
+        selected: null,
+        failure: null,
+        busy: false,
+      },
+    })
 
-    mounted.click('[data-scrum-export]')
-
-    expect(actions.exportRows).toHaveBeenCalledWith(
-      expect.arrayContaining([expect.objectContaining({ id: itemId(1) })]),
-    )
+    expect(mounted.container.querySelector(`[data-scrum-list-row="${subtask.id}"]`)).toBeNull()
+    mounted.click(`[data-scrum-tree-toggle="${story.id}"]`)
+    expect(mounted.find(`[data-scrum-list-row="${subtask.id}"]`).dataset.scrumDepth).toBe('2')
   })
 })

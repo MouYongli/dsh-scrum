@@ -51,6 +51,7 @@ import {
   ANY_SPRINT,
   EMPTY_QUERY,
   UNPLANNED,
+  isNarrowed,
   toBacklogQuery,
   type WorkItemQuery,
 } from './work-item-filter.js'
@@ -713,12 +714,7 @@ function ConnectedItems(props: {
     createElement(
       'header',
       { 'data-scrum-items-header': true },
-      createElement(
-        'div',
-        null,
-        createElement('h2', null, props.t('items.title')),
-        createElement('p', null, props.t('items.body')),
-      ),
+      createElement('div', null, createElement('h2', null, props.t('items.title'))),
       props.readOnly
         ? null
         : createElement(
@@ -742,10 +738,16 @@ function ConnectedItems(props: {
             role: 'group',
             'aria-label': props.t('items.summary'),
           },
-          summary('results', props.t('items.summary.results'), state.ordered.length, false, () => {
-            setUnestimatedOnly(false)
-            props.onQuery(EMPTY_QUERY)
-          }),
+          summary(
+            'results',
+            props.t('items.summary.results'),
+            state.ordered.length,
+            !isNarrowed(query) && !unestimatedOnly,
+            () => {
+              setUnestimatedOnly(false)
+              props.onQuery(EMPTY_QUERY)
+            },
+          ),
           summary(
             'blocked',
             props.t('items.summary.blocked'),
@@ -827,6 +829,19 @@ function ConnectedItems(props: {
     createElement(
       'div',
       { 'data-scrum-items-toolbar': true },
+      props.readOnly
+        ? null
+        : createElement(
+            'button',
+            {
+              type: 'button',
+              'data-scrum-export': true,
+              onClick: () => {
+                downloadCsv(`${props.t('items.title')}.csv`, toCsv(visibleRows, props.t))
+              },
+            },
+            props.t('list.export'),
+          ),
       createElement(
         'div',
         {
@@ -872,9 +887,6 @@ function ConnectedItems(props: {
             refresh: () => void controller.load(),
             mark: setMarked,
             apply: (change) => void apply(change),
-            exportRows: (rows) => {
-              downloadCsv(`${props.t('items.title')}.csv`, toCsv(rows, props.t))
-            },
           },
         }),
     state.selected === null
