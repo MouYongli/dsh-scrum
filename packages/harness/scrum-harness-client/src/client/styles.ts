@@ -305,22 +305,50 @@ export const SCRUM_STYLES = String.raw`
 }
 
 [data-scrum-surface] { margin-top: 0; padding-top: 4px; }
-[data-scrum-surface] > nav {
+/*
+ * The row of pages, and the one control in it that is not a page.
+ *
+ * The rule under the row belongs to the row rather than to the nav, so it
+ * still runs the full width now that the nav no longer spans it.
+ */
+[data-scrum-sections] {
+  display: flex;
+  align-items: center;
+  gap: var(--scrum-space-5);
+  width: 100%;
+  min-height: 28px;
+  padding: 0 28px;
+  border-bottom: 1px solid var(--dsw-alias-border-l2, var(--scrum-border));
+}
+
+[data-scrum-sections] > nav {
   display: flex;
   align-items: flex-start;
   gap: 36px;
-  width: 100%;
   height: 28px;
   min-height: 28px;
   margin-bottom: 0;
-  padding: 0 28px;
   border: 0;
-  border-bottom: 1px solid var(--dsw-alias-border-l2, var(--scrum-border));
   border-radius: 0;
   background: transparent;
 }
 
-[data-scrum-surface] > nav button {
+/*
+ * An action, drawn as one. It keeps the baseline's border and fill instead of
+ * the tab chrome, so it is not mistaken for a place to go, and takes the row's
+ * height rather than the 36px a button would -- the row is the shell's, and a
+ * control that outgrew it would push the pages off their own line.
+ */
+[data-scrum-agent] {
+  margin-inline-start: auto;
+  min-height: 22px;
+  padding: 0 var(--scrum-space-2);
+  border-radius: var(--scrum-radius-sm);
+  font-size: var(--scrum-text-xs);
+  white-space: nowrap;
+}
+
+[data-scrum-sections] > nav button {
   position: relative;
   min-width: 0;
   min-height: 0;
@@ -334,11 +362,11 @@ export const SCRUM_STYLES = String.raw`
   line-height: 16px;
 }
 
-[data-scrum-surface] > nav button:hover:not(:disabled) {
+[data-scrum-sections] > nav button:hover:not(:disabled) {
   border-color: transparent;
   background: transparent;
 }
-[data-scrum-surface] > nav button[aria-pressed="true"] {
+[data-scrum-sections] > nav button[aria-pressed="true"] {
   border-color: transparent;
   background: transparent;
   box-shadow: none;
@@ -346,7 +374,7 @@ export const SCRUM_STYLES = String.raw`
   font-weight: 500;
 }
 
-[data-scrum-surface] > nav button[aria-pressed="true"]::after {
+[data-scrum-sections] > nav button[aria-pressed="true"]::after {
   position: absolute;
   right: 0;
   bottom: -1px;
@@ -1071,8 +1099,13 @@ export const SCRUM_STYLES = String.raw`
   [data-scrum-item-form],
   [data-scrum-sprint-form],
   [data-scrum-access-modes] { grid-template-columns: 1fr; }
-  [data-scrum-surface] > nav { gap: 36px; padding-inline: 28px; overflow-x: auto; }
-  [data-scrum-surface] > nav button { flex: 0 0 auto; }
+  /*
+   * The pages scroll within their own row rather than pushing the action off
+   * the end of it. A flex child has to be allowed to shrink before it can
+   * scroll, which is what min-width answers.
+   */
+  [data-scrum-sections] > nav { min-width: 0; overflow-x: auto; }
+  [data-scrum-sections] > nav button { flex: 0 0 auto; }
   [data-scrum-row] { align-items: flex-start; flex-wrap: wrap; }
   [data-scrum-row] > button:first-child { flex-basis: 100%; }
   [data-scrum-detail] { inset: 0; width: 100%; border-radius: 0; }
@@ -1222,11 +1255,21 @@ export const SCRUM_STYLES = String.raw`
   font-weight: 650;
 }
 
-/* The one column that carries prose, and so the one that may wrap. */
-[data-scrum-list] td[data-scrum-column="title"] {
+/*
+ * The one column that carries prose, and so the one that may wrap.
+ *
+ * It also takes the width nothing else wants: an auto table hands a column
+ * asking for 100% whatever is left after the rest have been laid out, so the
+ * nine columns of short enumerations stop sharing out room that the titles
+ * are the only thing needing.
+ */
+[data-scrum-list] td[data-scrum-column="title"],
+[data-scrum-list] th[data-scrum-column="title"] {
+  width: 100%;
   min-width: 220px;
-  white-space: normal;
 }
+
+[data-scrum-list] td[data-scrum-column="title"] { white-space: normal; }
 
 /* Digits that line up column-wise, so lengths can be compared by eye. */
 [data-scrum-list] td[data-scrum-column="id"],

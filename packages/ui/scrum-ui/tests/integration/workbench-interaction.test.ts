@@ -68,12 +68,22 @@ describe('a workbench over a bound project', () => {
     const mounted = workbench(stubClient({ entry: () => Promise.resolve(BOUND) }))
     await settle()
 
-    // The agent is beside them rather than among them: it opens a
-    // conversation, not another view of the project.
     expect(
-      mounted.all('[data-scrum-surface] > nav [data-scrum-section]').map((tab) => tab.textContent),
+      mounted.all('[data-scrum-sections] > nav [data-scrum-section]').map((tab) => tab.textContent),
     ).toEqual(['仪表盘', '工作项', '产品 Backlog', 'Sprint 看板', '回顾', '设置'])
-    expect(mounted.find('[data-scrum-agent]').textContent).toBe('打开 Scrum Agent')
+  })
+
+  it('keeps the agent beside the pages rather than among them', async () => {
+    const mounted = workbench(stubClient({ entry: () => Promise.resolve(BOUND) }))
+    await settle()
+
+    // It opens a conversation, not another view of the project. Inside the
+    // navigation landmark it was a seventh place to go that never went
+    // anywhere.
+    const agent = mounted.find('[data-scrum-agent]')
+    expect(agent.textContent).toBe('打开 Scrum Agent')
+    expect(agent.closest('nav')).toBeNull()
+    expect(agent.closest('[data-scrum-sections]')).not.toBeNull()
   })
 
   it('keeps a filter set on one page when another is opened', async () => {

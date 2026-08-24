@@ -847,22 +847,35 @@ function ProjectSurface(props: {
   return createElement(
     'div',
     { 'data-scrum-surface': section },
+    /*
+     * The pages, and one thing that is not a page.
+     *
+     * Opening the agent was a seventh button in the nav, drawn like the six
+     * beside it, so the row read as seven places to go -- and a user who
+     * pressed it found the page had not changed and something had opened
+     * instead. It shares the row, because that is where it is wanted, but it
+     * sits outside the navigation landmark and does not take the tab chrome.
+     */
     createElement(
-      'nav',
-      { 'aria-label': props.t('workbench.title') },
-      SECTIONS.map((entry) =>
-        createElement(
-          'button',
-          {
-            key: entry.id,
-            type: 'button',
-            'aria-pressed': section === entry.id,
-            'data-scrum-section': entry.id,
-            onClick: () => {
-              setSection(entry.id)
+      'div',
+      { 'data-scrum-sections': true },
+      createElement(
+        'nav',
+        { 'aria-label': props.t('workbench.title') },
+        SECTIONS.map((entry) =>
+          createElement(
+            'button',
+            {
+              key: entry.id,
+              type: 'button',
+              'aria-pressed': section === entry.id,
+              'data-scrum-section': entry.id,
+              onClick: () => {
+                setSection(entry.id)
+              },
             },
-          },
-          props.t(entry.label),
+            props.t(entry.label),
+          ),
         ),
       ),
       createElement(
