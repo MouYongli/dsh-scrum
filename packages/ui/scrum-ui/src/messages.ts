@@ -227,7 +227,7 @@ export const SCRUM_MESSAGES = {
     'category.docs': '文档',
     'category.defect': '缺陷',
     'category.none': '未分类',
-    'resolution.done': '已完成',
+    'resolution.done': '已交付',
     'resolution.wontFix': '不修了',
     'resolution.duplicate': '重复',
     'resolution.cannotReproduce': '无法复现',

@@ -161,6 +161,52 @@ export function statusLabel(status: WorkItemStatus): MessageKey {
   return STATUS_LABEL[status]
 }
 
+/**
+ * What a value is worth being noticed for, rather than what it is.
+ *
+ * The stylesheet gets a tone and not a status, so adding a status is a change
+ * here and not a change to a sheet in another package -- and so that priority
+ * and status can agree on what "needs attention" looks like without either of
+ * them naming the other's values.
+ */
+export const TONE = {
+  quiet: 'quiet',
+  active: 'active',
+  attention: 'attention',
+  urgent: 'urgent',
+  complete: 'complete',
+} as const
+
+export type Tone = (typeof TONE)[keyof typeof TONE]
+
+const STATUS_TONE: Readonly<Record<WorkItemStatus, Tone>> = {
+  [WORK_ITEM_STATUS.backlog]: TONE.quiet,
+  [WORK_ITEM_STATUS.todo]: TONE.quiet,
+  [WORK_ITEM_STATUS.inProgress]: TONE.active,
+  [WORK_ITEM_STATUS.review]: TONE.attention,
+  [WORK_ITEM_STATUS.done]: TONE.complete,
+}
+
+/*
+ * Only the top two carry a tone. A list where every row is coloured is a list
+ * where the colour has stopped saying anything, and "medium" is what most
+ * work is.
+ */
+const PRIORITY_TONE: Readonly<Record<Priority, Tone>> = {
+  [PRIORITY.critical]: TONE.urgent,
+  [PRIORITY.high]: TONE.attention,
+  [PRIORITY.medium]: TONE.quiet,
+  [PRIORITY.low]: TONE.quiet,
+}
+
+export function statusTone(status: WorkItemStatus): Tone {
+  return STATUS_TONE[status]
+}
+
+export function priorityTone(priority: Priority): Tone {
+  return PRIORITY_TONE[priority]
+}
+
 export function sprintStatusLabel(status: SprintStatus): MessageKey {
   return SPRINT_STATUS_LABEL[status]
 }

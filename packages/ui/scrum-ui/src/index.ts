@@ -117,18 +117,22 @@ export {
   BOARD_COLUMNS,
   BUG_SEVERITIES,
   PRIORITIES,
+  TONE,
   WORK_ITEM_CATEGORIES,
   WORK_ITEM_RESOLUTIONS,
   WORK_ITEM_TYPES,
   categoryLabel,
   priorityLabel,
+  priorityTone,
   recommendedTypeFor,
   resolutionLabel,
   severityLabel,
   sprintStatusLabel,
   statusLabel,
+  statusTone,
   typeLabel,
 } from './vocabulary.js'
+export type { Tone } from './vocabulary.js'
 export type { ListColumn, ListSort, SortDirection } from './list.js'
 export { DEFAULT_SORT, LIST_COLUMN, LIST_COLUMNS, nextSort, sortWorkItems } from './list.js'
 export type { ListActions, ListProps } from './list-view.js'
