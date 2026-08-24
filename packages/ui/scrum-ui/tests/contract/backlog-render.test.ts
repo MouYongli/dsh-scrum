@@ -198,7 +198,7 @@ describe('the toolbar', () => {
     const markup = render()
 
     expect(markup).toContain(`<label for="scrum-backlog-text">${t('filter.text')}</label>`)
-    expect(markup).toContain('data-scrum-filter="type"')
+    expect(markup).toContain('data-scrum-multi-trigger="type"')
     expect(markup).toContain(t('filter.blocked'))
     // Grouping is not narrowing — it is a way of drawing this list — so it
     // stays on the backlog's own toolbar.

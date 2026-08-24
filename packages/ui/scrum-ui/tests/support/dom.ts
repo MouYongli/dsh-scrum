@@ -18,6 +18,8 @@ export interface Mounted {
   readonly type: (selector: string, value: string) => void
   readonly choose: (selector: string, value: string) => void
   readonly toggle: (selector: string) => void
+  readonly press: (selector: string, key: string) => void
+  readonly leave: (selector: string, to: HTMLElement | null) => void
   readonly submit: (selector: string) => void
   readonly find: (selector: string) => HTMLElement
   readonly all: (selector: string) => readonly HTMLElement[]
@@ -95,6 +97,26 @@ export function mount(element: ReactElement): Mounted {
         required(container, selector).dispatchEvent(
           new MouseEvent('click', { bubbles: true, cancelable: true }),
         )
+      })
+    },
+    press: (selector, key) => {
+      flush(() => {
+        required(container, selector).dispatchEvent(
+          new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }),
+        )
+      })
+    },
+    /**
+     * Focus moving somewhere else, which is what React reports as a blur.
+     * `relatedTarget` is the whole of the signal: a component can only tell
+     * "focus went to one of my own children" from "focus left me" by reading
+     * where it went.
+     */
+    leave: (selector, to) => {
+      flush(() => {
+        const node = required(container, selector)
+        to?.focus()
+        node.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: to }))
       })
     },
     submit: (selector) => {
