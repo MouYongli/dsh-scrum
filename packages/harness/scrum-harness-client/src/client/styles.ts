@@ -33,7 +33,21 @@ export const SCRUM_STYLES = String.raw`
   --scrum-danger: var(--dsw-alias-state-error-primary, #ec1313);
   --scrum-warning: var(--dsw-alias-state-warn-primary, #f59e0b);
   --scrum-success: var(--dsw-alias-state-success-primary, #22c55e);
-  --scrum-shadow: 0 16px 50px color-mix(in srgb, #111827 16%, transparent);
+  /*
+   * Height, told twice.
+   *
+   * A shadow is the light theme's half of it. The dark theme's half is the
+   * surface itself getting lighter, which is how the host's own layers work --
+   * bg-layer-2 sits above bg-layer-1 sits above the page -- and it is the half
+   * this sheet was missing, so a drawer over a near-black page was carrying a
+   * near-black shadow and reading as flat.
+   *
+   * Both steps are lit from directly above, and each offset clears half its own
+   * blur, so they read as one light source rather than as haze.
+   */
+  --scrum-panel-raised: var(--dsw-alias-bg-layer-2, color-mix(in srgb, CanvasText 4%, Canvas));
+  --scrum-shadow-sm: 0 2px 3px rgb(0 0 0 / 6%);
+  --scrum-shadow-lg: 0 6px 8px rgb(0 0 0 / 6%), 0 24px 40px rgb(0 0 0 / 14%);
 
   /*
    * Spacing on a 4px step, so that two gaps either read as the same
@@ -195,9 +209,9 @@ export const SCRUM_STYLES = String.raw`
   width: auto;
   max-width: min(240px, 25vw);
   min-height: 32px;
-  padding: 4px 28px 4px 8px;
+  padding: var(--scrum-space-1) 28px var(--scrum-space-1) var(--scrum-space-2);
   border: 0;
-  border-radius: 12px;
+  border-radius: var(--scrum-radius-md);
   background-color: transparent;
   font-size: 14px;
   font-weight: 500;
@@ -357,38 +371,41 @@ export const SCRUM_STYLES = String.raw`
 
 [data-scrum-dashboard] {
   display: grid;
-  gap: 18px;
-  margin-top: 18px;
+  gap: var(--scrum-space-5);
+  margin-top: var(--scrum-space-5);
 }
 
 [data-scrum-dashboard] > section {
-  padding: 18px;
+  padding: var(--scrum-space-4);
   border: 1px solid var(--scrum-border);
   border-radius: var(--scrum-radius);
   background: var(--scrum-panel);
 }
 
-[data-scrum-dashboard] h3 { font-size: 15px; margin-bottom: 10px; }
-[data-scrum-dashboard] h4 { font-size: 14px; }
+[data-scrum-dashboard] h3 {
+  font-size: var(--scrum-text-lg);
+  margin-bottom: var(--scrum-space-2);
+}
+[data-scrum-dashboard] h4 { font-size: var(--scrum-text-md); }
 
 [data-scrum-sprint-totals],
 [data-scrum-burndown] dl {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 22px;
-  margin-top: 8px;
+  gap: var(--scrum-space-1) var(--scrum-space-5);
+  margin-top: var(--scrum-space-2);
 }
 [data-scrum-sprint-totals] dt,
 [data-scrum-burndown] dt { color: var(--scrum-muted); }
 [data-scrum-sprint-totals] dd,
-[data-scrum-burndown] dd { margin: 0 0 0 6px; font-variant-numeric: tabular-nums; }
+[data-scrum-burndown] dd { margin: 0 0 0 var(--scrum-space-1); font-variant-numeric: tabular-nums; }
 
 /* The bar is the burndown: a filled length for what is left, and a marker
    where an even spread would have it by now. */
 [data-scrum-burndown-bar] {
   position: relative;
   height: 10px;
-  margin: 14px 0 10px;
+  margin: var(--scrum-space-3) 0 var(--scrum-space-2);
   border-radius: 999px;
   background: var(--scrum-panel-subtle);
   overflow: hidden;
@@ -405,27 +422,31 @@ export const SCRUM_STYLES = String.raw`
   width: 2px;
   background: var(--scrum-warning);
 }
-[data-scrum-burndown-note] { color: var(--scrum-muted); font-size: 12px; }
+[data-scrum-burndown-note] { color: var(--scrum-muted); font-size: var(--scrum-text-xs); }
 [data-scrum-scope-change] { color: var(--scrum-warning); }
 
 [data-scrum-signal] {
-  padding: 12px 0;
+  padding: var(--scrum-space-3) 0;
   border-top: 1px solid var(--scrum-border);
 }
 [data-scrum-signal]:first-child { border-top: 0; padding-top: 0; }
-[data-scrum-signal] > p { color: var(--scrum-muted); font-size: 12px; margin-bottom: 6px; }
+[data-scrum-signal] > p {
+  color: var(--scrum-muted);
+  font-size: var(--scrum-text-xs);
+  margin-bottom: var(--scrum-space-1);
+}
 [data-scrum-signal] li,
 [data-scrum-activity] li {
   display: flex;
-  gap: 12px;
+  gap: var(--scrum-space-3);
   align-items: baseline;
-  padding: 5px 0;
+  padding: var(--scrum-space-1) 0;
 }
 [data-scrum-signal] [data-scrum-meta],
 [data-scrum-activity-at],
 [data-scrum-activity-action] {
   color: var(--scrum-muted);
-  font-size: 12px;
+  font-size: var(--scrum-text-xs);
 }
 [data-scrum-activity-at] { font-variant-numeric: tabular-nums; }
 [data-scrum-activity-problems] { color: var(--scrum-warning); }
@@ -657,53 +678,94 @@ export const SCRUM_STYLES = String.raw`
 
 [data-scrum-sprint-summary] {
   display: grid;
-  gap: 8px;
-  padding: 20px;
+  gap: var(--scrum-space-2);
+  padding: var(--scrum-space-5);
   border-radius: var(--scrum-radius);
   background: linear-gradient(135deg, color-mix(in srgb, var(--scrum-accent) 14%, var(--scrum-panel)), var(--scrum-panel));
   border: 1px solid color-mix(in srgb, var(--scrum-accent) 24%, var(--scrum-border));
 }
 
-[data-scrum-sprint-dates], [data-scrum-sprint-progress] { color: var(--scrum-muted); font-size: 13px; }
+[data-scrum-sprint-dates],
+[data-scrum-sprint-progress] {
+  color: var(--scrum-muted);
+  font-size: var(--scrum-text-sm);
+}
 [data-scrum-columns] {
   display: grid;
-  grid-template-columns: repeat(4, minmax(220px, 1fr));
-  gap: 12px;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(220px, 1fr);
+  gap: var(--scrum-space-3);
   overflow-x: auto;
-  padding-bottom: 6px;
+  padding-bottom: var(--scrum-space-2);
 }
 
 [data-scrum-column] {
   min-width: 220px;
-  padding: 12px;
+  padding: var(--scrum-space-3);
   border: 1px solid var(--scrum-border);
   border-radius: var(--scrum-radius);
   background: var(--scrum-panel-subtle);
 }
 
-[data-scrum-column] > h4 { display: inline; font-size: 13px; }
-[data-scrum-column] > [data-scrum-totals] { display: inline; margin-left: 8px; }
-[data-scrum-column] > ul { display: grid; gap: 9px; margin-top: 12px; }
+[data-scrum-column] > h4 { display: inline; font-size: var(--scrum-text-sm); }
+[data-scrum-column] > [data-scrum-totals] { display: inline; margin-left: var(--scrum-space-2); }
+[data-scrum-column] > ul { display: grid; gap: var(--scrum-space-2); margin-top: var(--scrum-space-3); }
 [data-scrum-column] [data-scrum-card] {
   display: grid;
   grid-template-columns: 1fr auto;
   border: 1px solid var(--scrum-border);
-  border-radius: 11px;
+  border-radius: var(--scrum-radius-md);
   background: var(--scrum-panel);
 }
 
 [data-scrum-column] [data-scrum-card] > button:first-child { grid-column: 1 / -1; }
-[data-scrum-column] [data-scrum-card] > span:last-child { grid-column: 1 / -1; display: grid; gap: 5px; }
+[data-scrum-column] [data-scrum-card] > span:last-child {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: var(--scrum-space-1);
+}
 
-[data-scrum-planning] { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+/*
+ * The move control, quieted.
+ *
+ * Every card carries one, because dragging is the single gesture no keyboard
+ * can reach and the select names where a card can go before the pointer is
+ * over it. Twelve cards then meant twelve full-size bordered dropdowns
+ * competing with the twelve titles that are what the column is scanned for.
+ *
+ * Quieted, not hidden: it keeps its label, its size and its place in the tab
+ * order, and it comes back to full strength on hover and on keyboard focus.
+ * A control that only existed on hover would not exist at all on a touch
+ * screen, which is the trap this board already refused once by not using drag.
+ */
+[data-scrum-column] [data-scrum-card] select {
+  min-height: 28px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--scrum-muted);
+  font-size: var(--scrum-text-xs);
+}
+
+[data-scrum-column] [data-scrum-card]:hover select,
+[data-scrum-column] [data-scrum-card] select:focus-visible {
+  border-color: var(--scrum-border);
+  background: var(--scrum-panel);
+  color: inherit;
+}
+
+[data-scrum-planning] {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--scrum-space-4);
+}
 [data-scrum-pane] {
-  padding: 16px;
+  padding: var(--scrum-space-4);
   border: 1px solid var(--scrum-border);
   border-radius: var(--scrum-radius);
   background: var(--scrum-panel);
 }
 
-[data-scrum-pane] > h4 { margin-bottom: 10px; }
+[data-scrum-pane] > h4 { margin-bottom: var(--scrum-space-2); }
 [data-scrum-pane] [data-scrum-row] { padding-inline: 0; }
 
 [data-scrum-detail] {
@@ -714,11 +776,11 @@ export const SCRUM_STYLES = String.raw`
   bottom: 16px;
   width: min(520px, calc(100vw - 32px));
   overflow: auto;
-  padding: 24px;
+  padding: var(--scrum-space-5);
   border: 1px solid var(--scrum-border);
-  border-radius: 18px;
-  background: var(--scrum-panel);
-  box-shadow: var(--scrum-shadow);
+  border-radius: var(--scrum-radius-lg);
+  background: var(--scrum-panel-raised);
+  box-shadow: var(--scrum-shadow-lg);
 }
 
 [data-scrum-detail] > h3 { max-width: calc(100% - 90px); margin-bottom: 20px; }
@@ -735,23 +797,28 @@ export const SCRUM_STYLES = String.raw`
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 4px 9px;
-  padding: 14px;
+  padding: var(--scrum-space-4);
   border: 1px solid var(--scrum-border);
-  border-radius: 11px;
+  border-radius: var(--scrum-radius-md);
   background: var(--scrum-panel-subtle);
 }
 
 [data-scrum-access-modes] p span { grid-column: 2; color: var(--scrum-muted); font-size: 12px; }
-[data-scrum-access-effective] { width: fit-content; padding: 8px 11px; border-radius: 9px; background: var(--scrum-panel-subtle); }
+[data-scrum-access-effective] {
+  width: fit-content;
+  padding: var(--scrum-space-2) var(--scrum-space-3);
+  border-radius: var(--scrum-radius-md);
+  background: var(--scrum-panel-subtle);
+}
 
 [data-scrum-failure],
 [data-scrum-error],
 [data-scrum-create-failure],
 [data-scrum-list="failed"],
 [data-scrum-moved] {
-  padding: 13px 15px;
+  padding: var(--scrum-space-3) var(--scrum-space-4);
   border: 1px solid color-mix(in srgb, var(--scrum-danger) 35%, var(--scrum-border));
-  border-radius: 11px;
+  border-radius: var(--scrum-radius-md);
   background: color-mix(in srgb, var(--scrum-danger) 8%, var(--scrum-panel));
 }
 
@@ -764,11 +831,11 @@ export const SCRUM_STYLES = String.raw`
   top: 50%;
   left: 50%;
   width: min(460px, calc(100vw - 32px));
-  padding: 24px;
+  padding: var(--scrum-space-5);
   border: 1px solid var(--scrum-border);
-  border-radius: 18px;
-  background: var(--scrum-panel);
-  box-shadow: var(--scrum-shadow);
+  border-radius: var(--scrum-radius-lg);
+  background: var(--scrum-panel-raised);
+  box-shadow: var(--scrum-shadow-lg);
   transform: translate(-50%, -50%);
 }
 
@@ -780,7 +847,7 @@ export const SCRUM_STYLES = String.raw`
 
 @media (max-width: 900px) {
   [data-scrum-toolbar] { grid-template-columns: 1fr 1fr; }
-  [data-scrum-columns] { grid-template-columns: repeat(4, minmax(250px, 78vw)); }
+  [data-scrum-columns] { grid-auto-columns: minmax(250px, 78vw); }
   [data-scrum-planning] { grid-template-columns: 1fr; }
 }
 
@@ -894,6 +961,7 @@ export const SCRUM_STYLES = String.raw`
   border-top: 0;
   border-bottom: 1px solid var(--scrum-border);
   background: var(--scrum-panel-subtle);
+  box-shadow: var(--scrum-shadow-sm);
   color: var(--scrum-muted);
   font-size: var(--scrum-text-xs);
   font-weight: 650;
@@ -967,7 +1035,11 @@ export const SCRUM_STYLES = String.raw`
   border: 1px solid var(--scrum-border);
 }
 
-[data-scrum-timeline="grid"] { display: grid; gap: 10px; }
+[data-scrum-timeline="grid"] {
+  --scrum-timeline-label: 260px;
+  display: grid;
+  gap: var(--scrum-space-2);
+}
 
 /* The lane the bars are read against. Equal columns because a sprint is a
    fixed-length box in this grid, not a proportional one. */
@@ -976,11 +1048,11 @@ export const SCRUM_STYLES = String.raw`
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
   gap: 1px;
-  margin-inline-start: 260px;
-  padding: 4px 0;
+  margin-inline-start: var(--scrum-timeline-label);
+  padding: var(--scrum-space-1) 0;
   border-block: 1px solid var(--scrum-border);
   color: var(--scrum-muted);
-  font-size: 12px;
+  font-size: var(--scrum-text-xs);
   text-align: center;
 }
 
@@ -988,10 +1060,10 @@ export const SCRUM_STYLES = String.raw`
 
 [data-scrum-timeline-row] {
   display: grid;
-  grid-template-columns: 260px 1fr 90px;
+  grid-template-columns: var(--scrum-timeline-label) 1fr 90px;
   align-items: center;
-  gap: 10px;
-  padding: 3px 0;
+  gap: var(--scrum-space-2);
+  padding: var(--scrum-space-1) 0;
 }
 [data-scrum-timeline-row] > ul { grid-column: 1 / -1; }
 
@@ -1016,14 +1088,21 @@ export const SCRUM_STYLES = String.raw`
 }
 [data-scrum-depth="0"] [data-scrum-timeline-track] > span { background: var(--scrum-accent); }
 
-[data-scrum-timeline-meta] { color: var(--scrum-muted); font-size: 12px; text-align: end; }
+[data-scrum-timeline-meta] {
+  color: var(--scrum-muted);
+  font-size: var(--scrum-text-xs);
+  text-align: end;
+}
 
 [data-scrum-timeline-unscheduled] {
-  padding: 12px 14px;
+  padding: var(--scrum-space-3) var(--scrum-space-4);
   border: 1px dashed var(--scrum-border);
   border-radius: var(--scrum-radius);
 }
-[data-scrum-timeline-unscheduled] p { color: var(--scrum-muted); font-size: 12px; }
+[data-scrum-timeline-unscheduled] p {
+  color: var(--scrum-muted);
+  font-size: var(--scrum-text-xs);
+}
 [data-scrum-timeline="no-sprints"] p,
 [data-scrum-timeline-empty] { color: var(--scrum-muted); }
 
@@ -1054,6 +1133,11 @@ export const SCRUM_STYLES = String.raw`
 [data-scrum-plan-field] { display: inline-flex; align-items: center; gap: 6px; }
 [data-scrum-plan-field] label { font-size: 12px; }
 [data-scrum-plan-empty] { color: var(--scrum-muted); font-size: 12px; }
+
+[data-scrum-column] [data-scrum-card] label {
+  font-size: var(--scrum-text-xs);
+  font-weight: 500;
+}
 
 [data-scrum-board-bar] {
   display: flex;
