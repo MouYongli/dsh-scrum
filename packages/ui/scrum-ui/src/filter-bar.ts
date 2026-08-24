@@ -6,6 +6,7 @@ import {
   type WorkItem,
   type WorkItemId,
 } from '@dsh-scrum/scrum-domain'
+import { FilterMultiSelect } from './filter-multi-select.js'
 import type { MessageKey, Translate } from './messages.js'
 import {
   BOARD_COLUMNS,
@@ -120,9 +121,8 @@ function text(props: FilterBarProps): ReactElement {
 /**
  * One dimension with several values wanted at once.
  *
- * A multiple select rather than a row of checkboxes: eight categories beside
- * five types beside five statuses is twenty-two checkboxes on a toolbar, and a
- * bar that tall pushes the work off the screen it is meant to narrow.
+ * The bar keeps the message keys and the component keeps the interaction, so
+ * the five dimensions differ here only by what they are a list of.
  */
 function multi<Value extends string>(
   props: FilterBarProps,
@@ -133,27 +133,17 @@ function multi<Value extends string>(
   selected: readonly Value[],
   onChange: (values: readonly Value[]) => void,
 ): ReactElement {
-  const id = `${props.id}-${name}`
-  return control(
-    id,
-    props.t(label),
-    createElement(
-      'select',
-      {
-        id,
-        multiple: true,
-        'data-scrum-filter': name,
-        size: 3,
-        value: selected,
-        onChange: (event: { target: { selectedOptions: ArrayLike<{ value: string }> } }) => {
-          onChange(Array.from(event.target.selectedOptions, (option) => option.value as Value))
-        },
-      },
-      values.map((value) =>
-        createElement('option', { key: value, value }, props.t(labelOf(value))),
-      ),
-    ),
-  )
+  return createElement(FilterMultiSelect<Value>, {
+    key: name,
+    id: `${props.id}-${name}`,
+    name,
+    label: props.t(label),
+    values,
+    labelOf: (value: Value) => props.t(labelOf(value)),
+    selected,
+    onChange,
+    t: props.t,
+  })
 }
 
 /** The epics that were loaded, which is what "under this epic" can mean here. */
@@ -221,34 +211,24 @@ function assignee(props: FilterBarProps): ReactElement {
 }
 
 function labels(props: FilterBarProps): ReactElement | null {
-  const id = `${props.id}-labels`
   const known = [...new Set(props.items.flatMap((item) => item.labels))].sort()
   // Labels are free text, so a project that uses none has nothing to offer and
-  // an empty select would be a control that cannot do anything.
+  // an empty control would be one that cannot do anything.
   if (known.length === 0) {
     return null
   }
-  return control(
-    id,
-    props.t('filter.label'),
-    createElement(
-      'select',
-      {
-        id,
-        multiple: true,
-        size: 3,
-        'data-scrum-filter': 'labels',
-        value: props.query.labels,
-        onChange: (event: { target: { selectedOptions: ArrayLike<{ value: string }> } }) => {
-          props.onQuery({
-            ...props.query,
-            labels: Array.from(event.target.selectedOptions, (option) => option.value),
-          })
-        },
-      },
-      known.map((label) => createElement('option', { key: label, value: label }, label)),
-    ),
-  )
+  return createElement(FilterMultiSelect<string>, {
+    id: `${props.id}-labels`,
+    name: 'labels',
+    label: props.t('filter.label'),
+    values: known,
+    labelOf: (one: string) => one,
+    selected: props.query.labels,
+    onChange: (chosen) => {
+      props.onQuery({ ...props.query, labels: chosen })
+    },
+    t: props.t,
+  })
 }
 
 /**

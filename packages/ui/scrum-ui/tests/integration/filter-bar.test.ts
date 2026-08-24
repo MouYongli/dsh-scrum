@@ -44,12 +44,18 @@ describe('setting a filter', () => {
     expect(onQuery).toHaveBeenCalledWith({ ...EMPTY_QUERY, text: '对账' })
   })
 
-  it('takes several types at once', () => {
-    const { mounted, onQuery } = bar()
+  it('takes several types at once, and needs no modifier key for the second', () => {
+    const { mounted, onQuery } = bar({ ...EMPTY_QUERY, types: [WORK_ITEM_TYPE.bug] })
 
-    mounted.choose('#scrum-test-type', WORK_ITEM_TYPE.bug)
+    mounted.click('#scrum-test-type')
+    mounted.toggle(`#scrum-test-type-${WORK_ITEM_TYPE.story}`)
 
-    expect(onQuery).toHaveBeenCalledWith({ ...EMPTY_QUERY, types: [WORK_ITEM_TYPE.bug] })
+    // Reported in the dimension's own order, not in the order they were
+    // ticked, so one set of values is one query however it was arrived at.
+    expect(onQuery).toHaveBeenCalledWith({
+      ...EMPTY_QUERY,
+      types: [WORK_ITEM_TYPE.story, WORK_ITEM_TYPE.bug],
+    })
   })
 
   it('offers only the epics that were loaded', () => {
