@@ -1092,7 +1092,17 @@ export const SCRUM_STYLES = String.raw`
   gap: 12px;
   margin-bottom: 10px;
 }
-[data-scrum-list-bar] > p { margin-right: auto; color: var(--scrum-muted); }
+/*
+ * The count, how to begin, and the way out, on one line.
+ *
+ * The auto margin sits on the button rather than on the first paragraph, so
+ * the export stays at the end whether or not the hint is beside the count --
+ * an auto margin per paragraph would have moved the whole bar around as the
+ * hint came and went.
+ */
+[data-scrum-list-bar] > p { color: var(--scrum-muted); }
+[data-scrum-list-hint] { font-size: var(--scrum-text-xs); }
+[data-scrum-list-bar] > button { margin-inline-start: auto; }
 
 [data-scrum-batch] {
   display: flex;
@@ -1105,7 +1115,6 @@ export const SCRUM_STYLES = String.raw`
   border-radius: var(--scrum-radius);
   background: var(--scrum-panel-subtle);
 }
-[data-scrum-batch="none"] { color: var(--scrum-muted); font-size: 12px; }
 [data-scrum-batch-count] { margin-right: auto; font-weight: 650; }
 [data-scrum-batch] p { display: grid; gap: 6px; margin: 0; }
 
