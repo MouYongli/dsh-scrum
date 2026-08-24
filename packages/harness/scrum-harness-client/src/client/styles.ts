@@ -536,7 +536,13 @@ export const SCRUM_STYLES = String.raw`
 [data-scrum-filter-field]:has(input[type="search"]) { grid-column: span 2; }
 
 [data-scrum-filter-field] { display: grid; gap: var(--scrum-space-1); }
-[data-scrum-filter-field]:has(input[type="checkbox"]) {
+
+/*
+ * The blocked box, which is a field that *is* a checkbox. The multi-value
+ * fields merely contain some once open, and a descendant :has would catch an
+ * open panel and lay its field out as though the panel were the control.
+ */
+[data-scrum-filter-field]:has(> input[type="checkbox"]) {
   display: flex;
   align-items: center;
   min-height: 40px;
@@ -544,14 +550,115 @@ export const SCRUM_STYLES = String.raw`
   white-space: nowrap;
 }
 
-/* The track minimum is the floor now; a per-control one would fight it. */
-[data-scrum-filter-bar] select[multiple] { padding: var(--scrum-space-1); }
+/*
+ * A dimension with several values, collapsed.
+ *
+ * The trigger takes the height of the selects beside it rather than the 36px
+ * a button takes, because what makes a row of controls read as one row is
+ * that they all end on the same line. Its label is a span rather than a
+ * label element -- a label cannot point at a button -- so it restates what
+ * the baseline gives the others.
+ */
+[data-scrum-filter-field][data-scrum-multi] { position: relative; }
+
+[data-scrum-multi-label] {
+  font-size: var(--scrum-text-sm);
+  font-weight: 650;
+  color: var(--scrum-muted);
+}
+
+[data-scrum-multi-trigger] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--scrum-space-2);
+  width: 100%;
+  min-height: 40px;
+  text-align: start;
+}
+
+/* The summary yields before the bar does, so a long one cannot widen a track. */
+[data-scrum-multi-summary] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The mark a select draws, since the control answers the same question. */
+[data-scrum-multi-trigger]::after {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform var(--scrum-motion);
+}
+[data-scrum-multi-trigger][aria-expanded="true"]::after {
+  transform: translateY(2px) rotate(-135deg);
+}
+
+/*
+ * The panel leaves the flow, so opening one does not reflow the bar under it
+ * and move the control the pointer is already on. It is a raised surface
+ * rather than a bordered one, which is how the shell says a thing is above
+ * the page in both themes.
+ */
+[data-scrum-multi-panel] {
+  position: absolute;
+  top: calc(100% + var(--scrum-space-1));
+  inset-inline-start: 0;
+  z-index: var(--scrum-z-drawer);
+  min-width: 100%;
+  max-height: calc(var(--scrum-space-8) * 4);
+  padding: var(--scrum-space-1);
+  overflow-y: auto;
+  border: 1px solid var(--scrum-border);
+  border-radius: var(--scrum-radius-md);
+  background: var(--scrum-panel-raised);
+  box-shadow: var(--scrum-shadow-lg);
+}
+
+[data-scrum-multi-option] {
+  display: flex;
+  align-items: center;
+  gap: var(--scrum-space-2);
+  min-height: 32px;
+  padding: 0 var(--scrum-space-2);
+  border-radius: var(--scrum-radius-sm);
+  cursor: pointer;
+  /*
+   * The bar's labels name fields and stay quiet. These are the values, and
+   * are the text actually being read, so they take the body size and weight
+   * back from the baseline's label rule.
+   */
+  font-size: var(--scrum-text-md);
+  font-weight: 400;
+  color: var(--dsw-alias-label-primary, CanvasText);
+  white-space: nowrap;
+}
+
+[data-scrum-multi-option] input { flex: none; }
+[data-scrum-multi-option]:hover { background: var(--scrum-hover); }
+[data-scrum-multi-option]:has(input:checked) { background: var(--scrum-accent-soft); }
+
+/*
+ * What the bar is doing, and the way out of it, on their own line.
+ *
+ * As grid items they each took a track, which left "nothing is narrowed"
+ * stranded mid-row with empty space on both sides of it and moved the clear
+ * button to wherever the wrap happened to end.
+ */
+[data-scrum-filter-none],
+[data-scrum-filter-clear] {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
 [data-scrum-filter-none] {
   color: var(--scrum-muted);
   font-size: var(--scrum-text-xs);
-  align-self: center;
 }
-[data-scrum-filter-clear] { align-self: center; }
 
 [data-scrum-overlay] label,
 [data-scrum-overlay] legend { font-size: 13px; font-weight: 650; color: var(--scrum-muted); }
