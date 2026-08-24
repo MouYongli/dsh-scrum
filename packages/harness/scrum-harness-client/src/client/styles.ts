@@ -6,21 +6,80 @@
  * while the installed bundle can inherit the Harness palette at runtime.
  */
 export const SCRUM_STYLES = String.raw`
+/*
+ * The palette, bound to the tokens ui-theme publishes.
+ *
+ * Every name below was checked against the theme package rather than guessed:
+ * a var() whose token does not exist is not an error anybody sees, it silently
+ * takes the fallback, so the surface drifts away from the shell while the
+ * stylesheet still reads as though it were themed.
+ *
+ * Fallbacks are system colours rather than literals wherever a literal would
+ * pair a fixed surface with an inherited foreground -- the shell sets the
+ * document's color-scheme, so Canvas and CanvasText flip with the theme and a
+ * pair derived from them always agrees. The exceptions are the three hues,
+ * which no system colour expresses; those carry the theme's own value, so a
+ * shell composed without ui-theme still lands on the Harness colour rather
+ * than an unrelated one.
+ */
 [data-scrum-overlay] {
-  --scrum-accent: var(--dsw-alias-state-business-primary, var(--dsw-alias-accent-base, #6d5ce8));
-  --scrum-accent-strong: var(--dsw-alias-accent-strong, #5746d7);
-  --scrum-panel: var(--dsw-alias-bg-elevated, color-mix(in srgb, Canvas 96%, currentColor 4%));
-  --scrum-panel-subtle: var(--dsw-alias-bg-subtle, color-mix(in srgb, Canvas 92%, currentColor 8%));
-  --scrum-border: var(--dsw-alias-border-base, color-mix(in srgb, currentColor 15%, transparent));
-  --scrum-muted: var(--dsw-alias-fg-muted, color-mix(in srgb, currentColor 62%, transparent));
-  --scrum-danger: var(--dsw-alias-fg-danger, #c63f52);
-  --scrum-warning: var(--dsw-alias-fg-warning, #a56a12);
+  --scrum-accent: var(--dsw-alias-state-business-primary, #4176e6);
+  --scrum-accent-soft: var(--dsw-alias-state-business-tertiary, color-mix(in srgb, var(--scrum-accent) 22%, Canvas));
+  --scrum-panel: var(--dsw-alias-bg-layer-1, Canvas);
+  --scrum-panel-subtle: var(--dsw-alias-bg-module-platform, color-mix(in srgb, CanvasText 5%, Canvas));
+  --scrum-border: var(--dsw-alias-border-l2, color-mix(in srgb, CanvasText 15%, transparent));
+  --scrum-muted: var(--dsw-alias-label-secondary, color-mix(in srgb, CanvasText 62%, Canvas));
+  --scrum-hover: var(--dsw-alias-interactive-bg-hover, color-mix(in srgb, CanvasText 6%, transparent));
+  --scrum-danger: var(--dsw-alias-state-error-primary, #ec1313);
+  --scrum-warning: var(--dsw-alias-state-warn-primary, #f59e0b);
+  --scrum-success: var(--dsw-alias-state-success-primary, #22c55e);
   --scrum-shadow: 0 16px 50px color-mix(in srgb, #111827 16%, transparent);
-  --scrum-radius: 14px;
+
+  /*
+   * Spacing on a 4px step, so that two gaps either read as the same
+   * relationship or as an obviously different one. The sheet had been written
+   * with whatever number looked right at each site -- 7, 9, 11, 13, 15, 17 --
+   * which is what makes grouping unreadable: 12 beside 13 says nothing.
+   */
+  --scrum-space-1: 4px;
+  --scrum-space-2: 8px;
+  --scrum-space-3: 12px;
+  --scrum-space-4: 16px;
+  --scrum-space-5: 24px;
+  --scrum-space-6: 32px;
+  --scrum-space-7: 48px;
+  --scrum-space-8: 64px;
+
+  /* Three steps, so a control nested in a card can always take the smaller. */
+  --scrum-radius-sm: 4px;
+  --scrum-radius-md: 8px;
+  --scrum-radius-lg: 16px;
+  --scrum-radius: var(--scrum-radius-lg);
+
+  /*
+   * One ladder for everything that leaves the flow. Both dialogs used to sit
+   * at 5, so which one drew on top was whichever the document happened to
+   * paint last. An alertdialog interrupts whatever is open, the leave question
+   * included, so it outranks the rest rather than tying with them.
+   */
+  --scrum-z-drawer: 10;
+  --scrum-z-mask: 20;
+  --scrum-z-dialog: 30;
+  --scrum-z-alert: 40;
+
+  --scrum-text-xs: 12px;
+  --scrum-text-sm: 13px;
+  --scrum-text-md: 14px;
+  --scrum-text-lg: 16px;
+  --scrum-text-xl: 20px;
+
+  /* The shell's own motion, so a Scrum control settles like a shell control. */
+  --scrum-motion: var(--ds-transition-duration-fast, 140ms) var(--ds-ease-in-out, ease);
+
   --scrum-content-padding: clamp(24px, 3vw, 40px);
-  color: var(--dsw-alias-fg-base, CanvasText);
+  color: var(--dsw-alias-label-primary, CanvasText);
   font-family: inherit;
-  font-size: 14px;
+  font-size: var(--scrum-text-md);
   line-height: 1.45;
 }
 
@@ -54,13 +113,14 @@ export const SCRUM_STYLES = String.raw`
 
 [data-scrum-overlay] button {
   min-height: 36px;
-  padding: 7px 13px;
+  padding: var(--scrum-space-2) var(--scrum-space-3);
   border: 1px solid var(--scrum-border);
-  border-radius: 9px;
+  border-radius: var(--scrum-radius-md);
   background: var(--scrum-panel);
   color: inherit;
   cursor: pointer;
-  transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+  transition: border-color var(--scrum-motion), background var(--scrum-motion),
+    transform var(--scrum-motion);
 }
 
 [data-scrum-overlay] button:hover:not(:disabled) {
@@ -85,9 +145,9 @@ export const SCRUM_STYLES = String.raw`
 [data-scrum-overlay] textarea {
   width: 100%;
   min-height: 40px;
-  padding: 8px 11px;
+  padding: var(--scrum-space-2) var(--scrum-space-3);
   border: 1px solid var(--scrum-border);
-  border-radius: 9px;
+  border-radius: var(--scrum-radius-md);
   background: var(--scrum-panel);
   color: inherit;
 }
@@ -146,7 +206,7 @@ export const SCRUM_STYLES = String.raw`
 }
 
 [data-scrum-topbar] select:hover:not(:disabled) {
-  background-color: var(--scrum-panel-subtle);
+  background-color: var(--scrum-hover);
 }
 
 [data-scrum-workbench] > header h1 {
@@ -633,7 +693,7 @@ export const SCRUM_STYLES = String.raw`
 
 [data-scrum-detail] {
   position: fixed;
-  z-index: 3;
+  z-index: var(--scrum-z-drawer);
   top: 16px;
   right: 16px;
   bottom: 16px;
@@ -684,7 +744,7 @@ export const SCRUM_STYLES = String.raw`
 
 [data-scrum-leave], [data-scrum-confirm] {
   position: fixed;
-  z-index: 5;
+  z-index: var(--scrum-z-dialog);
   top: 50%;
   left: 50%;
   width: min(460px, calc(100vw - 32px));
@@ -695,6 +755,8 @@ export const SCRUM_STYLES = String.raw`
   box-shadow: var(--scrum-shadow);
   transform: translate(-50%, -50%);
 }
+
+[data-scrum-leave] { z-index: var(--scrum-z-alert); }
 
 [data-scrum-leave] h2, [data-scrum-confirm] h3 { margin-bottom: 8px; }
 [data-scrum-leave] p, [data-scrum-confirm] > p { margin-bottom: 18px; color: var(--scrum-muted); }
@@ -841,9 +903,9 @@ export const SCRUM_STYLES = String.raw`
   top: 2px;
   bottom: 2px;
   border-radius: 999px;
-  background: var(--scrum-accent);
+  background: var(--scrum-accent-soft);
 }
-[data-scrum-depth="0"] [data-scrum-timeline-track] > span { background: var(--scrum-accent-strong); }
+[data-scrum-depth="0"] [data-scrum-timeline-track] > span { background: var(--scrum-accent); }
 
 [data-scrum-timeline-meta] { color: var(--scrum-muted); font-size: 12px; text-align: end; }
 
@@ -872,8 +934,8 @@ export const SCRUM_STYLES = String.raw`
   font-size: 12px;
 }
 [data-scrum-readiness="ready"] {
-  color: var(--scrum-accent-strong);
-  background: color-mix(in srgb, var(--scrum-accent) 12%, transparent);
+  color: var(--scrum-success);
+  background: color-mix(in srgb, var(--scrum-success) 12%, transparent);
 }
 [data-scrum-readiness="incomplete"] {
   color: var(--scrum-warning);
@@ -941,7 +1003,7 @@ export const SCRUM_STYLES = String.raw`
   font-size: 12px;
 }
 
-[data-scrum-settings-saved] { color: var(--scrum-accent-strong); }
+[data-scrum-settings-saved] { color: var(--scrum-success); }
 [data-scrum-settings-failure] {
   width: 100%;
   padding: 10px 14px;
