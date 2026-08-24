@@ -57,9 +57,12 @@
 - Agent 必须使用当前用户身份，并同时接受 Capability、角色、Project Policy、Project 状态和操作策略约束；Session 只能作为审计来源，不能参与授权。
 - 高风险 Tool 必须请求确认并写入 Activity。
 - UI 隐藏操作入口不能替代 Host 或远程服务的权限检查。
-- 产品界面文案使用中文；代码、类型和代码注释使用英文。
+- 产品界面文案使用中文；代码、类型和代码注释使用英文；界面字符串一律进 `messages.ts` 词典，同时给出 `zh` 和 `en`，组件里不写字面文案。
+- 界面改动前先读 Web UI Skill；不得另起一套调色板、间距或组件词汇。
 
 当前 Sidebar 扩展限制、实测 Slot 契约、页面状态和授权模型见 [DeepSeek Harness Scrum 开发指南](docs/development/dsh-dev-guide.md)。
+
+界面工作的可执行版本是 `.codex/skills/deepseek-harness-web-ui-skill/`（`.claude/skills/deepseek-harness-web-ui` 是指向它的软链接，两个运行时读同一份）。它记录 Slot 挂载点、六个工作台分区、首次进入状态、主题 Token 绑定规则和挂进 Shell 的评审循环。与本文件或开发指南冲突时以本文件和开发指南为准，并同步修改 Skill。
 
 ## 推荐开发顺序
 
