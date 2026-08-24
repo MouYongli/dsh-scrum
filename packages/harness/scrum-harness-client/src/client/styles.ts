@@ -565,7 +565,7 @@ export const SCRUM_STYLES = String.raw`
 [data-scrum-item-form] p > span,
 [data-scrum-sprint-form] p > span { color: var(--scrum-muted); font-size: 12px; }
 
-[data-scrum-list] { display: grid; gap: 16px; }
+[data-scrum-list="items"] { display: grid; gap: var(--scrum-space-4); }
 [data-scrum-group] {
   overflow: hidden;
   border: 1px solid var(--scrum-border);
@@ -581,10 +581,23 @@ export const SCRUM_STYLES = String.raw`
 [data-scrum-card] {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--scrum-space-2);
   min-width: 0;
-  padding: 12px 16px;
+  padding: var(--scrum-space-3) var(--scrum-space-4);
   border-top: 1px solid var(--scrum-border);
+  transition: background var(--scrum-motion), border-color var(--scrum-motion);
+}
+
+/*
+ * A row lies straight on a panel with no fill of its own, so it takes the
+ * host's translucent hover tint. A board card brings its own fill, and a
+ * translucent tint would replace that rather than sit over it, so what moves
+ * there is the border.
+ */
+[data-scrum-row]:hover { background: var(--scrum-hover); }
+
+[data-scrum-column] [data-scrum-card]:hover {
+  border-color: color-mix(in srgb, var(--scrum-accent) 45%, var(--scrum-border));
 }
 
 [data-scrum-row] > button:first-child,
@@ -621,8 +634,10 @@ export const SCRUM_STYLES = String.raw`
 }
 
 [data-scrum-empty],
-[data-scrum-loading] {
-  padding: 44px 24px;
+[data-scrum-loading],
+[data-scrum-list="empty"],
+[data-scrum-list="loading"] {
+  padding: var(--scrum-space-7) var(--scrum-space-5);
   border: 1px dashed var(--scrum-border);
   border-radius: var(--scrum-radius);
   text-align: center;
@@ -732,6 +747,7 @@ export const SCRUM_STYLES = String.raw`
 [data-scrum-failure],
 [data-scrum-error],
 [data-scrum-create-failure],
+[data-scrum-list="failed"],
 [data-scrum-moved] {
   padding: 13px 15px;
   border: 1px solid color-mix(in srgb, var(--scrum-danger) 35%, var(--scrum-border));
@@ -839,6 +855,99 @@ export const SCRUM_STYLES = String.raw`
   border-left-color: var(--scrum-warning);
 }
 [data-scrum-batch-refusal] { color: var(--scrum-warning); font-size: 12px; }
+
+/*
+ * The work item table.
+ *
+ * Eleven columns do not fit a narrow shell, so the table scrolls inside itself
+ * rather than widening the page around it: as a block box it takes the width it
+ * is given and the row content overflows within, which is the whole of the
+ * narrow-screen story here. Stacking the columns into cards would be a second
+ * layout to keep true, and this table is the data floor the other three
+ * projections are read against -- it has to keep showing every column.
+ */
+[data-scrum-list] table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+
+[data-scrum-list] th,
+[data-scrum-list] td {
+  padding: var(--scrum-space-2) var(--scrum-space-3);
+  border-top: 1px solid var(--scrum-border);
+  text-align: start;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+/*
+ * The heading band stays while the body scrolls under it. Sticky needs
+ * something opaque to travel over, so the band carries its own fill rather
+ * than inheriting the page's.
+ */
+[data-scrum-list] thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  border-top: 0;
+  border-bottom: 1px solid var(--scrum-border);
+  background: var(--scrum-panel-subtle);
+  color: var(--scrum-muted);
+  font-size: var(--scrum-text-xs);
+  font-weight: 650;
+}
+
+/*
+ * Both controls inside the table were taking the global button chrome, so
+ * every heading and every id cell drew a bordered 36px control. A heading that
+ * sorts and an id that opens are affordances on the text, not buttons around
+ * it; the focus ring from the baseline still reports where the keyboard is.
+ */
+[data-scrum-list] th > button,
+[data-scrum-list] td[data-scrum-column="id"] > button {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--scrum-radius-sm);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+}
+
+[data-scrum-list] th > button:hover:not(:disabled),
+[data-scrum-list] td[data-scrum-column="id"] > button:hover:not(:disabled) {
+  border-color: transparent;
+  background: transparent;
+  text-decoration: underline;
+}
+
+[data-scrum-list] td[data-scrum-column="id"] > button {
+  color: var(--scrum-accent);
+  font-weight: 650;
+}
+
+/* The one column that carries prose, and so the one that may wrap. */
+[data-scrum-list] td[data-scrum-column="title"] {
+  min-width: 220px;
+  white-space: normal;
+}
+
+/* Digits that line up column-wise, so lengths can be compared by eye. */
+[data-scrum-list] td[data-scrum-column="id"],
+[data-scrum-list] td[data-scrum-column="estimate"],
+[data-scrum-list] td[data-scrum-column="updated"] {
+  font-variant-numeric: tabular-nums;
+}
+
+[data-scrum-list] td[data-scrum-column="updated"] { color: var(--scrum-muted); }
+
+[data-scrum-list] tbody tr:hover { background: var(--scrum-hover); }
+[data-scrum-list] tbody tr[aria-selected="true"] {
+  background: color-mix(in srgb, var(--scrum-accent) 10%, transparent);
+}
 
 [data-scrum-list] th[data-scrum-column="mark"],
 [data-scrum-list] td[data-scrum-column="mark"] { width: 32px; text-align: center; }
