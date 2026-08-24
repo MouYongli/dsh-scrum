@@ -155,10 +155,13 @@ describe('clearing', () => {
 })
 
 describe('progressive filters', () => {
-  it('keeps frequent questions visible and discloses the long tail', () => {
+  it('keeps search compact and discloses the long tail', () => {
     const { mounted } = progressive()
 
-    expect(mounted.container.querySelector('[data-scrum-quick-filter="blocked"]')).not.toBeNull()
+    expect((mounted.find('[data-scrum-filter="text"]') as HTMLInputElement).placeholder).toBe(
+      t('filter.text.placeholder'),
+    )
+    expect(mounted.container.querySelector('[data-scrum-quick-filter]')).toBeNull()
     expect(mounted.container.querySelector('[data-scrum-filter-advanced]')).toBeNull()
     expect(mounted.container.textContent).not.toContain(t('filter.none'))
 
@@ -167,16 +170,10 @@ describe('progressive filters', () => {
     expect(mounted.container.querySelector('[data-scrum-filter-advanced]')).not.toBeNull()
   })
 
-  it('turns quick questions into the same shared query', () => {
-    const { mounted, onQuery, onUnestimated } = progressive()
+  it('does not duplicate the summary filters inside the search bar', () => {
+    const { mounted } = progressive()
 
-    mounted.click('[data-scrum-quick-filter="blocked"]')
-    expect(onQuery).toHaveBeenCalledWith({ ...EMPTY_QUERY, blocked: true })
-
-    mounted.click('[data-scrum-quick-filter="unassigned"]')
-    expect(onQuery).toHaveBeenCalledWith({ ...EMPTY_QUERY, assigneeId: null })
-
-    mounted.click('[data-scrum-quick-filter="unestimated"]')
-    expect(onUnestimated).toHaveBeenCalledWith(true)
+    expect(mounted.container.querySelector('[data-scrum-quick-filter]')).toBeNull()
+    expect(mounted.container.querySelector('[data-scrum-filter-more]')).not.toBeNull()
   })
 })

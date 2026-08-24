@@ -1,7 +1,6 @@
 import { createElement, useState, type ReactElement } from 'react'
 import {
   WORK_ITEM_LEVEL,
-  WORK_ITEM_STATUS,
   WORK_ITEM_TYPE,
   type IdentityId,
   type WorkItem,
@@ -104,46 +103,17 @@ export function FilterBar(props: FilterBarProps): ReactElement {
         { 'data-scrum-filter-primary': true },
         text(props),
         createElement(
-          'div',
-          { 'data-scrum-filter-quick': true, role: 'group', 'aria-label': t('filter.quick.label') },
-          createElement('span', { 'data-scrum-filter-quick-label': true }, t('filter.quick.label')),
-          quickFilter(
-            props,
-            'in-progress',
-            query.statuses.includes(WORK_ITEM_STATUS.inProgress),
-            () => {
-              props.onQuery({
-                ...query,
-                statuses: query.statuses.includes(WORK_ITEM_STATUS.inProgress)
-                  ? []
-                  : [WORK_ITEM_STATUS.inProgress],
-              })
+          'button',
+          {
+            type: 'button',
+            'data-scrum-filter-more': true,
+            'aria-expanded': expanded,
+            'aria-controls': `${props.id}-advanced`,
+            onClick: () => {
+              setExpanded(!expanded)
             },
-          ),
-          quickFilter(props, 'blocked', query.blocked === true, () => {
-            props.onQuery({ ...query, blocked: query.blocked === true ? undefined : true })
-          }),
-          quickFilter(props, 'unassigned', query.assigneeId === null, () => {
-            props.onQuery({ ...query, assigneeId: query.assigneeId === null ? undefined : null })
-          }),
-          props.onUnestimated === undefined
-            ? null
-            : quickFilter(props, 'unestimated', props.unestimated === true, () => {
-                props.onUnestimated?.(props.unestimated !== true)
-              }),
-          createElement(
-            'button',
-            {
-              type: 'button',
-              'data-scrum-filter-more': true,
-              'aria-expanded': expanded,
-              'aria-controls': `${props.id}-advanced`,
-              onClick: () => {
-                setExpanded(!expanded)
-              },
-            },
-            `${t(expanded ? 'filter.less' : 'filter.more')}${count === 0 ? '' : ` · ${count}`}`,
-          ),
+          },
+          `${t(expanded ? 'filter.less' : 'filter.more')}${count === 0 ? '' : ` · ${count}`}`,
         ),
       ),
       expanded
@@ -179,34 +149,6 @@ function activeFilterCount(query: WorkItemQuery): number {
   ].filter(Boolean).length
 }
 
-function quickFilter(
-  props: FilterBarProps,
-  kind: 'in-progress' | 'blocked' | 'unassigned' | 'unestimated',
-  active: boolean,
-  onClick: () => void,
-): ReactElement {
-  const key: MessageKey =
-    kind === 'in-progress'
-      ? 'filter.quick.inProgress'
-      : kind === 'blocked'
-        ? 'filter.quick.blocked'
-        : kind === 'unassigned'
-          ? 'filter.quick.unassigned'
-          : 'filter.quick.unestimated'
-  const label = props.t(key)
-  return createElement(
-    'button',
-    {
-      key: kind,
-      type: 'button',
-      'data-scrum-quick-filter': kind,
-      'aria-pressed': active,
-      onClick,
-    },
-    label,
-  )
-}
-
 function control(id: string, label: string, field: ReactElement): ReactElement {
   return createElement(
     'p',
@@ -226,6 +168,7 @@ function text(props: FilterBarProps): ReactElement {
       type: 'search',
       'data-scrum-filter': 'text',
       value: props.query.text,
+      placeholder: props.t('filter.text.placeholder'),
       onChange: (event: { target: { value: string } }) => {
         props.onQuery({ ...props.query, text: event.target.value })
       },
