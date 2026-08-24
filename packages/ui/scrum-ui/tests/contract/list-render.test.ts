@@ -95,11 +95,19 @@ describe('the work item list', () => {
 })
 
 describe('selecting rows for a batch', () => {
-  it('says how to start rather than showing a form with nothing to act on', () => {
+  it('says how to start on the toolbar rather than holding a row open for it', () => {
     const markup = render()
 
-    expect(markup).toContain('data-scrum-batch="none"')
-    expect(markup).toContain(t('list.batch.none'))
+    // The sentence is read once; a block that keeps saying it costs a row of
+    // every screen after that, so it travels with the count instead.
+    expect(markup).toContain(t('list.batch.hint'))
+    expect(markup).not.toContain('data-scrum-batch=')
+  })
+
+  it('drops the hint once there is a selection to talk about instead', () => {
+    const markup = render({ marked: [item(1, {}).id] })
+
+    expect(markup).not.toContain(t('list.batch.hint'))
   })
 
   it('offers the change form once something is marked, and counts what is marked', () => {
