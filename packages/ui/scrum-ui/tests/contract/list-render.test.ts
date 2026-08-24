@@ -143,12 +143,14 @@ describe('the work item list', () => {
     expect(markup).toContain(`<span data-scrum-badge="quiet">${t('priority.medium')}</span>`)
   })
 
-  it('names what is missing rather than leaving a cell blank', () => {
+  it('quietens missing values without hiding their accessible meaning', () => {
     const markup = render()
 
-    expect(markup).toContain(t('list.unassigned'))
-    expect(markup).toContain(t('list.noSprint'))
-    expect(markup).toContain(t('backlog.unestimated'))
+    expect(markup).toContain(`aria-label="${t('list.unassigned')}"`)
+    expect(markup).toContain(`aria-label="${t('list.noSprint')}"`)
+    expect(markup).toContain(`aria-label="${t('backlog.unestimated')}"`)
+    expect(markup).toContain('data-scrum-empty-value="true"')
+    expect(markup).toContain('>—</span>')
   })
 
   it('tells an empty project apart from an over-narrow filter', () => {
@@ -158,12 +160,10 @@ describe('the work item list', () => {
 })
 
 describe('selecting rows for a batch', () => {
-  it('says how to start on the toolbar rather than holding a row open for it', () => {
+  it('keeps batch instructions out of the page until a row is selected', () => {
     const markup = render()
 
-    // The sentence is read once; a block that keeps saying it costs a row of
-    // every screen after that, so it travels with the count instead.
-    expect(markup).toContain(t('list.batch.hint'))
+    expect(markup).not.toContain(t('list.batch.hint'))
     expect(markup).not.toContain('data-scrum-batch=')
   })
 
@@ -171,6 +171,24 @@ describe('selecting rows for a batch', () => {
     const markup = render({ marked: [item(1, {}).id] })
 
     expect(markup).not.toContain(t('list.batch.hint'))
+  })
+
+  it('warns when a finished item still has unmet acceptance criteria', () => {
+    const markup = render({
+      state: state([
+        item(1, {
+          status: WORK_ITEM_STATUS.done,
+          resolution: WORK_ITEM_RESOLUTION.done,
+          acceptanceCriteria: [
+            { text: 'first', satisfied: false },
+            { text: 'second', satisfied: false },
+          ],
+        }),
+      ]),
+    })
+
+    expect(markup).toContain('data-scrum-item-signal="acceptance-warning"')
+    expect(markup).toContain(t('list.signal.acceptanceWarning'))
   })
 
   it('offers the change form once something is marked, and counts what is marked', () => {

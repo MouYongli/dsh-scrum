@@ -38,8 +38,10 @@ function bar(query: WorkItemQuery = EMPTY_QUERY): {
 function progressive(query: WorkItemQuery = EMPTY_QUERY): {
   mounted: Mounted
   onQuery: (query: WorkItemQuery) => void
+  onUnestimated: (active: boolean) => void
 } {
   const onQuery = vi.fn()
+  const onUnestimated = vi.fn()
   const mounted = mount(
     createElement(FilterBar, {
       query,
@@ -48,10 +50,12 @@ function progressive(query: WorkItemQuery = EMPTY_QUERY): {
       t,
       id: 'scrum-progressive',
       progressive: true,
+      unestimated: false,
+      onUnestimated,
     }),
   )
   open = mounted
-  return { mounted, onQuery }
+  return { mounted, onQuery, onUnestimated }
 }
 
 describe('setting a filter', () => {
@@ -156,6 +160,7 @@ describe('progressive filters', () => {
 
     expect(mounted.container.querySelector('[data-scrum-quick-filter="blocked"]')).not.toBeNull()
     expect(mounted.container.querySelector('[data-scrum-filter-advanced]')).toBeNull()
+    expect(mounted.container.textContent).not.toContain(t('filter.none'))
 
     mounted.click('[data-scrum-filter-more]')
 
@@ -163,12 +168,15 @@ describe('progressive filters', () => {
   })
 
   it('turns quick questions into the same shared query', () => {
-    const { mounted, onQuery } = progressive()
+    const { mounted, onQuery, onUnestimated } = progressive()
 
     mounted.click('[data-scrum-quick-filter="blocked"]')
     expect(onQuery).toHaveBeenCalledWith({ ...EMPTY_QUERY, blocked: true })
 
     mounted.click('[data-scrum-quick-filter="unassigned"]')
     expect(onQuery).toHaveBeenCalledWith({ ...EMPTY_QUERY, assigneeId: null })
+
+    mounted.click('[data-scrum-quick-filter="unestimated"]')
+    expect(onUnestimated).toHaveBeenCalledWith(true)
   })
 })

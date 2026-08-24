@@ -1,5 +1,10 @@
 import { createElement, type ReactElement } from 'react'
-import type { Sprint, WorkItem, WorkItemId } from '@dsh-scrum/scrum-domain'
+import {
+  WORK_ITEM_STATUS,
+  type Sprint,
+  type WorkItem,
+  type WorkItemId,
+} from '@dsh-scrum/scrum-domain'
 import type { BacklogState } from './backlog-controller.js'
 import { BATCH_FIELD, isFinishingMove, type BatchChange, type BatchOutcome } from './batch.js'
 import { everyMoveTarget } from './board.js'
@@ -94,14 +99,6 @@ export function WorkItemList(props: ListProps): ReactElement {
       'div',
       { 'data-scrum-list-bar': true },
       createElement('p', { 'data-scrum-list-count': true }, `${t('list.results')} ${rows.length}`),
-      /*
-       * How to begin, while beginning is still the next thing to do. Once
-       * rows are marked the form below says what is marked, and a toolbar
-       * still explaining how to mark them would be arguing with it.
-       */
-      props.readOnly || markedIn(rows, props).length > 0
-        ? null
-        : createElement('p', { 'data-scrum-list-hint': true }, t('list.batch.hint')),
       props.readOnly
         ? null
         : createElement(
@@ -119,22 +116,26 @@ export function WorkItemList(props: ListProps): ReactElement {
     props.readOnly ? null : batchPanel(rows, props),
     outcomePanel(props),
     createElement(
-      'table',
-      { 'aria-label': t('items.title') },
+      'div',
+      { 'data-scrum-table-scroll': true },
       createElement(
-        'thead',
-        null,
+        'table',
+        { 'aria-label': t('items.title') },
         createElement(
-          'tr',
+          'thead',
           null,
-          props.readOnly ? null : selectAllCell(rows, props),
-          VISIBLE_COLUMNS.map((column) => headerCell(column, props)),
+          createElement(
+            'tr',
+            null,
+            props.readOnly ? null : selectAllCell(rows, props),
+            VISIBLE_COLUMNS.map((column) => headerCell(column, props)),
+          ),
         ),
-      ),
-      createElement(
-        'tbody',
-        null,
-        rows.map((item) => rowFor(item, props)),
+        createElement(
+          'tbody',
+          null,
+          rows.map((item) => rowFor(item, props)),
+        ),
       ),
     ),
   )
@@ -218,23 +219,23 @@ function rowFor(item: WorkItem, props: ListProps): ReactElement {
     ),
     createElement(
       'td',
-      { 'data-scrum-column': LIST_COLUMN.priority },
+      { 'data-scrum-column': LIST_COLUMN.priority, 'data-scrum-priority-value': item.priority },
       badge(t(priorityLabel(item.priority)), priorityTone(item.priority)),
     ),
     createElement(
       'td',
       { 'data-scrum-column': LIST_COLUMN.assignee },
-      item.assigneeId ?? t('list.unassigned'),
+      item.assigneeId ?? emptyValue(t('list.unassigned')),
     ),
     createElement(
       'td',
       { 'data-scrum-column': LIST_COLUMN.estimate },
-      item.estimate === null ? t('backlog.unestimated') : String(item.estimate),
+      item.estimate === null ? emptyValue(t('backlog.unestimated')) : String(item.estimate),
     ),
     createElement(
       'td',
       { 'data-scrum-column': LIST_COLUMN.sprint },
-      item.sprintId ?? t('list.noSprint'),
+      item.sprintId ?? emptyValue(t('list.noSprint')),
     ),
     createElement('td', { 'data-scrum-column': LIST_COLUMN.updated }, item.updatedAt),
   )
@@ -303,7 +304,22 @@ function itemIdentity(item: WorkItem, props: ListProps): ReactElement {
             { 'data-scrum-item-signal': 'criteria' },
             `${t('list.signal.criteria')} ${satisfied}/${item.acceptanceCriteria.length}`,
           ),
+      item.status === WORK_ITEM_STATUS.done && satisfied < item.acceptanceCriteria.length
+        ? createElement(
+            'span',
+            { 'data-scrum-item-signal': 'acceptance-warning' },
+            `${t('list.signal.acceptanceWarning')} ${item.acceptanceCriteria.length - satisfied}`,
+          )
+        : null,
     ),
+  )
+}
+
+function emptyValue(label: string): ReactElement {
+  return createElement(
+    'span',
+    { 'data-scrum-empty-value': true, title: label, 'aria-label': label },
+    '—',
   )
 }
 

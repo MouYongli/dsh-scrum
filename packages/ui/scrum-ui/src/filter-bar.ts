@@ -35,6 +35,9 @@ export interface FilterBarProps {
   readonly id: string
   /** Keeps search and frequent choices visible, with the long tail disclosed. */
   readonly progressive?: boolean | undefined
+  /** A page-local question that the wire does not model as a filter. */
+  readonly unestimated?: boolean | undefined
+  readonly onUnestimated?: ((active: boolean) => void) | undefined
 }
 
 /**
@@ -92,7 +95,7 @@ export function FilterBar(props: FilterBarProps): ReactElement {
   ]
 
   if (props.progressive === true) {
-    const count = activeFilterCount(query)
+    const count = activeFilterCount(query) + (props.unestimated === true ? 1 : 0)
     return createElement(
       'div',
       { 'data-scrum-filter-bar': 'progressive', role: 'group', 'aria-label': t('filter.title') },
@@ -100,37 +103,47 @@ export function FilterBar(props: FilterBarProps): ReactElement {
         'div',
         { 'data-scrum-filter-primary': true },
         text(props),
-        quickFilter(
-          props,
-          'in-progress',
-          query.statuses.includes(WORK_ITEM_STATUS.inProgress),
-          () => {
-            props.onQuery({
-              ...query,
-              statuses: query.statuses.includes(WORK_ITEM_STATUS.inProgress)
-                ? []
-                : [WORK_ITEM_STATUS.inProgress],
-            })
-          },
-        ),
-        quickFilter(props, 'blocked', query.blocked === true, () => {
-          props.onQuery({ ...query, blocked: query.blocked === true ? undefined : true })
-        }),
-        quickFilter(props, 'unassigned', query.assigneeId === null, () => {
-          props.onQuery({ ...query, assigneeId: query.assigneeId === null ? undefined : null })
-        }),
         createElement(
-          'button',
-          {
-            type: 'button',
-            'data-scrum-filter-more': true,
-            'aria-expanded': expanded,
-            'aria-controls': `${props.id}-advanced`,
-            onClick: () => {
-              setExpanded(!expanded)
+          'div',
+          { 'data-scrum-filter-quick': true, role: 'group', 'aria-label': t('filter.quick.label') },
+          createElement('span', { 'data-scrum-filter-quick-label': true }, t('filter.quick.label')),
+          quickFilter(
+            props,
+            'in-progress',
+            query.statuses.includes(WORK_ITEM_STATUS.inProgress),
+            () => {
+              props.onQuery({
+                ...query,
+                statuses: query.statuses.includes(WORK_ITEM_STATUS.inProgress)
+                  ? []
+                  : [WORK_ITEM_STATUS.inProgress],
+              })
             },
-          },
-          `${t(expanded ? 'filter.less' : 'filter.more')}${count === 0 ? '' : ` · ${count}`}`,
+          ),
+          quickFilter(props, 'blocked', query.blocked === true, () => {
+            props.onQuery({ ...query, blocked: query.blocked === true ? undefined : true })
+          }),
+          quickFilter(props, 'unassigned', query.assigneeId === null, () => {
+            props.onQuery({ ...query, assigneeId: query.assigneeId === null ? undefined : null })
+          }),
+          props.onUnestimated === undefined
+            ? null
+            : quickFilter(props, 'unestimated', props.unestimated === true, () => {
+                props.onUnestimated?.(props.unestimated !== true)
+              }),
+          createElement(
+            'button',
+            {
+              type: 'button',
+              'data-scrum-filter-more': true,
+              'aria-expanded': expanded,
+              'aria-controls': `${props.id}-advanced`,
+              onClick: () => {
+                setExpanded(!expanded)
+              },
+            },
+            `${t(expanded ? 'filter.less' : 'filter.more')}${count === 0 ? '' : ` · ${count}`}`,
+          ),
         ),
       ),
       expanded
@@ -140,7 +153,7 @@ export function FilterBar(props: FilterBarProps): ReactElement {
             advanced,
           )
         : null,
-      clear(props),
+      isNarrowed(query) || props.unestimated === true ? clear(props) : null,
     )
   }
   return createElement(
@@ -168,17 +181,19 @@ function activeFilterCount(query: WorkItemQuery): number {
 
 function quickFilter(
   props: FilterBarProps,
-  kind: 'in-progress' | 'blocked' | 'unassigned',
+  kind: 'in-progress' | 'blocked' | 'unassigned' | 'unestimated',
   active: boolean,
   onClick: () => void,
 ): ReactElement {
-  const label = props.t(
+  const key: MessageKey =
     kind === 'in-progress'
       ? 'filter.quick.inProgress'
       : kind === 'blocked'
         ? 'filter.quick.blocked'
-        : 'filter.quick.unassigned',
-  )
+        : kind === 'unassigned'
+          ? 'filter.quick.unassigned'
+          : 'filter.quick.unestimated'
+  const label = props.t(key)
   return createElement(
     'button',
     {
@@ -358,7 +373,7 @@ function blocked(props: FilterBarProps): ReactElement {
 
 /** Only offered once there is something to clear. */
 function clear(props: FilterBarProps): ReactElement | null {
-  if (!isNarrowed(props.query)) {
+  if (!isNarrowed(props.query) && props.unestimated !== true) {
     return createElement('p', { 'data-scrum-filter-none': true }, props.t('filter.none'))
   }
   return createElement(
@@ -367,6 +382,7 @@ function clear(props: FilterBarProps): ReactElement | null {
       type: 'button',
       'data-scrum-filter-clear': true,
       onClick: () => {
+        props.onUnestimated?.(false)
         props.onQuery({
           text: '',
           types: [],

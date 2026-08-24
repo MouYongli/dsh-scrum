@@ -73,17 +73,11 @@ describe('a workbench over a bound project', () => {
     ).toEqual(['仪表盘', '工作项', '产品 Backlog', 'Sprint 看板', '回顾', '设置'])
   })
 
-  it('keeps the agent beside the pages rather than among them', async () => {
+  it('does not add a Scrum Agent action beside the project pages', async () => {
     const mounted = workbench(stubClient({ entry: () => Promise.resolve(BOUND) }))
     await settle()
 
-    // It opens a conversation, not another view of the project. Inside the
-    // navigation landmark it was a seventh place to go that never went
-    // anywhere.
-    const agent = mounted.find('[data-scrum-agent]')
-    expect(agent.textContent).toBe('打开 Scrum Agent')
-    expect(agent.closest('nav')).toBeNull()
-    expect(agent.closest('[data-scrum-sections]')).not.toBeNull()
+    expect(mounted.container.querySelector('[data-scrum-agent]')).toBeNull()
   })
 
   it('keeps a filter set on one page when another is opened', async () => {
@@ -116,21 +110,6 @@ describe('a workbench over a bound project', () => {
     // rather than wonder whether the page failed to load.
     expect(mounted.container.querySelector('[data-scrum-placeholder="review"]')).not.toBeNull()
     expect(mounted.container.textContent).toContain(t('review.body'))
-  })
-
-  it('opens the workspace agent without requiring a conversation', async () => {
-    const openAgent = vi.fn()
-    const mounted = workbench(
-      stubClient({ entry: () => Promise.resolve(BOUND) }),
-      undefined,
-      openAgent,
-    )
-    await settle()
-
-    mounted.click('[data-scrum-agent]')
-
-    expect(openAgent).toHaveBeenCalledWith('ws_1')
-    expect(mounted.container.textContent).toContain(t('agent.body'))
   })
 
   it('opens on the dashboard and shows the backlog only once its tab is selected', async () => {
@@ -230,6 +209,13 @@ describe('a workbench over a bound project', () => {
     expect(mounted.find('[data-scrum-items-summary-item="results"]').textContent).toContain('2')
     expect(mounted.find('[data-scrum-items-summary-item="blocked"]').textContent).toContain('1')
     expect(mounted.find('[data-scrum-items-summary-item="unestimated"]').textContent).toContain('1')
+
+    mounted.click('[data-scrum-items-summary-item="unestimated"]')
+
+    expect(mounted.container.querySelector('[data-scrum-list-row="SCR-2"]')).toBeNull()
+    expect(
+      mounted.find('[data-scrum-items-summary-item="unestimated"]').getAttribute('aria-pressed'),
+    ).toBe('true')
 
     mounted.click('[data-scrum-item-open="SCR-1"]')
 

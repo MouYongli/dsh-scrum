@@ -641,6 +641,7 @@ function ConnectedItems(props: {
   const [sprints, setSprints] = useState<readonly Sprint[]>([])
   const [projection, setProjection] = useState<Projection>('list')
   const [creating, setCreating] = useState(false)
+  const [unestimatedOnly, setUnestimatedOnly] = useState(false)
   const { query } = props
 
   useEffect(() => {
@@ -680,6 +681,27 @@ function ConnectedItems(props: {
   const unestimated = state.ordered.filter(
     (item) => isWorkItemPlannable(item) && item.estimate === null,
   ).length
+  const visibleRows = unestimatedOnly
+    ? state.ordered.filter((item) => isWorkItemPlannable(item) && item.estimate === null)
+    : state.ordered
+  const visibleState = {
+    ...state,
+    ordered: visibleRows,
+    selected:
+      state.selected !== null && visibleRows.some((item) => item.id === state.selected?.id)
+        ? state.selected
+        : null,
+    page: {
+      ...state.page,
+      total: visibleRows.length,
+      emptiness:
+        visibleRows.length > 0
+          ? ('items' as const)
+          : state.ordered.length > 0
+            ? ('no-matches' as const)
+            : state.page.emptiness,
+    },
+  }
 
   return createElement(
     'section',
@@ -714,12 +736,45 @@ function ConnectedItems(props: {
     ),
     state.phase === 'ready'
       ? createElement(
-          'dl',
-          { 'data-scrum-items-summary': true, 'aria-label': props.t('items.summary') },
-          summary('results', props.t('items.summary.results'), state.ordered.length),
-          summary('blocked', props.t('items.summary.blocked'), blocked),
-          summary('unassigned', props.t('items.summary.unassigned'), unassigned),
-          summary('unestimated', props.t('items.summary.unestimated'), unestimated),
+          'div',
+          {
+            'data-scrum-items-summary': true,
+            role: 'group',
+            'aria-label': props.t('items.summary'),
+          },
+          summary('results', props.t('items.summary.results'), state.ordered.length, false, () => {
+            setUnestimatedOnly(false)
+            props.onQuery(EMPTY_QUERY)
+          }),
+          summary(
+            'blocked',
+            props.t('items.summary.blocked'),
+            blocked,
+            query.blocked === true,
+            () => {
+              setUnestimatedOnly(false)
+              props.onQuery({ ...query, blocked: query.blocked === true ? undefined : true })
+            },
+          ),
+          summary(
+            'unassigned',
+            props.t('items.summary.unassigned'),
+            unassigned,
+            query.assigneeId === null,
+            () => {
+              setUnestimatedOnly(false)
+              props.onQuery({ ...query, assigneeId: query.assigneeId === null ? undefined : null })
+            },
+          ),
+          summary(
+            'unestimated',
+            props.t('items.summary.unestimated'),
+            unestimated,
+            unestimatedOnly,
+            () => {
+              setUnestimatedOnly(!unestimatedOnly)
+            },
+          ),
         )
       : null,
     creating
@@ -763,6 +818,8 @@ function ConnectedItems(props: {
       t: props.t,
       id: 'scrum-items',
       progressive: true,
+      unestimated: unestimatedOnly,
+      onUnestimated: setUnestimatedOnly,
     }),
     // Two drawings of one query, not two pages: the filter is the same one,
     // and switching between them is a change of projection rather than of
@@ -797,12 +854,12 @@ function ConnectedItems(props: {
     ),
     projection === 'timeline'
       ? createElement(WorkItemTimeline, {
-          state,
-          view: timelineView({ items: state.ordered, sprints }),
+          state: visibleState,
+          view: timelineView({ items: visibleRows, sprints }),
           t: props.t,
         })
       : createElement(WorkItemList, {
-          state,
+          state: visibleState,
           sort,
           marked,
           outcome,
@@ -842,12 +899,23 @@ function ConnectedItems(props: {
   )
 }
 
-function summary(kind: string, label: string, value: number): ReactElement {
+function summary(
+  kind: string,
+  label: string,
+  value: number,
+  active: boolean,
+  onClick: () => void,
+): ReactElement {
   return createElement(
-    'div',
-    { 'data-scrum-items-summary-item': kind },
-    createElement('dt', null, label),
-    createElement('dd', null, value),
+    'button',
+    {
+      type: 'button',
+      'data-scrum-items-summary-item': kind,
+      'aria-pressed': active,
+      onClick,
+    },
+    createElement('span', null, label),
+    createElement('strong', null, value),
   )
 }
 
@@ -901,9 +969,8 @@ function ConnectedSprints(props: {
  * Scrum ceremony at all. The order is the one `docs/product/scrum.md` 5.1
  * lists, which is the order somebody reads them in.
  *
- * The agent is not among them. It opens a conversation rather than a view of
- * the project, and this strip is about which projection of the project is
- * showing; it sits in the workbench header beside the way back.
+ * The strip contains project projections only. Conversation actions remain in
+ * the Harness shell rather than competing with page navigation here.
  */
 const SECTIONS = [
   { id: 'dashboard', label: 'section.dashboard' },
@@ -951,25 +1018,14 @@ function ProjectSurface(props: {
   readonly readOnly: boolean
   readonly project: ProjectView
   readonly onProjectUpdated: () => void
-  readonly onOpenAgent?: (() => void) | undefined
 }): ReactElement {
   const [section, setSection] = useState<SectionId>('dashboard')
-  const [agentOpened, setAgentOpened] = useState(false)
   // Held here rather than by any page: narrowing to an epic on the list and
   // finding the backlog wide open again is the thing a shared filter is for.
   const [query, setQuery] = useState<WorkItemQuery>(EMPTY_QUERY)
   return createElement(
     'div',
     { 'data-scrum-surface': section },
-    /*
-     * The pages, and one thing that is not a page.
-     *
-     * Opening the agent was a seventh button in the nav, drawn like the six
-     * beside it, so the row read as seven places to go -- and a user who
-     * pressed it found the page had not changed and something had opened
-     * instead. It shares the row, because that is where it is wanted, but it
-     * sits outside the navigation landmark and does not take the tab chrome.
-     */
     createElement(
       'div',
       { 'data-scrum-sections': true },
@@ -992,22 +1048,7 @@ function ProjectSurface(props: {
           ),
         ),
       ),
-      createElement(
-        'button',
-        {
-          type: 'button',
-          'data-scrum-agent': true,
-          onClick: () => {
-            setAgentOpened(true)
-            props.onOpenAgent?.()
-          },
-        },
-        props.t('agent.open'),
-      ),
     ),
-    agentOpened
-      ? createElement('section', { 'data-scrum-agent-panel': true }, props.t('agent.body'))
-      : null,
     surfaceFor(section, { ...props, query, onQuery: setQuery }),
   )
 }
@@ -1260,10 +1301,6 @@ export function ConnectedWorkbench(props: ConnectedWorkbenchProps): ReactElement
   const state = useSyncExternalStore(controller.subscribe, controller.state, controller.state)
   const connectWorkspaceId =
     state.kind === 'ready' && state.entry.state === 'unbound' ? state.entry.workspace.id : null
-  const agentWorkspaceId =
-    state.kind === 'ready' && (state.entry.state === 'bound' || state.entry.state === 'archived')
-      ? state.entry.workspace.id
-      : null
   useEffect(() => {
     void controller.load()
   }, [controller])
@@ -1301,8 +1338,6 @@ export function ConnectedWorkbench(props: ConnectedWorkbenchProps): ReactElement
               readOnly: state.entry.state === 'archived',
               project: state.entry.project,
               onProjectUpdated: () => void controller.load(),
-              onOpenAgent:
-                agentWorkspaceId === null ? undefined : () => props.onOpenAgent?.(agentWorkspaceId),
             })
           : null,
     }),
