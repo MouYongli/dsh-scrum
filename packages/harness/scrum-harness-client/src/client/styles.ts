@@ -1087,9 +1087,209 @@ export const SCRUM_STYLES = String.raw`
 [data-scrum-leave] p, [data-scrum-confirm] > p { margin-bottom: 18px; color: var(--scrum-muted); }
 [data-scrum-leave] button + button, [data-scrum-confirm] button + button { margin-left: 8px; }
 
+/*
+ * Work items are an explorer, not a spreadsheet with a heading above it.
+ * The page establishes context, shows actionable facts about the current
+ * result, then progressively reveals the long tail of filters and fields.
+ */
+[data-scrum-items] {
+  display: grid;
+  gap: var(--scrum-space-4);
+  min-width: 0;
+}
+
+[data-scrum-items-header] {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--scrum-space-5);
+}
+[data-scrum-items-header] h2 { font-size: var(--scrum-text-xl); }
+[data-scrum-items-header] p {
+  max-width: 680px;
+  margin-top: var(--scrum-space-1);
+  color: var(--scrum-muted);
+}
+
+[data-scrum-items-summary] {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  padding-block: var(--scrum-space-3);
+  border-block: 1px solid var(--scrum-border);
+}
+[data-scrum-items-summary-item] {
+  display: grid;
+  gap: var(--scrum-space-1);
+  padding-inline: var(--scrum-space-4);
+  border-inline-start: 1px solid var(--scrum-border);
+}
+[data-scrum-items-summary-item]:first-child { padding-inline-start: 0; border: 0; }
+[data-scrum-items-summary] dt { color: var(--scrum-muted); font-size: var(--scrum-text-xs); }
+[data-scrum-items-summary] dd {
+  margin: 0;
+  font-size: var(--scrum-text-lg);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+[data-scrum-items-summary-item="blocked"] dd { color: var(--scrum-danger); }
+
+/* Search and frequent questions stay visible; taxonomy lives one level down. */
+[data-scrum-filter-bar="progressive"] {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--scrum-space-3);
+  padding: var(--scrum-space-3);
+  border: 1px solid var(--scrum-border);
+  border-radius: var(--scrum-radius-lg);
+  background: var(--scrum-panel-subtle);
+}
+[data-scrum-filter-primary] {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) repeat(4, auto);
+  align-items: end;
+  gap: var(--scrum-space-2);
+}
+[data-scrum-filter-primary] [data-scrum-filter-field]:has(input[type="search"]) {
+  grid-column: auto;
+}
+[data-scrum-quick-filter],
+[data-scrum-filter-more] {
+  min-height: 40px;
+  white-space: nowrap;
+}
+[data-scrum-quick-filter][aria-pressed="true"] {
+  border-color: color-mix(in srgb, var(--scrum-accent) 55%, var(--scrum-border));
+  background: var(--scrum-accent-soft);
+  color: var(--scrum-accent);
+}
+[data-scrum-filter-advanced] {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  align-items: end;
+  gap: var(--scrum-space-3) var(--scrum-space-4);
+  padding-top: var(--scrum-space-3);
+  border-top: 1px solid var(--scrum-border);
+}
+[data-scrum-filter-bar="progressive"] > [data-scrum-filter-none],
+[data-scrum-filter-bar="progressive"] > [data-scrum-filter-clear] {
+  grid-column: auto;
+  justify-self: end;
+}
+
+[data-scrum-items-toolbar] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+[data-scrum-items-toolbar] [data-scrum-projection] { margin: 0; }
+
+/*
+ * One strong identity column replaces four equally weighted descriptive
+ * columns. The full model remains in the detail panel and export.
+ */
+[data-scrum-list="items"] {
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--scrum-border);
+  border-radius: var(--scrum-radius-lg);
+  background: var(--scrum-panel);
+}
+[data-scrum-list="items"] [data-scrum-list-bar] {
+  margin: 0;
+  padding: var(--scrum-space-3) var(--scrum-space-4);
+  border-bottom: 1px solid var(--scrum-border);
+}
+[data-scrum-list="items"] table { min-width: 860px; }
+[data-scrum-list="items"] tbody tr { transition: background var(--scrum-motion); }
+[data-scrum-list="items"] tbody tr[aria-selected="true"] {
+  box-shadow: inset 3px 0 0 var(--scrum-accent);
+}
+[data-scrum-item-identity] {
+  display: grid;
+  gap: var(--scrum-space-1);
+  min-width: 300px;
+}
+[data-scrum-item-open] {
+  display: flex;
+  align-items: baseline;
+  gap: var(--scrum-space-2);
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: start;
+}
+[data-scrum-item-open]:hover:not(:disabled) {
+  border-color: transparent;
+  background: transparent;
+}
+[data-scrum-item-open]:hover [data-scrum-item-title] { text-decoration: underline; }
+[data-scrum-item-key] {
+  flex: none;
+  color: var(--scrum-accent);
+  font-size: var(--scrum-text-xs);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+[data-scrum-item-title] { font-weight: 650; }
+[data-scrum-item-meta],
+[data-scrum-item-signals],
+[data-scrum-detail-labels] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--scrum-space-1) var(--scrum-space-2);
+  color: var(--scrum-muted);
+  font-size: var(--scrum-text-xs);
+}
+[data-scrum-item-meta] > span + span::before { content: "·"; margin-inline-end: var(--scrum-space-2); }
+[data-scrum-item-meta] [data-scrum-label] {
+  padding-inline: var(--scrum-space-1);
+  border-radius: var(--scrum-radius-sm);
+  background: var(--scrum-panel-subtle);
+}
+[data-scrum-item-signal] { font-weight: 650; }
+[data-scrum-item-signal="blocked"] { color: var(--scrum-danger); }
+[data-scrum-item-signal="dependency"] { color: var(--scrum-warning); }
+
+/* The drawer starts with a readable answer before presenting editable fields. */
+[data-scrum-detail-heading] { display: grid; gap: var(--scrum-space-2); }
+[data-scrum-detail-heading] > h3 {
+  max-width: calc(100% - 90px);
+  font-size: var(--scrum-text-xl);
+}
+[data-scrum-detail-eyebrow] {
+  color: var(--scrum-accent);
+  font-size: var(--scrum-text-xs);
+  font-weight: 700;
+}
+[data-scrum-detail-description] { color: var(--scrum-muted); }
+[data-scrum-detail-facts] {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--scrum-space-3);
+  margin: var(--scrum-space-2) 0 0;
+  padding: var(--scrum-space-3);
+  border-radius: var(--scrum-radius-md);
+  background: var(--scrum-panel-subtle);
+}
+[data-scrum-detail-facts] div { min-width: 0; }
+[data-scrum-detail-facts] dt { color: var(--scrum-muted); font-size: var(--scrum-text-xs); }
+[data-scrum-detail-facts] dd { margin: var(--scrum-space-1) 0 0; overflow-wrap: anywhere; }
+[data-scrum-detail-labels] { margin-top: var(--scrum-space-2); }
+[data-scrum-detail-labels] li {
+  padding: 2px var(--scrum-space-2);
+  border-radius: 999px;
+  background: var(--scrum-panel-subtle);
+}
+
 @media (max-width: 900px) {
   [data-scrum-columns] { grid-auto-columns: minmax(250px, 78vw); }
   [data-scrum-planning] { grid-template-columns: 1fr; }
+  [data-scrum-filter-primary] { grid-template-columns: minmax(220px, 1fr) repeat(2, auto); }
+  [data-scrum-filter-primary] [data-scrum-quick-filter="unassigned"] { display: none; }
+  [data-scrum-list="items"] [data-scrum-column="estimate"],
+  [data-scrum-list="items"] [data-scrum-column="updated"] { display: none; }
 }
 
 @media (max-width: 620px) {
@@ -1109,6 +1309,26 @@ export const SCRUM_STYLES = String.raw`
   [data-scrum-row] { align-items: flex-start; flex-wrap: wrap; }
   [data-scrum-row] > button:first-child { flex-basis: 100%; }
   [data-scrum-detail] { inset: 0; width: 100%; border-radius: 0; }
+  [data-scrum-items-header] { align-items: stretch; flex-direction: column; gap: var(--scrum-space-3); }
+  [data-scrum-items-header] [data-scrum-create-open] { width: 100%; }
+  [data-scrum-items-summary] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  [data-scrum-items-summary-item]:nth-child(3) {
+    padding-top: var(--scrum-space-3);
+    padding-inline-start: 0;
+    border-inline-start: 0;
+  }
+  [data-scrum-items-summary-item]:nth-child(4) { padding-top: var(--scrum-space-3); }
+  [data-scrum-filter-primary] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  [data-scrum-filter-primary] [data-scrum-filter-field]:has(input[type="search"]) {
+    grid-column: 1 / -1;
+  }
+  [data-scrum-filter-primary] [data-scrum-quick-filter="unassigned"] { display: block; }
+  [data-scrum-filter-more] { grid-column: 1 / -1; }
+  [data-scrum-filter-advanced] { grid-template-columns: 1fr; }
+  [data-scrum-list="items"] table { min-width: 540px; }
+  [data-scrum-list="items"] [data-scrum-column="assignee"],
+  [data-scrum-list="items"] [data-scrum-column="sprint"] { display: none; }
+  [data-scrum-item-identity] { min-width: 280px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
