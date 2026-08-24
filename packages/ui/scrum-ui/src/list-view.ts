@@ -88,6 +88,14 @@ export function WorkItemList(props: ListProps): ReactElement {
       'div',
       { 'data-scrum-list-bar': true },
       createElement('p', { 'data-scrum-list-count': true }, `${t('list.count')} ${rows.length}`),
+      /*
+       * How to begin, while beginning is still the next thing to do. Once
+       * rows are marked the form below says what is marked, and a toolbar
+       * still explaining how to mark them would be arguing with it.
+       */
+      props.readOnly || markedIn(rows, props).length > 0
+        ? null
+        : createElement('p', { 'data-scrum-list-hint': true }, t('list.batch.hint')),
       props.readOnly
         ? null
         : createElement(
@@ -291,11 +299,22 @@ const BATCH_FIELDS: readonly { readonly field: string; readonly label: MessageKe
  * most worth being deliberate about, and a submit gives the user the moment
  * before it in which to notice they marked the wrong twenty rows.
  */
-function batchPanel(rows: readonly WorkItem[], props: ListProps): ReactElement {
+/** What is marked and still on screen; a filtered-out mark is not in play. */
+function markedIn(rows: readonly WorkItem[], props: ListProps): readonly WorkItem[] {
+  return rows.filter((item) => props.marked.includes(item.id))
+}
+
+function batchPanel(rows: readonly WorkItem[], props: ListProps): ReactElement | null {
   const { t } = props
-  const marked = rows.filter((item) => props.marked.includes(item.id))
+  const marked = markedIn(rows, props)
+  /*
+   * Nothing marked draws nothing. The panel used to stand there saying how to
+   * begin, which is a sentence that is read once and then occupies a row of
+   * every screen after it; the toolbar carries that line now, and this space
+   * belongs to the form only while there is something for it to change.
+   */
   if (marked.length === 0) {
-    return createElement('p', { 'data-scrum-batch': 'none' }, t('list.batch.none'))
+    return null
   }
   return createElement(
     'form',
