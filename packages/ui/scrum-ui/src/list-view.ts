@@ -4,14 +4,7 @@ import type { BacklogState } from './backlog-controller.js'
 import { BATCH_FIELD, isFinishingMove, type BatchChange, type BatchOutcome } from './batch.js'
 import { everyMoveTarget } from './board.js'
 import { LoadingSkeleton } from './skeleton.js'
-import {
-  LIST_COLUMNS,
-  LIST_COLUMN,
-  nextSort,
-  sortWorkItems,
-  type ListColumn,
-  type ListSort,
-} from './list.js'
+import { LIST_COLUMN, nextSort, sortWorkItems, type ListColumn, type ListSort } from './list.js'
 import type { MessageKey, Translate } from './messages.js'
 import {
   PRIORITIES,
@@ -24,6 +17,16 @@ import {
   typeLabel,
   type Tone,
 } from './vocabulary.js'
+
+const VISIBLE_COLUMNS: readonly { readonly column: ListColumn; readonly label: MessageKey }[] = [
+  { column: LIST_COLUMN.title, label: 'list.column.title' },
+  { column: LIST_COLUMN.status, label: 'list.column.status' },
+  { column: LIST_COLUMN.priority, label: 'item.priority' },
+  { column: LIST_COLUMN.assignee, label: 'list.column.assignee' },
+  { column: LIST_COLUMN.estimate, label: 'item.estimate' },
+  { column: LIST_COLUMN.sprint, label: 'list.column.sprint' },
+  { column: LIST_COLUMN.updated, label: 'list.column.updated' },
+]
 
 export interface ListActions {
   readonly sort: (sort: ListSort) => void
@@ -90,7 +93,7 @@ export function WorkItemList(props: ListProps): ReactElement {
     createElement(
       'div',
       { 'data-scrum-list-bar': true },
-      createElement('p', { 'data-scrum-list-count': true }, `${t('list.count')} ${rows.length}`),
+      createElement('p', { 'data-scrum-list-count': true }, `${t('list.results')} ${rows.length}`),
       /*
        * How to begin, while beginning is still the next thing to do. Once
        * rows are marked the form below says what is marked, and a toolbar
@@ -117,7 +120,7 @@ export function WorkItemList(props: ListProps): ReactElement {
     outcomePanel(props),
     createElement(
       'table',
-      null,
+      { 'aria-label': t('items.title') },
       createElement(
         'thead',
         null,
@@ -125,7 +128,7 @@ export function WorkItemList(props: ListProps): ReactElement {
           'tr',
           null,
           props.readOnly ? null : selectAllCell(rows, props),
-          LIST_COLUMNS.map((column) => headerCell(column, props)),
+          VISIBLE_COLUMNS.map((column) => headerCell(column, props)),
         ),
       ),
       createElement(
@@ -195,28 +198,7 @@ function rowFor(item: WorkItem, props: ListProps): ReactElement {
             },
           }),
         ),
-    createElement(
-      'td',
-      { 'data-scrum-column': LIST_COLUMN.id },
-      createElement(
-        'button',
-        {
-          type: 'button',
-          'aria-pressed': selected,
-          onClick: () => {
-            props.actions.select(selected ? null : item.id)
-          },
-        },
-        item.id,
-      ),
-    ),
-    createElement('td', { 'data-scrum-column': LIST_COLUMN.title }, item.title),
-    createElement('td', { 'data-scrum-column': LIST_COLUMN.type }, t(typeLabel(item.type))),
-    createElement(
-      'td',
-      { 'data-scrum-column': LIST_COLUMN.category },
-      t(categoryLabel(item.category)),
-    ),
+    createElement('td', { 'data-scrum-column': LIST_COLUMN.title }, itemIdentity(item, props)),
     // The outcome sits with the status, because on a finished item it is the
     // half of "done" that says whether the work was actually delivered. The
     // status is what carries the tone; the outcome trails it quietly, since
@@ -255,6 +237,73 @@ function rowFor(item: WorkItem, props: ListProps): ReactElement {
       item.sprintId ?? t('list.noSprint'),
     ),
     createElement('td', { 'data-scrum-column': LIST_COLUMN.updated }, item.updatedAt),
+  )
+}
+
+/**
+ * The part of a row people actually scan.
+ *
+ * Identity, hierarchy and warning signals belong together: spreading them
+ * across five equal columns made the title visually indistinguishable from
+ * metadata, while hiding them would make the compact table less truthful.
+ */
+function itemIdentity(item: WorkItem, props: ListProps): ReactElement {
+  const { t } = props
+  const selected = props.state.selected?.id === item.id
+  const satisfied = item.acceptanceCriteria.filter((criterion) => criterion.satisfied).length
+  return createElement(
+    'div',
+    { 'data-scrum-item-identity': true },
+    createElement(
+      'button',
+      {
+        type: 'button',
+        'aria-pressed': selected,
+        'data-scrum-item-open': item.id,
+        onClick: () => {
+          props.actions.select(selected ? null : item.id)
+        },
+      },
+      createElement('span', { 'data-scrum-item-key': true }, item.id),
+      createElement('span', { 'data-scrum-item-title': true }, item.title),
+    ),
+    createElement(
+      'div',
+      { 'data-scrum-item-meta': true },
+      createElement('span', null, t(typeLabel(item.type))),
+      createElement('span', null, t(categoryLabel(item.category))),
+      item.parentId === null
+        ? null
+        : createElement(
+            'span',
+            { 'data-scrum-parent': true },
+            `${t('item.parent')} ${item.parentId}`,
+          ),
+      item.labels.map((label) =>
+        createElement('span', { key: label, 'data-scrum-label': true }, label),
+      ),
+    ),
+    createElement(
+      'div',
+      { 'data-scrum-item-signals': true },
+      item.blockedReason === null
+        ? null
+        : createElement('span', { 'data-scrum-item-signal': 'blocked' }, t('list.signal.blocked')),
+      item.dependsOn.length === 0
+        ? null
+        : createElement(
+            'span',
+            { 'data-scrum-item-signal': 'dependency' },
+            `${t('list.signal.dependencies')} ${item.dependsOn.length}`,
+          ),
+      item.acceptanceCriteria.length === 0
+        ? null
+        : createElement(
+            'span',
+            { 'data-scrum-item-signal': 'criteria' },
+            `${t('list.signal.criteria')} ${satisfied}/${item.acceptanceCriteria.length}`,
+          ),
+    ),
   )
 }
 

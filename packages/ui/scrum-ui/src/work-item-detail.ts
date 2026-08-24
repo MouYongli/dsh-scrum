@@ -5,6 +5,7 @@ import type { Translate } from './messages.js'
 import type { ParentWorkItem } from './client.js'
 import { AcceptanceCriteria, WorkItemForm, fieldsOf, toDetailChanges } from './work-item-form.js'
 import { BlockControl, DependencyPicker, ParentPicker } from './work-item-links.js'
+import { categoryLabel, priorityLabel, statusLabel, typeLabel } from './vocabulary.js'
 
 /** What a detail panel can ask for. Both screens that show one hand these in. */
 export interface WorkItemDetailActions {
@@ -44,7 +45,39 @@ export function WorkItemDetail(props: WorkItemDetailProps): ReactElement {
   return createElement(
     'aside',
     { 'data-scrum-detail': item.id, 'aria-label': t('backlog.detail.title') },
-    createElement('h3', null, `${item.id} · ${item.title}`),
+    createElement(
+      'header',
+      { 'data-scrum-detail-heading': true },
+      createElement(
+        'p',
+        { 'data-scrum-detail-eyebrow': true },
+        `${t(typeLabel(item.type))} · ${item.id}`,
+      ),
+      createElement('h3', null, item.title),
+      item.description === ''
+        ? null
+        : createElement('p', { 'data-scrum-detail-description': true }, item.description),
+      createElement(
+        'dl',
+        { 'data-scrum-detail-facts': true },
+        fact(t('list.column.status'), t(statusLabel(item.status))),
+        fact(t('item.priority'), t(priorityLabel(item.priority))),
+        fact(t('list.column.assignee'), item.assigneeId ?? t('list.unassigned')),
+        fact(t('list.column.sprint'), item.sprintId ?? t('list.noSprint')),
+        fact(
+          t('item.estimate'),
+          item.estimate === null ? t('backlog.unestimated') : String(item.estimate),
+        ),
+        fact(t('item.category'), t(categoryLabel(item.category))),
+      ),
+      item.labels.length === 0
+        ? null
+        : createElement(
+            'ul',
+            { 'data-scrum-detail-labels': true, 'aria-label': t('item.labels') },
+            item.labels.map((label) => createElement('li', { key: label }, label)),
+          ),
+    ),
     createElement(
       'button',
       { type: 'button', 'data-scrum-detail-close': true, onClick: props.actions.close },
@@ -101,5 +134,14 @@ export function WorkItemDetail(props: WorkItemDetailProps): ReactElement {
         props.actions.block({ ...ref, reason })
       },
     }),
+  )
+}
+
+function fact(label: string, value: string): ReactElement {
+  return createElement(
+    'div',
+    null,
+    createElement('dt', null, label),
+    createElement('dd', null, value),
   )
 }

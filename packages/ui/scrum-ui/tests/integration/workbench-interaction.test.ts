@@ -208,6 +208,47 @@ describe('a workbench over a bound project', () => {
     expect(mounted.container.querySelector('[data-scrum-list]')).toBeNull()
   })
 
+  it('presents result signals and opens an item without losing list context', async () => {
+    const mounted = workbench(
+      stubClient({
+        entry: () => Promise.resolve(BOUND),
+        backlog: () =>
+          Promise.resolve([
+            item(1, { title: '恢复登录态', blockedReason: '等待接口' }),
+            item(2, { title: '退款记录', estimate: 3 }),
+          ]),
+        sprints: () => Promise.resolve([]),
+        settings: () => Promise.resolve(SETTINGS),
+        activity: () => Promise.resolve({ events: [], problems: [] }),
+      }),
+    )
+    await settle()
+
+    mounted.click('[data-scrum-section="items"]')
+    await settle()
+
+    expect(mounted.find('[data-scrum-items-summary-item="results"]').textContent).toContain('2')
+    expect(mounted.find('[data-scrum-items-summary-item="blocked"]').textContent).toContain('1')
+    expect(mounted.find('[data-scrum-items-summary-item="unestimated"]').textContent).toContain('1')
+
+    mounted.click('[data-scrum-item-open="SCR-1"]')
+
+    expect(mounted.container.querySelector('[data-scrum-detail="SCR-1"]')).not.toBeNull()
+    expect(mounted.container.querySelector('[data-scrum-list="items"]')).not.toBeNull()
+    expect(mounted.container.textContent).toContain('恢复登录态')
+  })
+
+  it('offers creation as the primary work item action', async () => {
+    const mounted = workbench(stubClient({ entry: () => Promise.resolve(BOUND) }))
+    await settle()
+
+    mounted.click('[data-scrum-section="items"]')
+    await settle()
+    mounted.click('[data-scrum-create-open]')
+
+    expect(mounted.container.querySelector('#scrum-items-create-title')).not.toBeNull()
+  })
+
   it('describes a personal Community owner on the settings page, without role editing', async () => {
     const mounted = workbench(
       stubClient({

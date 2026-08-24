@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react'
 import {
+  isWorkItemPlannable,
   PERMISSION,
   SPRINT_STATUS,
   toProjectKey,
@@ -43,6 +44,8 @@ import { DraftsProvider, NO_DRAFTS, useDraftGuard, type DraftRegistry } from './
 import { createTranslate, type MessageKey, type Translate } from './messages.js'
 import { DEFAULT_SORT } from './list.js'
 import { WorkItemList } from './list-view.js'
+import { WorkItemDetail } from './work-item-detail.js'
+import { EMPTY_FIELDS, WorkItemForm, toNewWorkItem } from './work-item-form.js'
 import { pageFor } from './pages.js'
 import {
   ANY_SPRINT,
@@ -637,6 +640,7 @@ function ConnectedItems(props: {
   const [outcome, setOutcome] = useState<BatchOutcome | null>(null)
   const [sprints, setSprints] = useState<readonly Sprint[]>([])
   const [projection, setProjection] = useState<Projection>('list')
+  const [creating, setCreating] = useState(false)
   const { query } = props
 
   useEffect(() => {
@@ -671,44 +675,126 @@ function ConnectedItems(props: {
     setMarked(result.refused.map((one) => one.id))
   }
 
+  const blocked = state.ordered.filter((item) => item.blockedReason !== null).length
+  const unassigned = state.ordered.filter((item) => item.assigneeId === null).length
+  const unestimated = state.ordered.filter(
+    (item) => isWorkItemPlannable(item) && item.estimate === null,
+  ).length
+
   return createElement(
     'section',
-    { 'data-scrum-items': true },
-    createElement('h3', null, props.t('items.title')),
-    // Two drawings of one query, not two pages: the filter is the same one,
-    // and switching between them is a change of projection rather than of
-    // subject.
+    {
+      'data-scrum-items': true,
+      'aria-label': props.t('items.title'),
+      'aria-busy': state.phase === 'loading' || state.busy,
+    },
     createElement(
-      'div',
-      {
-        'data-scrum-projection': projection,
-        role: 'tablist',
-        'aria-label': props.t('items.title'),
-      },
-      PROJECTIONS.map((entry) =>
-        createElement(
-          'button',
-          {
-            key: entry,
-            type: 'button',
-            role: 'tab',
-            'aria-selected': projection === entry,
-            'data-scrum-projection-tab': entry,
-            onClick: () => {
-              setProjection(entry)
-            },
-          },
-          props.t(entry === 'list' ? 'timeline.projection.list' : 'timeline.projection.timeline'),
-        ),
+      'header',
+      { 'data-scrum-items-header': true },
+      createElement(
+        'div',
+        null,
+        createElement('h2', null, props.t('items.title')),
+        createElement('p', null, props.t('items.body')),
       ),
+      props.readOnly
+        ? null
+        : createElement(
+            'button',
+            {
+              type: 'button',
+              'data-scrum-create-open': true,
+              'aria-expanded': creating,
+              onClick: () => {
+                setCreating(!creating)
+              },
+            },
+            props.t('backlog.create.open'),
+          ),
     ),
+    state.phase === 'ready'
+      ? createElement(
+          'dl',
+          { 'data-scrum-items-summary': true, 'aria-label': props.t('items.summary') },
+          summary('results', props.t('items.summary.results'), state.ordered.length),
+          summary('blocked', props.t('items.summary.blocked'), blocked),
+          summary('unassigned', props.t('items.summary.unassigned'), unassigned),
+          summary('unestimated', props.t('items.summary.unestimated'), unestimated),
+        )
+      : null,
+    creating
+      ? createElement(
+          'div',
+          { 'data-scrum-create': true },
+          createElement('h3', null, props.t('backlog.create.title')),
+          createElement(WorkItemForm, {
+            t: props.t,
+            id: 'scrum-items-create',
+            initial: EMPTY_FIELDS,
+            submitLabel: 'item.create',
+            busy: state.busy,
+            onSubmit: (fields) => {
+              setCreating(false)
+              void controller.create(toNewWorkItem(fields))
+            },
+            onCancel: () => {
+              setCreating(false)
+            },
+          }),
+        )
+      : null,
+    state.failure === null
+      ? null
+      : createElement(
+          'div',
+          { role: 'alert', 'data-scrum-failure': state.failure.kind },
+          createElement('p', null, props.t('error.title')),
+          createElement('p', null, state.failure.message),
+          createElement(
+            'button',
+            { type: 'button', 'data-scrum-dismiss': true, onClick: controller.dismiss },
+            props.t('backlog.dismiss'),
+          ),
+        ),
     createElement(FilterBar, {
       query,
       onQuery: props.onQuery,
       items: state.ordered,
       t: props.t,
       id: 'scrum-items',
+      progressive: true,
     }),
+    // Two drawings of one query, not two pages: the filter is the same one,
+    // and switching between them is a change of projection rather than of
+    // subject.
+    createElement(
+      'div',
+      { 'data-scrum-items-toolbar': true },
+      createElement(
+        'div',
+        {
+          'data-scrum-projection': projection,
+          role: 'tablist',
+          'aria-label': props.t('items.title'),
+        },
+        PROJECTIONS.map((entry) =>
+          createElement(
+            'button',
+            {
+              key: entry,
+              type: 'button',
+              role: 'tab',
+              'aria-selected': projection === entry,
+              'data-scrum-projection-tab': entry,
+              onClick: () => {
+                setProjection(entry)
+              },
+            },
+            props.t(entry === 'list' ? 'timeline.projection.list' : 'timeline.projection.timeline'),
+          ),
+        ),
+      ),
+    ),
     projection === 'timeline'
       ? createElement(WorkItemTimeline, {
           state,
@@ -734,6 +820,34 @@ function ConnectedItems(props: {
             },
           },
         }),
+    state.selected === null
+      ? null
+      : createElement(WorkItemDetail, {
+          t: props.t,
+          item: state.selected,
+          candidates: state.ordered,
+          busy: state.busy,
+          readOnly: props.readOnly,
+          actions: {
+            close: () => {
+              controller.select(null)
+            },
+            edit: (command) => void controller.edit(command),
+            criterion: (command) => void controller.setCriterion(command),
+            parent: (command) => void controller.setParent(command),
+            dependency: (command) => void controller.setDependency(command),
+            block: (command) => void controller.block(command),
+          },
+        }),
+  )
+}
+
+function summary(kind: string, label: string, value: number): ReactElement {
+  return createElement(
+    'div',
+    { 'data-scrum-items-summary-item': kind },
+    createElement('dt', null, label),
+    createElement('dd', null, value),
   )
 }
 

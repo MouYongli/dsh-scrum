@@ -51,14 +51,42 @@ function render(props: Partial<ListProps> = {}): string {
 }
 
 describe('the work item list', () => {
-  it('draws every column with a sortable heading', () => {
+  it('keeps the decision columns visible and folds classification into identity', () => {
     const markup = render()
 
-    for (const column of Object.values(LIST_COLUMN)) {
-      if (column === LIST_COLUMN.rank) continue
+    for (const column of [
+      LIST_COLUMN.title,
+      LIST_COLUMN.status,
+      LIST_COLUMN.priority,
+      LIST_COLUMN.assignee,
+      LIST_COLUMN.estimate,
+      LIST_COLUMN.sprint,
+      LIST_COLUMN.updated,
+    ]) {
       expect(markup).toContain(`data-scrum-column="${column}"`)
     }
+    expect(markup).toContain('data-scrum-item-key')
+    expect(markup).toContain(t('type.story'))
     expect(markup).toContain(t('list.sortBy'))
+  })
+
+  it('surfaces risks and readiness without opening the detail', () => {
+    const markup = render({
+      state: state([
+        item(1, {
+          blockedReason: '等待接口',
+          dependsOn: [item(2, {}).id],
+          acceptanceCriteria: [
+            { text: '可以退款', satisfied: true },
+            { text: '记录原因', satisfied: false },
+          ],
+        }),
+      ]),
+    })
+
+    expect(markup).toContain(t('list.signal.blocked'))
+    expect(markup).toContain(`${t('list.signal.dependencies')} 1`)
+    expect(markup).toContain(`${t('list.signal.criteria')} 1/2`)
   })
 
   it('says which column the table is ordered by', () => {
