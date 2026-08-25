@@ -73,17 +73,11 @@ describe('a workbench over a bound project', () => {
     ).toEqual(['仪表盘', '工作项', '产品 Backlog', 'Sprint 看板', '回顾', '设置'])
   })
 
-  it('keeps the agent beside the pages rather than among them', async () => {
+  it('does not add a Scrum Agent action beside the project pages', async () => {
     const mounted = workbench(stubClient({ entry: () => Promise.resolve(BOUND) }))
     await settle()
 
-    // It opens a conversation, not another view of the project. Inside the
-    // navigation landmark it was a seventh place to go that never went
-    // anywhere.
-    const agent = mounted.find('[data-scrum-agent]')
-    expect(agent.textContent).toBe('打开 Scrum Agent')
-    expect(agent.closest('nav')).toBeNull()
-    expect(agent.closest('[data-scrum-sections]')).not.toBeNull()
+    expect(mounted.container.querySelector('[data-scrum-agent]')).toBeNull()
   })
 
   it('keeps a filter set on one page when another is opened', async () => {
@@ -116,21 +110,6 @@ describe('a workbench over a bound project', () => {
     // rather than wonder whether the page failed to load.
     expect(mounted.container.querySelector('[data-scrum-placeholder="review"]')).not.toBeNull()
     expect(mounted.container.textContent).toContain(t('review.body'))
-  })
-
-  it('opens the workspace agent without requiring a conversation', async () => {
-    const openAgent = vi.fn()
-    const mounted = workbench(
-      stubClient({ entry: () => Promise.resolve(BOUND) }),
-      undefined,
-      openAgent,
-    )
-    await settle()
-
-    mounted.click('[data-scrum-agent]')
-
-    expect(openAgent).toHaveBeenCalledWith('ws_1')
-    expect(mounted.container.textContent).toContain(t('agent.body'))
   })
 
   it('opens on the dashboard and shows the backlog only once its tab is selected', async () => {
@@ -206,6 +185,54 @@ describe('a workbench over a bound project', () => {
     expect(mounted.container.querySelector('[data-scrum-timeline]')).not.toBeNull()
     expect((mounted.find('#scrum-items-text') as HTMLInputElement).value).toBe('对账')
     expect(mounted.container.querySelector('[data-scrum-list]')).toBeNull()
+  })
+
+  it('presents result signals and opens an item without losing list context', async () => {
+    const mounted = workbench(
+      stubClient({
+        entry: () => Promise.resolve(BOUND),
+        backlog: () =>
+          Promise.resolve([
+            item(1, { title: '恢复登录态', blockedReason: '等待接口' }),
+            item(2, { title: '退款记录', estimate: 3 }),
+          ]),
+        sprints: () => Promise.resolve([]),
+        settings: () => Promise.resolve(SETTINGS),
+        activity: () => Promise.resolve({ events: [], problems: [] }),
+      }),
+    )
+    await settle()
+
+    mounted.click('[data-scrum-section="items"]')
+    await settle()
+
+    expect(mounted.find('[data-scrum-items-summary-item="results"]').textContent).toContain('2')
+    expect(mounted.find('[data-scrum-items-summary-item="blocked"]').textContent).toContain('1')
+    expect(mounted.find('[data-scrum-items-summary-item="unestimated"]').textContent).toContain('1')
+
+    mounted.click('[data-scrum-items-summary-item="unestimated"]')
+
+    expect(mounted.container.querySelector('[data-scrum-list-row="SCR-2"]')).toBeNull()
+    expect(
+      mounted.find('[data-scrum-items-summary-item="unestimated"]').getAttribute('aria-pressed'),
+    ).toBe('true')
+
+    mounted.click('[data-scrum-item-open="SCR-1"]')
+
+    expect(mounted.container.querySelector('[data-scrum-detail="SCR-1"]')).not.toBeNull()
+    expect(mounted.container.querySelector('[data-scrum-list="items"]')).not.toBeNull()
+    expect(mounted.container.textContent).toContain('恢复登录态')
+  })
+
+  it('offers creation as the primary work item action', async () => {
+    const mounted = workbench(stubClient({ entry: () => Promise.resolve(BOUND) }))
+    await settle()
+
+    mounted.click('[data-scrum-section="items"]')
+    await settle()
+    mounted.click('[data-scrum-create-open]')
+
+    expect(mounted.container.querySelector('#scrum-items-create-title')).not.toBeNull()
   })
 
   it('describes a personal Community owner on the settings page, without role editing', async () => {

@@ -35,6 +35,29 @@ function bar(query: WorkItemQuery = EMPTY_QUERY): {
   return { mounted, onQuery }
 }
 
+function progressive(query: WorkItemQuery = EMPTY_QUERY): {
+  mounted: Mounted
+  onQuery: (query: WorkItemQuery) => void
+  onUnestimated: (active: boolean) => void
+} {
+  const onQuery = vi.fn()
+  const onUnestimated = vi.fn()
+  const mounted = mount(
+    createElement(FilterBar, {
+      query,
+      onQuery,
+      items: ITEMS,
+      t,
+      id: 'scrum-progressive',
+      progressive: true,
+      unestimated: false,
+      onUnestimated,
+    }),
+  )
+  open = mounted
+  return { mounted, onQuery, onUnestimated }
+}
+
 describe('setting a filter', () => {
   it('reports the text as it is typed', () => {
     const { mounted, onQuery } = bar()
@@ -128,5 +151,29 @@ describe('clearing', () => {
     mounted.click('[data-scrum-filter-clear]')
 
     expect(onQuery).toHaveBeenCalledWith(EMPTY_QUERY)
+  })
+})
+
+describe('progressive filters', () => {
+  it('keeps search compact and discloses the long tail', () => {
+    const { mounted } = progressive()
+
+    expect((mounted.find('[data-scrum-filter="text"]') as HTMLInputElement).placeholder).toBe(
+      t('filter.text.placeholder'),
+    )
+    expect(mounted.container.querySelector('[data-scrum-quick-filter]')).toBeNull()
+    expect(mounted.container.querySelector('[data-scrum-filter-advanced]')).toBeNull()
+    expect(mounted.container.textContent).not.toContain(t('filter.none'))
+
+    mounted.click('[data-scrum-filter-more]')
+
+    expect(mounted.container.querySelector('[data-scrum-filter-advanced]')).not.toBeNull()
+  })
+
+  it('does not duplicate the summary filters inside the search bar', () => {
+    const { mounted } = progressive()
+
+    expect(mounted.container.querySelector('[data-scrum-quick-filter]')).toBeNull()
+    expect(mounted.container.querySelector('[data-scrum-filter-more]')).not.toBeNull()
   })
 })

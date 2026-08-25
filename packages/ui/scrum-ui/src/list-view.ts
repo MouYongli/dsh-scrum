@@ -1,17 +1,16 @@
-import { createElement, type ReactElement } from 'react'
-import type { Sprint, WorkItem, WorkItemId } from '@dsh-scrum/scrum-domain'
+import { createElement, useState, type ReactElement } from 'react'
+import {
+  WORK_ITEM_RESOLUTION,
+  WORK_ITEM_STATUS,
+  type Sprint,
+  type WorkItem,
+  type WorkItemId,
+} from '@dsh-scrum/scrum-domain'
 import type { BacklogState } from './backlog-controller.js'
 import { BATCH_FIELD, isFinishingMove, type BatchChange, type BatchOutcome } from './batch.js'
 import { everyMoveTarget } from './board.js'
 import { LoadingSkeleton } from './skeleton.js'
-import {
-  LIST_COLUMNS,
-  LIST_COLUMN,
-  nextSort,
-  sortWorkItems,
-  type ListColumn,
-  type ListSort,
-} from './list.js'
+import { LIST_COLUMN, nextSort, sortWorkItems, type ListColumn, type ListSort } from './list.js'
 import type { MessageKey, Translate } from './messages.js'
 import {
   PRIORITIES,
@@ -25,6 +24,16 @@ import {
   type Tone,
 } from './vocabulary.js'
 
+const OPTIONAL_COLUMNS: readonly { readonly column: ListColumn; readonly label: MessageKey }[] = [
+  { column: LIST_COLUMN.title, label: 'list.column.title' },
+  { column: LIST_COLUMN.status, label: 'list.column.status' },
+  { column: LIST_COLUMN.priority, label: 'item.priority' },
+  { column: LIST_COLUMN.assignee, label: 'list.column.assignee' },
+  { column: LIST_COLUMN.estimate, label: 'item.estimate' },
+  { column: LIST_COLUMN.sprint, label: 'list.column.sprint' },
+  { column: LIST_COLUMN.updated, label: 'list.column.updated' },
+]
+
 export interface ListActions {
   readonly sort: (sort: ListSort) => void
   readonly select: (id: WorkItem['id'] | null) => void
@@ -32,7 +41,6 @@ export interface ListActions {
   /** Which rows the batch panel acts on. */
   readonly mark: (ids: readonly WorkItemId[]) => void
   readonly apply: (change: BatchChange) => void
-  readonly exportRows: (rows: readonly WorkItem[]) => void
 }
 
 export interface ListProps {
@@ -60,6 +68,7 @@ export interface ListProps {
  */
 export function WorkItemList(props: ListProps): ReactElement {
   const { state, t } = props
+  const [expanded, setExpanded] = useState<readonly WorkItemId[]>([])
   if (state.phase === 'loading') {
     return createElement(
       'p',
@@ -84,57 +93,105 @@ export function WorkItemList(props: ListProps): ReactElement {
       t(state.page.emptiness === 'no-matches' ? 'list.noMatches' : 'list.empty'),
     )
   }
+  const columns = visibleColumns(rows, props.sort)
+  const tree = hierarchicalRows(rows, props.sort, expanded)
+  const drawnItems = tree.map(({ item }) => item)
   return createElement(
     'div',
     { 'data-scrum-list': 'items' },
-    createElement(
-      'div',
-      { 'data-scrum-list-bar': true },
-      createElement('p', { 'data-scrum-list-count': true }, `${t('list.count')} ${rows.length}`),
-      /*
-       * How to begin, while beginning is still the next thing to do. Once
-       * rows are marked the form below says what is marked, and a toolbar
-       * still explaining how to mark them would be arguing with it.
-       */
-      props.readOnly || markedIn(rows, props).length > 0
-        ? null
-        : createElement('p', { 'data-scrum-list-hint': true }, t('list.batch.hint')),
-      props.readOnly
-        ? null
-        : createElement(
-            'button',
-            {
-              type: 'button',
-              'data-scrum-export': true,
-              onClick: () => {
-                props.actions.exportRows(rows)
-              },
-            },
-            t('list.export'),
-          ),
-    ),
-    props.readOnly ? null : batchPanel(rows, props),
+    props.readOnly ? null : batchPanel(drawnItems, props),
     outcomePanel(props),
     createElement(
-      'table',
-      null,
+      'div',
+      { 'data-scrum-table-scroll': true },
       createElement(
-        'thead',
-        null,
+        'table',
+        { 'aria-label': t('items.title') },
         createElement(
-          'tr',
+          'thead',
           null,
-          props.readOnly ? null : selectAllCell(rows, props),
-          LIST_COLUMNS.map((column) => headerCell(column, props)),
+          createElement(
+            'tr',
+            null,
+            props.readOnly ? null : selectAllCell(drawnItems, props),
+            columns.map((column) => headerCell(column, props)),
+          ),
         ),
-      ),
-      createElement(
-        'tbody',
-        null,
-        rows.map((item) => rowFor(item, props)),
+        createElement(
+          'tbody',
+          null,
+          tree.map((row) =>
+            rowFor(row, columns, props, () => {
+              setExpanded(
+                expanded.includes(row.item.id)
+                  ? expanded.filter((id) => id !== row.item.id)
+                  : [...expanded, row.item.id],
+              )
+            }),
+          ),
+        ),
       ),
     ),
   )
+}
+
+function visibleColumns(
+  rows: readonly WorkItem[],
+  sort: ListSort,
+): readonly { readonly column: ListColumn; readonly label: MessageKey }[] {
+  const priorities = new Set(rows.map((item) => item.priority))
+  return OPTIONAL_COLUMNS.filter(({ column }) => {
+    if (column === LIST_COLUMN.priority)
+      return (
+        priorities.size > 1 ||
+        sort.column === LIST_COLUMN.priority ||
+        rows.some((item) => priorityTone(item.priority) !== 'quiet')
+      )
+    if (column === LIST_COLUMN.assignee) return rows.some((item) => item.assigneeId !== null)
+    if (column === LIST_COLUMN.estimate) return rows.some((item) => item.estimate !== null)
+    if (column === LIST_COLUMN.sprint) return rows.some((item) => item.sprintId !== null)
+    return true
+  })
+}
+
+interface HierarchicalRow {
+  readonly item: WorkItem
+  readonly depth: number
+  readonly childCount: number
+  readonly expanded: boolean
+  readonly orphaned: boolean
+}
+
+function hierarchicalRows(
+  rows: readonly WorkItem[],
+  sort: ListSort,
+  expanded: readonly WorkItemId[],
+): readonly HierarchicalRow[] {
+  const ids = new Set(rows.map((item) => item.id))
+  const children = new Map<WorkItemId, WorkItem[]>()
+  for (const item of rows) {
+    if (item.parentId !== null && ids.has(item.parentId)) {
+      children.set(item.parentId, [...(children.get(item.parentId) ?? []), item])
+    }
+  }
+  const roots = rows.filter((item) => item.parentId === null || !ids.has(item.parentId))
+  const result: HierarchicalRow[] = []
+  const visit = (item: WorkItem, depth: number): void => {
+    const descendants = sortWorkItems(children.get(item.id) ?? [], sort)
+    const open = depth === 0 ? !expanded.includes(item.id) : expanded.includes(item.id)
+    result.push({
+      item,
+      depth,
+      childCount: descendants.length,
+      expanded: open,
+      orphaned: item.parentId !== null && !ids.has(item.parentId),
+    })
+    if (open) {
+      for (const child of descendants) visit(child, depth + 1)
+    }
+  }
+  for (const root of sortWorkItems(roots, sort)) visit(root, 0)
+  return result
 }
 
 /**
@@ -167,17 +224,36 @@ function headerCell(
         },
       },
       props.t(column.label),
+      active
+        ? createElement(
+            'span',
+            { 'data-scrum-sort-direction': props.sort.direction, 'aria-hidden': true },
+            props.sort.direction === 'ascending' ? '↑' : '↓',
+          )
+        : null,
     ),
   )
 }
 
-function rowFor(item: WorkItem, props: ListProps): ReactElement {
+function rowFor(
+  row: HierarchicalRow,
+  columns: readonly { readonly column: ListColumn }[],
+  props: ListProps,
+  toggle: () => void,
+): ReactElement {
   const { t } = props
+  const { item } = row
   const selected = props.state.selected?.id === item.id
   const marked = props.marked.includes(item.id)
+  const visible = new Set(columns.map(({ column }) => column))
   return createElement(
     'tr',
-    { key: item.id, 'data-scrum-list-row': item.id, 'aria-selected': selected },
+    {
+      key: item.id,
+      'data-scrum-list-row': item.id,
+      'data-scrum-depth': row.depth,
+      'aria-selected': selected,
+    },
     props.readOnly
       ? null
       : createElement(
@@ -197,64 +273,218 @@ function rowFor(item: WorkItem, props: ListProps): ReactElement {
         ),
     createElement(
       'td',
-      { 'data-scrum-column': LIST_COLUMN.id },
+      { 'data-scrum-column': LIST_COLUMN.title },
+      itemIdentity(row, props, toggle),
+    ),
+    visible.has(LIST_COLUMN.status)
+      ? createElement('td', { 'data-scrum-column': LIST_COLUMN.status }, statusFor(item, t))
+      : null,
+    visible.has(LIST_COLUMN.priority)
+      ? createElement(
+          'td',
+          { 'data-scrum-column': LIST_COLUMN.priority, 'data-scrum-priority-value': item.priority },
+          priority(item, t),
+        )
+      : null,
+    visible.has(LIST_COLUMN.assignee)
+      ? createElement('td', { 'data-scrum-column': LIST_COLUMN.assignee }, assignee(item, t))
+      : null,
+    visible.has(LIST_COLUMN.estimate)
+      ? createElement(
+          'td',
+          { 'data-scrum-column': LIST_COLUMN.estimate },
+          item.estimate === null ? emptyValue(t('backlog.unestimated')) : String(item.estimate),
+        )
+      : null,
+    visible.has(LIST_COLUMN.sprint)
+      ? createElement(
+          'td',
+          { 'data-scrum-column': LIST_COLUMN.sprint },
+          item.sprintId ?? emptyValue(t('list.noSprint')),
+        )
+      : null,
+    createElement(
+      'td',
+      { 'data-scrum-column': LIST_COLUMN.updated },
       createElement(
-        'button',
-        {
-          type: 'button',
-          'aria-pressed': selected,
-          onClick: () => {
-            props.actions.select(selected ? null : item.id)
-          },
-        },
-        item.id,
+        'time',
+        { dateTime: item.updatedAt, title: new Date(item.updatedAt).toLocaleString() },
+        relativeTime(item.updatedAt, t),
       ),
     ),
-    createElement('td', { 'data-scrum-column': LIST_COLUMN.title }, item.title),
-    createElement('td', { 'data-scrum-column': LIST_COLUMN.type }, t(typeLabel(item.type))),
+  )
+}
+
+function statusFor(item: WorkItem, t: Translate): ReactElement {
+  const satisfied = item.acceptanceCriteria.filter((criterion) => criterion.satisfied).length
+  if (item.status === WORK_ITEM_STATUS.done && satisfied < item.acceptanceCriteria.length) {
+    return badge(t('list.status.acceptanceFailed'), 'attention')
+  }
+  if (item.status === WORK_ITEM_STATUS.done && item.resolution !== null) {
+    return badge(
+      t(resolutionLabel(item.resolution)),
+      item.resolution === WORK_ITEM_RESOLUTION.done ? 'complete' : 'quiet',
+    )
+  }
+  return badge(t(statusLabel(item.status)), statusTone(item.status))
+}
+
+function priority(item: WorkItem, t: Translate): ReactElement {
+  const tone = priorityTone(item.priority)
+  return createElement('span', { 'data-scrum-priority': tone }, t(priorityLabel(item.priority)))
+}
+
+function assignee(item: WorkItem, t: Translate): ReactElement {
+  if (item.assigneeId === null) {
+    return createElement('span', {
+      'data-scrum-avatar': 'empty',
+      title: t('list.unassigned'),
+      'aria-label': t('list.unassigned'),
+    })
+  }
+  return createElement(
+    'span',
+    { 'data-scrum-avatar': 'assigned', title: item.assigneeId, 'aria-label': item.assigneeId },
+    item.assigneeId.slice(0, 2).toUpperCase(),
+  )
+}
+
+function relativeTime(timestamp: string, t: Translate): string {
+  const elapsed = Math.max(0, Date.now() - new Date(timestamp).getTime())
+  const minutes = Math.floor(elapsed / 60_000)
+  if (minutes < 1) return t('list.updated.justNow')
+  if (minutes < 60) return t('list.updated.minutesAgo').replace('{value}', String(minutes))
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return t('list.updated.hoursAgo').replace('{value}', String(hours))
+  const days = Math.floor(hours / 24)
+  return t('list.updated.daysAgo').replace('{value}', String(days))
+}
+
+/**
+ * The part of a row people actually scan.
+ *
+ * Identity, hierarchy and warning signals belong together: spreading them
+ * across five equal columns made the title visually indistinguishable from
+ * metadata, while hiding them would make the compact table less truthful.
+ */
+function itemIdentity(row: HierarchicalRow, props: ListProps, toggle: () => void): ReactElement {
+  const { t } = props
+  const { item } = row
+  const selected = props.state.selected?.id === item.id
+  const hasMeta = item.category !== null || row.orphaned || item.labels.length > 0
+  const hasSignals = item.blockedReason !== null || item.dependsOn.length > 0
+  return createElement(
+    'div',
+    { 'data-scrum-item-identity': true, 'data-scrum-tree-depth': row.depth },
+    row.childCount === 0
+      ? createElement('span', { 'data-scrum-tree-spacer': true })
+      : createElement(
+          'button',
+          {
+            type: 'button',
+            'data-scrum-tree-toggle': item.id,
+            'aria-expanded': row.expanded,
+            'aria-label': t(row.expanded ? 'list.tree.collapse' : 'list.tree.expand'),
+            onClick: toggle,
+          },
+          row.expanded ? '⌄' : '›',
+        ),
     createElement(
-      'td',
-      { 'data-scrum-column': LIST_COLUMN.category },
-      t(categoryLabel(item.category)),
-    ),
-    // The outcome sits with the status, because on a finished item it is the
-    // half of "done" that says whether the work was actually delivered. The
-    // status is what carries the tone; the outcome trails it quietly, since
-    // two coloured words in one cell would be two things asking to be read
-    // first.
-    createElement(
-      'td',
-      { 'data-scrum-column': LIST_COLUMN.status },
-      badge(t(statusLabel(item.status)), statusTone(item.status)),
-      item.resolution === null
+      'a',
+      {
+        href: `#${item.id}`,
+        'aria-current': selected ? 'true' : undefined,
+        'data-scrum-item-open': item.id,
+        onClick: (event: { preventDefault: () => void }) => {
+          event.preventDefault()
+          props.actions.select(selected ? null : item.id)
+        },
+      },
+      createElement(
+        'span',
+        {
+          'data-scrum-type-icon': item.type,
+          title: t(typeLabel(item.type)),
+          'aria-label': t(typeLabel(item.type)),
+        },
+        typeMark(item),
+      ),
+      createElement('span', { 'data-scrum-item-key': true }, item.id),
+      createElement('span', { 'data-scrum-item-title': true }, item.title),
+      row.childCount === 0
         ? null
         : createElement(
             'span',
-            { 'data-scrum-outcome': true },
-            ` · ${t(resolutionLabel(item.resolution))}`,
+            { 'data-scrum-child-count': true },
+            t('list.tree.children').replace('{value}', String(row.childCount)),
           ),
     ),
-    createElement(
-      'td',
-      { 'data-scrum-column': LIST_COLUMN.priority },
-      badge(t(priorityLabel(item.priority)), priorityTone(item.priority)),
-    ),
-    createElement(
-      'td',
-      { 'data-scrum-column': LIST_COLUMN.assignee },
-      item.assigneeId ?? t('list.unassigned'),
-    ),
-    createElement(
-      'td',
-      { 'data-scrum-column': LIST_COLUMN.estimate },
-      item.estimate === null ? t('backlog.unestimated') : String(item.estimate),
-    ),
-    createElement(
-      'td',
-      { 'data-scrum-column': LIST_COLUMN.sprint },
-      item.sprintId ?? t('list.noSprint'),
-    ),
-    createElement('td', { 'data-scrum-column': LIST_COLUMN.updated }, item.updatedAt),
+    hasMeta
+      ? createElement(
+          'div',
+          { 'data-scrum-item-meta': true },
+          item.category === null
+            ? null
+            : createElement(
+                'span',
+                { 'data-scrum-category': true },
+                t(categoryLabel(item.category)),
+              ),
+          row.orphaned
+            ? createElement(
+                'span',
+                { 'data-scrum-parent': true },
+                `${t('item.parent')} ${item.parentId}`,
+              )
+            : null,
+          item.labels.map((label) =>
+            createElement('span', { key: label, 'data-scrum-label': true }, label),
+          ),
+        )
+      : null,
+    hasSignals
+      ? createElement(
+          'div',
+          { 'data-scrum-item-signals': true },
+          item.blockedReason === null
+            ? null
+            : createElement(
+                'span',
+                { 'data-scrum-item-signal': 'blocked' },
+                t('list.signal.blocked'),
+              ),
+          item.dependsOn.length === 0
+            ? null
+            : createElement(
+                'span',
+                { 'data-scrum-item-signal': 'dependency' },
+                `${t('list.signal.dependencies')} ${item.dependsOn.length}`,
+              ),
+        )
+      : null,
+  )
+}
+
+function typeMark(item: WorkItem): string {
+  switch (item.type) {
+    case 'epic':
+      return 'E'
+    case 'story':
+      return 'S'
+    case 'task':
+      return 'T'
+    case 'bug':
+      return '!'
+    case 'subtask':
+      return '↳'
+  }
+}
+
+function emptyValue(label: string): ReactElement {
+  return createElement(
+    'span',
+    { 'data-scrum-empty-value': true, title: label, 'aria-label': label },
+    '—',
   )
 }
 

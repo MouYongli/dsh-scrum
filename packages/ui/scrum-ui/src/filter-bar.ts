@@ -1,4 +1,4 @@
-import { createElement, type ReactElement } from 'react'
+import { createElement, useState, type ReactElement } from 'react'
 import {
   WORK_ITEM_LEVEL,
   WORK_ITEM_TYPE,
@@ -32,6 +32,11 @@ export interface FilterBarProps {
   readonly t: Translate
   /** Prefix for the control ids, so two bars on one page stay distinguishable. */
   readonly id: string
+  /** Keeps search and frequent choices visible, with the long tail disclosed. */
+  readonly progressive?: boolean | undefined
+  /** A page-local question that the wire does not model as a filter. */
+  readonly unestimated?: boolean | undefined
+  readonly onUnestimated?: ((active: boolean) => void) | undefined
 }
 
 /**
@@ -44,10 +49,8 @@ export interface FilterBarProps {
  */
 export function FilterBar(props: FilterBarProps): ReactElement {
   const { t, query } = props
-  return createElement(
-    'div',
-    { 'data-scrum-filter-bar': true, role: 'group', 'aria-label': t('filter.title') },
-    text(props),
+  const [expanded, setExpanded] = useState(false)
+  const advanced = [
     multi(props, 'type', 'filter.type', WORK_ITEM_TYPES, typeLabel, query.types, (types) => {
       props.onQuery({ ...query, types })
     }),
@@ -88,8 +91,62 @@ export function FilterBar(props: FilterBarProps): ReactElement {
     assignee(props),
     labels(props),
     blocked(props),
+  ]
+
+  if (props.progressive === true) {
+    const count = activeFilterCount(query) + (props.unestimated === true ? 1 : 0)
+    return createElement(
+      'div',
+      { 'data-scrum-filter-bar': 'progressive', role: 'group', 'aria-label': t('filter.title') },
+      createElement(
+        'div',
+        { 'data-scrum-filter-primary': true },
+        text(props),
+        createElement(
+          'button',
+          {
+            type: 'button',
+            'data-scrum-filter-more': true,
+            'aria-expanded': expanded,
+            'aria-controls': `${props.id}-advanced`,
+            onClick: () => {
+              setExpanded(!expanded)
+            },
+          },
+          `${t(expanded ? 'filter.less' : 'filter.more')}${count === 0 ? '' : ` · ${count}`}`,
+        ),
+      ),
+      expanded
+        ? createElement(
+            'div',
+            { id: `${props.id}-advanced`, 'data-scrum-filter-advanced': true },
+            advanced,
+          )
+        : null,
+      isNarrowed(query) || props.unestimated === true ? clear(props) : null,
+    )
+  }
+  return createElement(
+    'div',
+    { 'data-scrum-filter-bar': true, role: 'group', 'aria-label': t('filter.title') },
+    text(props),
+    advanced,
     clear(props),
   )
+}
+
+function activeFilterCount(query: WorkItemQuery): number {
+  return [
+    query.text.trim() !== '',
+    query.types.length > 0,
+    query.categories.length > 0,
+    query.statuses.length > 0,
+    query.priorities.length > 0,
+    query.labels.length > 0,
+    query.assigneeId !== undefined,
+    query.epicId !== undefined,
+    query.blocked !== undefined,
+  ].filter(Boolean).length
 }
 
 function control(id: string, label: string, field: ReactElement): ReactElement {
@@ -111,6 +168,7 @@ function text(props: FilterBarProps): ReactElement {
       type: 'search',
       'data-scrum-filter': 'text',
       value: props.query.text,
+      placeholder: props.t('filter.text.placeholder'),
       onChange: (event: { target: { value: string } }) => {
         props.onQuery({ ...props.query, text: event.target.value })
       },
@@ -258,7 +316,7 @@ function blocked(props: FilterBarProps): ReactElement {
 
 /** Only offered once there is something to clear. */
 function clear(props: FilterBarProps): ReactElement | null {
-  if (!isNarrowed(props.query)) {
+  if (!isNarrowed(props.query) && props.unestimated !== true) {
     return createElement('p', { 'data-scrum-filter-none': true }, props.t('filter.none'))
   }
   return createElement(
@@ -267,6 +325,7 @@ function clear(props: FilterBarProps): ReactElement | null {
       type: 'button',
       'data-scrum-filter-clear': true,
       onClick: () => {
+        props.onUnestimated?.(false)
         props.onQuery({
           text: '',
           types: [],

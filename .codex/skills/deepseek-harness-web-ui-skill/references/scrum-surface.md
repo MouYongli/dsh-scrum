@@ -66,10 +66,10 @@ Six sections in the workbench tab strip, in this order
 The order is the reading order from `docs/product/scrum.md` 5.1: what is next,
 what is happening, what happened.
 
-The Scrum agent is **not** a section. It opens a conversation rather than a
-projection of the project, and sits in the workbench header beside the way
-back. Work item detail is the workbench's own drawer; it does not reuse the
-conversation's tool detail panel.
+The Scrum agent is **not** a section and has no action in the workbench header.
+Agent work remains in Harness conversations rather than competing with project
+navigation. Work item detail is the workbench's own drawer; it does not reuse
+the conversation's tool detail panel.
 
 So the Overview / Tasks / Runs / Artifacts / Settings information architecture
 in `harness-plugin-ui.md` is the generic case, not this plugin. Do not import

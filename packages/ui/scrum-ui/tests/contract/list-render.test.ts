@@ -43,7 +43,6 @@ function render(props: Partial<ListProps> = {}): string {
         refresh: vi.fn(),
         mark: vi.fn(),
         apply: vi.fn(),
-        exportRows: vi.fn(),
       },
       ...props,
     }),
@@ -51,14 +50,42 @@ function render(props: Partial<ListProps> = {}): string {
 }
 
 describe('the work item list', () => {
-  it('draws every column with a sortable heading', () => {
+  it('keeps high-signal columns and removes globally empty columns', () => {
     const markup = render()
 
-    for (const column of Object.values(LIST_COLUMN)) {
-      if (column === LIST_COLUMN.rank) continue
+    for (const column of [LIST_COLUMN.title, LIST_COLUMN.status, LIST_COLUMN.updated]) {
       expect(markup).toContain(`data-scrum-column="${column}"`)
     }
+    for (const column of [
+      LIST_COLUMN.priority,
+      LIST_COLUMN.assignee,
+      LIST_COLUMN.estimate,
+      LIST_COLUMN.sprint,
+    ]) {
+      expect(markup).not.toContain(`data-scrum-column="${column}"`)
+    }
+    expect(markup).toContain('data-scrum-item-key')
+    expect(markup).toContain('data-scrum-type-icon="story"')
     expect(markup).toContain(t('list.sortBy'))
+  })
+
+  it('surfaces risks and readiness without opening the detail', () => {
+    const markup = render({
+      state: state([
+        item(1, {
+          blockedReason: '等待接口',
+          dependsOn: [item(2, {}).id],
+          acceptanceCriteria: [
+            { text: '可以退款', satisfied: true },
+            { text: '记录原因', satisfied: false },
+          ],
+        }),
+      ]),
+    })
+
+    expect(markup).toContain(t('list.signal.blocked'))
+    expect(markup).toContain(`${t('list.signal.dependencies')} 1`)
+    expect(markup).not.toContain(t('list.signal.acceptanceWarning'))
   })
 
   it('says which column the table is ordered by', () => {
@@ -70,17 +97,15 @@ describe('the work item list', () => {
     expect(markup).toContain('aria-sort="none"')
   })
 
-  it('shows how a finished item ended beside its status', () => {
+  it('shows a finished outcome as the single primary status', () => {
     const markup = render({
       state: state([
         item(1, { status: WORK_ITEM_STATUS.done, resolution: WORK_ITEM_RESOLUTION.wontFix }),
       ]),
     })
 
-    // The status carries the tone and the outcome trails it, so the two are
-    // separate elements rather than one string.
-    expect(markup).toContain(`<span data-scrum-badge="complete">${t('status.done')}</span>`)
-    expect(markup).toContain(` · ${t('resolution.wontFix')}`)
+    expect(markup).toContain(`<span data-scrum-badge="quiet">${t('resolution.wontFix')}</span>`)
+    expect(markup).not.toContain(t('status.done'))
   })
 
   it('does not answer "done" with the word done twice', () => {
@@ -90,11 +115,9 @@ describe('the work item list', () => {
       ]),
     })
 
-    // The outcome is the half of "done" that says whether the work was
-    // delivered. Spelling both halves the same way spends a column saying
-    // nothing.
     expect(t('resolution.done')).not.toBe(t('status.done'))
-    expect(markup).toContain(` · ${t('resolution.done')}`)
+    expect(markup).toContain(`<span data-scrum-badge="complete">${t('resolution.done')}</span>`)
+    expect(markup).not.toContain(t('status.done'))
   })
 
   it('tones the status and the priority, without dropping either word', () => {
@@ -103,7 +126,7 @@ describe('the work item list', () => {
     })
 
     expect(markup).toContain(`<span data-scrum-badge="active">${t('status.inProgress')}</span>`)
-    expect(markup).toContain(`<span data-scrum-badge="urgent">${t('priority.critical')}</span>`)
+    expect(markup).toContain(`<span data-scrum-priority="urgent">${t('priority.critical')}</span>`)
   })
 
   it('leaves the ordinary rows unmarked, so a mark still means something', () => {
@@ -112,15 +135,17 @@ describe('the work item list', () => {
     })
 
     expect(markup).toContain(`<span data-scrum-badge="quiet">${t('status.todo')}</span>`)
-    expect(markup).toContain(`<span data-scrum-badge="quiet">${t('priority.medium')}</span>`)
+    expect(markup).not.toContain('data-scrum-column="priority"')
   })
 
-  it('names what is missing rather than leaving a cell blank', () => {
+  it('removes columns that contain no information', () => {
     const markup = render()
 
-    expect(markup).toContain(t('list.unassigned'))
-    expect(markup).toContain(t('list.noSprint'))
-    expect(markup).toContain(t('backlog.unestimated'))
+    expect(markup).not.toContain(`aria-label="${t('list.unassigned')}"`)
+    expect(markup).not.toContain(`aria-label="${t('list.noSprint')}"`)
+    expect(markup).not.toContain(`aria-label="${t('backlog.unestimated')}"`)
+    expect(markup).not.toContain('data-scrum-empty-value="true"')
+    expect(markup).toContain('dateTime="2026-03-01T09:00:00.000Z"')
   })
 
   it('tells an empty project apart from an over-narrow filter', () => {
@@ -130,12 +155,10 @@ describe('the work item list', () => {
 })
 
 describe('selecting rows for a batch', () => {
-  it('says how to start on the toolbar rather than holding a row open for it', () => {
+  it('keeps batch instructions out of the page until a row is selected', () => {
     const markup = render()
 
-    // The sentence is read once; a block that keeps saying it costs a row of
-    // every screen after that, so it travels with the count instead.
-    expect(markup).toContain(t('list.batch.hint'))
+    expect(markup).not.toContain(t('list.batch.hint'))
     expect(markup).not.toContain('data-scrum-batch=')
   })
 
@@ -143,6 +166,25 @@ describe('selecting rows for a batch', () => {
     const markup = render({ marked: [item(1, {}).id] })
 
     expect(markup).not.toContain(t('list.batch.hint'))
+  })
+
+  it('warns when a finished item still has unmet acceptance criteria', () => {
+    const markup = render({
+      state: state([
+        item(1, {
+          status: WORK_ITEM_STATUS.done,
+          resolution: WORK_ITEM_RESOLUTION.done,
+          acceptanceCriteria: [
+            { text: 'first', satisfied: false },
+            { text: 'second', satisfied: false },
+          ],
+        }),
+      ]),
+    })
+
+    expect(markup).toContain('data-scrum-badge="attention"')
+    expect(markup).toContain(t('list.status.acceptanceFailed'))
+    expect(markup).not.toContain(t('status.done'))
   })
 
   it('offers the change form once something is marked, and counts what is marked', () => {
